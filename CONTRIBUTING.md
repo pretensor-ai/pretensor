@@ -67,11 +67,16 @@ This appends a line like:
 Signed-off-by: Jane Doe <jane@example.com>
 ```
 
-The sign-off must use your real name (pseudonyms are not accepted). Configure git once:
+Your sign-off identity must be traceable to you — either your real name with a working email, or your GitHub username paired with your `@users.noreply.github.com` email. Fully anonymous sign-offs are not accepted. Configure git once:
 
 ```bash
+# Real name + email
 git config --global user.name "Jane Doe"
 git config --global user.email "jane@example.com"
+
+# Or GitHub username + noreply alias (find your numeric ID at https://github.com/settings/emails)
+git config --global user.name "janedoe"
+git config --global user.email "12345678+janedoe@users.noreply.github.com"
 ```
 
 If you forgot to sign off the latest commit, amend it:
