@@ -5,8 +5,20 @@ description = "Pretensor database knowledge graph — Kuzu-backed schema graph f
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
+authors = [{name = "Carlos", email = "275843998+tensorcarlos@users.noreply.github.com"}]
+readme = "README.md"
+keywords = ["database", "knowledge-graph", "kuzu", "mcp", "schema", "llm", "postgres", "snowflake", "bigquery", "graph", "data-catalog"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "httpx>=0.27",
@@ -23,6 +35,13 @@ dependencies = [
     "psycopg2-binary>=2.9",
     "rapidfuzz>=3.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/pretensor-ai/pretensor"
+Repository = "https://github.com/pretensor-ai/pretensor"
+Issues = "https://github.com/pretensor-ai/pretensor/issues"
+Changelog = "https://github.com/pretensor-ai/pretensor/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/pretensor-ai/pretensor#readme"
 
 [project.scripts]
 pretensor = "pretensor.cli.main:app"
