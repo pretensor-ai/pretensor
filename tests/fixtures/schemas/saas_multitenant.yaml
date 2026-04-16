@@ -1,0 +1,551 @@
+connection_name: saas
+database: saas
+schemas:
+- public
+tables:
+- name: accounts
+  schema_name: public
+  table_type:
+  columns:
+  - name: account_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: name
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: plan
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: users
+  schema_name: public
+  table_type:
+  columns:
+  - name: user_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: account_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: email
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: users
+    source_column: account_id
+    target_schema: public
+    target_table: accounts
+    target_column: account_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: subscriptions
+  schema_name: public
+  table_type:
+  columns:
+  - name: subscription_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: account_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: product
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: started_at
+    data_type: timestamp
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: subscriptions
+    source_column: account_id
+    target_schema: public
+    target_table: accounts
+    target_column: account_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: events
+  schema_name: public
+  table_type:
+  columns:
+  - name: event_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: user_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: event_type
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: occurred_at
+    data_type: timestamp
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: events
+    source_column: user_id
+    target_schema: public
+    target_table: users
+    target_column: user_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: audit_log
+  schema_name: public
+  table_type:
+  columns:
+  - name: log_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: account_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: action
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: created_at
+    data_type: timestamp
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: audit_log
+    source_column: account_id
+    target_schema: public
+    target_table: accounts
+    target_column: account_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+introspected_at: '2024-01-01T00:00:00Z'
+metadata: {}
+view_dependencies: []

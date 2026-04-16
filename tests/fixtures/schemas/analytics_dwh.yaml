@@ -1,0 +1,574 @@
+connection_name: analytics
+database: analytics
+schemas:
+- public
+tables:
+- name: dim_date
+  schema_name: public
+  table_type:
+  columns:
+  - name: date_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: full_date
+    data_type: date
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: year
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: quarter
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: dim_product
+  schema_name: public
+  table_type:
+  columns:
+  - name: product_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: product_name
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: category
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: dim_customer
+  schema_name: public
+  table_type:
+  columns:
+  - name: customer_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: customer_name
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: region
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: dim_geography
+  schema_name: public
+  table_type:
+  columns:
+  - name: geo_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: country
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: city
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: fact_sales
+  schema_name: public
+  table_type:
+  columns:
+  - name: sale_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: date_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: product_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: customer_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: geo_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: amount
+    data_type: decimal
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: fact_sales
+    source_column: date_id
+    target_schema: public
+    target_table: dim_date
+    target_column: date_id
+  - source_schema: public
+    source_table: fact_sales
+    source_column: product_id
+    target_schema: public
+    target_table: dim_product
+    target_column: product_id
+  - source_schema: public
+    source_table: fact_sales
+    source_column: customer_id
+    target_schema: public
+    target_table: dim_customer
+    target_column: customer_id
+  - source_schema: public
+    source_table: fact_sales
+    source_column: geo_id
+    target_schema: public
+    target_table: dim_geography
+    target_column: geo_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+introspected_at: '2024-01-01T00:00:00Z'
+metadata: {}
+view_dependencies: []

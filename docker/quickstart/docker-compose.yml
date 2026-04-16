@@ -1,0 +1,18 @@
+services:
+  pretensor-quickstart-db:
+    image: postgres:16-alpine
+    container_name: pretensor-quickstart-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pagila
+    ports:
+      - "55432:5432"
+    volumes:
+      - ../../tests/e2e/fixtures/sql/pagila_ddl.sql:/docker-entrypoint-initdb.d/01_pagila_ddl.sql:ro
+      - ../../tests/e2e/fixtures/sql/pagila_data.sql:/docker-entrypoint-initdb.d/02_pagila_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pagila"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

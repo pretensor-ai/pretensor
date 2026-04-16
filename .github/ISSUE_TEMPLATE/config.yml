@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/pretensor-ai/pretensor/security/advisories/new
+    about: Please report security issues privately through GitHub Security Advisories, not as public issues. See SECURITY.md for details.
+  - name: Ask a question or start a discussion
+    url: https://github.com/pretensor-ai/pretensor/discussions
+    about: Questions, ideas, and general discussion belong in Discussions.

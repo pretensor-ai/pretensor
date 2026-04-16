@@ -1,0 +1,27 @@
+# Ground-truth pairs: TPC-H vs TPC-H with renamed entities — same data, different naming (recall test)
+# Entity labels as they would appear after clustering (entity name = first canonical table)
+pairs:
+  - entity_a: customer
+    entity_b: clients
+    is_match: true
+  - entity_a: orders
+    entity_b: purchases
+    is_match: true
+  - entity_a: supplier
+    entity_b: vendor
+    is_match: true
+  - entity_a: part
+    entity_b: product
+    is_match: true
+  - entity_a: nation
+    entity_b: country
+    is_match: true
+  - entity_a: region
+    entity_b: territory
+    is_match: true
+  - entity_a: lineitem
+    entity_b: order_line
+    is_match: true
+  - entity_a: partsupp
+    entity_b: product_supply
+    is_match: true

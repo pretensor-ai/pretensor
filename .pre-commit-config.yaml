@@ -1,0 +1,21 @@
+# Public repo pre-commit config — ruff + pyright only.
+
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff-check
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        language: system
+        entry: python
+        pass_filenames: false
+        args: [-m, pyright, --project, .]

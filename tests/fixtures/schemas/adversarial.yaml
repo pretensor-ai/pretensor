@@ -1,0 +1,372 @@
+connection_name: adversarial
+database: legacy
+schemas:
+- public
+tables:
+- name: usr_acct
+  schema_name: public
+  table_type:
+  columns:
+  - name: acct_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: usr_nm
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: xref_prod_cat
+  schema_name: public
+  table_type:
+  columns:
+  - name: prod_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: cat_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: tbl_legacy_orders
+  schema_name: public
+  table_type:
+  columns:
+  - name: ord_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: acct_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: amt
+    data_type: decimal
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: tbl_legacy_orders
+    source_column: acct_id
+    target_schema: public
+    target_table: usr_acct
+    target_column: acct_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: tmp_staging_v2
+  schema_name: public
+  table_type:
+  columns:
+  - name: id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: raw_data
+    data_type: text
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: v_active_sessions
+  schema_name: public
+  table_type: VIEW
+  columns:
+  - name: session_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: acct_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+introspected_at: '2024-01-01T00:00:00Z'
+metadata: {}
+view_dependencies: []
