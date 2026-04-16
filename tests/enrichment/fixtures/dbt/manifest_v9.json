@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v9.json"
+  },
+  "nodes": {
+    "model.my_pkg.orders": {
+      "resource_type": "model",
+      "name": "orders",
+      "package_name": "my_pkg",
+      "description": "Orders fact table",
+      "tags": ["core", "finance"],
+      "database": "analytics",
+      "schema": "marts",
+      "alias": "orders",
+      "columns": {
+        "id": {
+          "name": "id",
+          "description": "Primary key"
+        }
+      }
+    },
+    "test.my_pkg.unique_orders_id": {
+      "resource_type": "test",
+      "name": "unique_orders_id",
+      "package_name": "my_pkg",
+      "attached_node": "model.my_pkg.orders"
+    }
+  },
+  "sources": {
+    "source.my_pkg.raw.orders": {
+      "name": "orders",
+      "source_name": "raw",
+      "package_name": "my_pkg",
+      "description": "Raw orders from app",
+      "tags": ["raw"],
+      "database": "analytics",
+      "schema": "raw",
+      "identifier": "orders"
+    }
+  },
+  "exposures": {
+    "exposure.my_pkg.looker_dashboard": {
+      "name": "looker_dashboard",
+      "package_name": "my_pkg",
+      "description": "Executive dashboard",
+      "tags": ["bi"],
+      "depends_on": {
+        "nodes": ["model.my_pkg.orders"]
+      }
+    }
+  },
+  "parent_map": {
+    "model.my_pkg.orders": ["source.my_pkg.raw.orders"]
+  }
+}

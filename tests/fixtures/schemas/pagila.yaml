@@ -1,0 +1,657 @@
+connection_name: pagila
+database: pagila
+schemas:
+- public
+tables:
+- name: film
+  schema_name: public
+  table_type:
+  columns:
+  - name: film_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: title
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: release_year
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: actor
+  schema_name: public
+  table_type:
+  columns:
+  - name: actor_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: first_name
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: last_name
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: film_actor
+  schema_name: public
+  table_type:
+  columns:
+  - name: actor_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: film_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: film_actor
+    source_column: actor_id
+    target_schema: public
+    target_table: actor
+    target_column: actor_id
+  - source_schema: public
+    source_table: film_actor
+    source_column: film_id
+    target_schema: public
+    target_table: film
+    target_column: film_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: inventory
+  schema_name: public
+  table_type:
+  columns:
+  - name: inventory_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: film_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: store_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: inventory
+    source_column: film_id
+    target_schema: public
+    target_table: film
+    target_column: film_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: customer
+  schema_name: public
+  table_type:
+  columns:
+  - name: customer_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: email
+    data_type: varchar
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys: []
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: rental
+  schema_name: public
+  table_type:
+  columns:
+  - name: rental_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: customer_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: inventory_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: rental
+    source_column: customer_id
+    target_schema: public
+    target_table: customer
+    target_column: customer_id
+  - source_schema: public
+    source_table: rental
+    source_column: inventory_id
+    target_schema: public
+    target_table: inventory
+    target_column: inventory_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+- name: payment
+  schema_name: public
+  table_type:
+  columns:
+  - name: payment_id
+    data_type: integer
+    nullable: true
+    is_primary_key: true
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: customer_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: rental_id
+    data_type: integer
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  - name: amount
+    data_type: decimal
+    nullable: true
+    is_primary_key: false
+    is_foreign_key: false
+    default_value:
+    comment:
+    is_indexed: false
+    parent_column:
+    is_array: false
+    check_constraints: []
+    ordinal_position:
+    distinct_count:
+    min_value:
+    max_value:
+    null_percentage:
+    sample_distinct_values:
+    most_common_values:
+    histogram_bounds:
+    stats_correlation:
+    column_cardinality:
+    index_type:
+    index_is_unique:
+  row_count:
+  comment:
+  foreign_keys:
+  - source_schema: public
+    source_table: payment
+    source_column: customer_id
+    target_schema: public
+    target_table: customer
+    target_column: customer_id
+  - source_schema: public
+    source_table: payment
+    source_column: rental_id
+    target_schema: public
+    target_table: rental
+    target_column: rental_id
+  seq_scan_count:
+  idx_scan_count:
+  insert_count:
+  update_count:
+  delete_count:
+  is_partitioned:
+  partition_key:
+  grants:
+  access_read_count:
+  access_write_count:
+  days_since_last_access:
+  potentially_unused:
+  table_bytes:
+  clustering_key:
+introspected_at: '2024-01-01T00:00:00Z'
+metadata: {}
+view_dependencies: []

@@ -1,0 +1,47 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Enable verbose output (--tb=long -s)"
+        type: boolean
+        default: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    # Docker Engine is pre-installed on ubuntu-latest — no extra setup needed
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies (make test-e2e uses uv sync --extra dev --extra e2e)
+        run: uv sync --extra dev --extra e2e
+
+      - name: Run E2E suite (PRETENSOR_E2E=1 uv run pytest tests/e2e/ ...)
+        env:
+          PRETENSOR_E2E: "1"
+        run: |
+          if [ "${{ inputs.verbose }}" = "true" ]; then
+            uv run pytest tests/e2e/ -v --tb=long -s
+          else
+            uv run pytest tests/e2e/ -v --tb=short
+          fi
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: /tmp/pytest-*
+          retention-days: 3

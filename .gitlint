@@ -1,0 +1,19 @@
+# R5 commit title shape (Conventional Commits + optional `PROJ-123: ` ticket prefix).
+# The task names `contrib=CC1`; in gitlint 0.19.x, CC1 is signed-off-by on the body,
+# not Conventional Commits. CC1 is listed per spec then ignored so title-only commits can pass.
+# B6 (body required) is ignored so `feat: add thing` with no body passes.
+[general]
+contrib=CC1
+ignore=CC1,B6
+ignore-merge-commits=true
+ignore-fixup-commits=true
+ignore-squash-commits=true
+
+[title-max-length]
+line-length=72
+
+[title-match-regex]
+regex=^([A-Z]+-\d+:\s)?(feat|fix|chore|docs|test|refactor|ci|build|perf|revert|style)(\([a-z0-9-]+\))?:\s[a-z].+[^.]$
+
+[body-max-line-length]
+line-length=100

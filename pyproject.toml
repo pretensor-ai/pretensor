@@ -1,0 +1,109 @@
+[project]
+name = "pretensor"
+version = "0.1.0"
+description = "Pretensor database knowledge graph — Kuzu-backed schema graph from live DB introspection"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "httpx>=0.27",
+    "cryptography>=42.0",
+    "igraph>=0.11,<1",
+    "kuzu>=0.7,<1",
+    "mcp>=1.0",
+    "pydantic>=2.0",
+    "sqlglot>=25.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "ruamel.yaml>=0.18",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "rapidfuzz>=3.0",
+]
+
+[project.scripts]
+pretensor = "pretensor.cli.main:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.15",
+    "pyright>=1.1",
+    "pre-commit>=3.0",
+    "gitlint==0.19.1",
+    "numpy>=1.26",
+]
+snowflake = [
+    "snowflake-sqlalchemy>=1.5",
+]
+bigquery = [
+    "google-cloud-bigquery>=3.25",
+]
+all-connectors = [
+    "snowflake-sqlalchemy>=1.5",
+    "google-cloud-bigquery>=3.25",
+    "onnxruntime>=1.17",
+    "huggingface-hub>=0.20",
+    "numpy>=1.26",
+    "transformers>=4.38",
+]
+clustering = [
+    "leidenalg>=0.10",
+]
+embeddings = [
+    "onnxruntime>=1.17",
+    "huggingface-hub>=0.20",
+    "numpy>=1.26",
+    "transformers>=4.38",
+]
+e2e = [
+    "testcontainers[postgres]>=4.0",
+]
+
+[tool.uv]
+# gitlint-core advertises optional `trusted-deps` pins (click 8.1.x). Without an override,
+# the resolver can pick those pins and downgrade Typer/Click used by Pretensor.
+override-dependencies = ["click>=8.3.2", "typer>=0.24.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "numpy>=2.4.4",
+    "pyright>=1.1.408",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "pyyaml>=6.0.3",
+    "ruff>=0.15.9",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pretensor"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = ["e2e: requires Docker and PRETENSOR_E2E=1"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["**/__pycache__", "tests/e2e"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+extraPaths = ["src"]

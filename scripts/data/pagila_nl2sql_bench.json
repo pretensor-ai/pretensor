@@ -1,0 +1,52 @@
+[
+  {
+    "id": "films_with_categories",
+    "question": "List film titles with their category names.",
+    "expected_sql": "SELECT f.title, c.name AS category_name FROM public.film AS f JOIN public.film_category AS fc ON f.film_id = fc.film_id JOIN public.category AS c ON fc.category_id = c.category_id"
+  },
+  {
+    "id": "customers_per_city",
+    "question": "How many customers are there in each city?",
+    "expected_sql": "SELECT ci.city, COUNT(*) AS customer_count FROM public.customer AS cu JOIN public.address AS a ON cu.address_id = a.address_id JOIN public.city AS ci ON a.city_id = ci.city_id GROUP BY ci.city ORDER BY customer_count DESC"
+  },
+  {
+    "id": "rentals_per_store",
+    "question": "How many rentals did each store process?",
+    "expected_sql": "SELECT s.store_id, COUNT(*) AS rental_count FROM public.rental AS r JOIN public.staff AS st ON r.staff_id = st.staff_id JOIN public.store AS s ON st.store_id = s.store_id GROUP BY s.store_id ORDER BY s.store_id"
+  },
+  {
+    "id": "top_films_by_rentals",
+    "question": "What are the five films rented the most often?",
+    "expected_sql": "SELECT f.title, COUNT(*) AS rental_count FROM public.rental AS r JOIN public.inventory AS i ON r.inventory_id = i.inventory_id JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 5"
+  },
+  {
+    "id": "avg_rental_days",
+    "question": "What is the average rental duration in days?",
+    "expected_sql": "SELECT AVG(EXTRACT(EPOCH FROM (return_date - rental_date)) / 86400) AS avg_rental_days FROM public.rental WHERE return_date IS NOT NULL AND rental_date IS NOT NULL"
+  },
+  {
+    "id": "films_for_actor",
+    "question": "List titles of films starring an actor whose first name is Penelope and last name is Monroe.",
+    "expected_sql": "SELECT f.title FROM public.film AS f JOIN public.film_actor AS fa ON f.film_id = fa.film_id JOIN public.actor AS a ON fa.actor_id = a.actor_id WHERE a.first_name = 'Penelope' AND a.last_name = 'Monroe'"
+  },
+  {
+    "id": "payment_total",
+    "question": "What is the sum of all payment amounts?",
+    "expected_sql": "SELECT SUM(amount) AS total_payments FROM public.payment"
+  },
+  {
+    "id": "customers_never_rented",
+    "question": "How many customers have never rented a film?",
+    "expected_sql": "SELECT COUNT(*) AS customers_without_rentals FROM public.customer AS c WHERE NOT EXISTS (SELECT 1 FROM public.rental AS r WHERE r.customer_id = c.customer_id)"
+  },
+  {
+    "id": "staff_with_store",
+    "question": "List each staff member's first and last name with their store id.",
+    "expected_sql": "SELECT first_name, last_name, store_id FROM public.staff ORDER BY staff_id"
+  },
+  {
+    "id": "inventory_per_film",
+    "question": "For each film title, how many inventory rows exist?",
+    "expected_sql": "SELECT f.title, COUNT(*) AS inventory_rows FROM public.inventory AS i JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY f.title"
+  }
+]

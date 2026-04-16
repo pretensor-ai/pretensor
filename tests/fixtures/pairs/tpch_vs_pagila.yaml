@@ -1,0 +1,17 @@
+# Ground-truth pairs: TPC-H vs Pagila — different domains, expect ~0 true matches (FP stress test)
+pairs:
+  - entity_a: customer
+    entity_b: customer
+    is_match: false   # same name but completely different domains (supply chain vs video rental)
+  - entity_a: orders
+    entity_b: rental
+    is_match: false
+  - entity_a: supplier
+    entity_b: actor
+    is_match: false
+  - entity_a: part
+    entity_b: film
+    is_match: false
+  - entity_a: nation
+    entity_b: payment
+    is_match: false

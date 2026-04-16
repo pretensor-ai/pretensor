@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v10.json"
+  },
+  "nodes": {
+    "model.pkg2.dim_customer": {
+      "resource_type": "model",
+      "name": "dim_customer",
+      "package_name": "pkg2",
+      "database": "wh",
+      "schema": "dims"
+    }
+  },
+  "sources": {},
+  "exposures": {},
+  "parent_map": {
+    "model.pkg2.dim_customer": []
+  }
+}

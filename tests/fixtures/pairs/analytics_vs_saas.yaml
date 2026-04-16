@@ -1,0 +1,17 @@
+# Ground-truth pairs: Analytics DWH vs SaaS — partial overlap (users/accounts match; others don't)
+pairs:
+  - entity_a: dim_customer
+    entity_b: users
+    is_match: true    # both represent end-users / account holders
+  - entity_a: dim_customer
+    entity_b: accounts
+    is_match: true    # accounts ≈ customer dimension
+  - entity_a: fact_sales
+    entity_b: subscriptions
+    is_match: false   # transactions vs billing contracts
+  - entity_a: dim_date
+    entity_b: events
+    is_match: false
+  - entity_a: dim_product
+    entity_b: audit_log
+    is_match: false

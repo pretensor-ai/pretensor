@@ -1,0 +1,110 @@
+name: Bug report
+description: Report a reproducible problem with Pretensor.
+title: "bug: <short summary>"
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the fields below so we can reproduce the issue quickly.
+
+        **Security vulnerabilities must not be filed as public issues.** See [SECURITY.md](https://github.com/pretensor-ai/pretensor/blob/main/SECURITY.md) and report privately via [GitHub Security Advisories](https://github.com/pretensor-ai/pretensor/security/advisories/new).
+
+  - type: input
+    id: pretensor-version
+    attributes:
+      label: Pretensor version
+      description: Output of `pretensor --version`.
+      placeholder: "0.1.0aN"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python --version`.
+      placeholder: "3.11.x or 3.12.x"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Database backend
+      description: Which connector were you using when the bug occurred?
+      options:
+        - PostgreSQL
+        - Snowflake
+        - BigQuery
+        - Not applicable
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: extras
+    attributes:
+      label: Installed extras
+      description: Which pip extras did you install? e.g. `[dev]`, `[snowflake]`, `[bigquery]`, `[e2e]`.
+      placeholder: "[dev]"
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal, self-contained reproduction. Include the exact commands or code.
+      placeholder: |
+        1. Install with `pip install -e ".[dev]"`
+        2. Run `pretensor index ...`
+        3. Observe ...
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include full tracebacks and error messages.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Additional logs or context
+      description: Any relevant logs, MCP transcripts, or schema snippets. Redact secrets and personally identifiable data.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I confirmed this is not a security vulnerability (those go through Security Advisories).
+          required: true
