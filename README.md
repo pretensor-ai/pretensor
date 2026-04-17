@@ -49,7 +49,7 @@ pretensor serve --config-only   # prints mcpServers JSON for Claude / Cursor
 
 Use **`--state-dir`** on `index` / `reindex` and **`--graph-dir`** on `serve` when overriding the default state directory (`.pretensor`).
 
-**Full guide — install, tools, visibility, reindexing, graph visualization:** [docs/quickstart.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/quickstart.md)
+**Full guide — install, tools, visibility, reindexing, graph visualization:** [guides/quickstart.md](guides/quickstart.md)
 
 ## MCP tools
 
@@ -84,11 +84,11 @@ Pretensor is in **pre-release development**. Before the first packaged release:
 - There is no SemVer stability guarantee yet, so APIs, CLI flags, and graph schema may change.
 - Treat current builds as evaluation software and test upgrades in a staging environment before production use.
 
-Progress and release notes: [CHANGELOG.md](https://github.com/pretensor-ai/pretensor/blob/main/CHANGELOG.md).
+Progress and release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/pretensor-ai/pretensor/blob/main/CONTRIBUTING.md). Security issues: see [SECURITY.md](https://github.com/pretensor-ai/pretensor/blob/main/SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: see [SECURITY.md](SECURITY.md).
 
 ## Tests
 
