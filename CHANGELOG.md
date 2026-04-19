@@ -11,7 +11,14 @@ Until the first packaged release, this changelog tracks notable changes landing 
 ## [Unreleased]
 
 ### Added
-- Placeholder for changes landing on `main` between releases.
+- CD pipeline at `.github/workflows/release.yml` that publishes tagged
+  `v*.*.*` versions to PyPI via OIDC trusted publishing, routing
+  prereleases through TestPyPI first.
+- `"Typing :: Typed"` PyPI classifier, pairing the existing
+  `src/pretensor/py.typed` PEP 561 marker with its public advertisement.
+- Release runbook sections in `docs/releases.md` covering publishing,
+  one-time OIDC setup, an optional pre-merge dry-run, cutting a release,
+  and the post-transfer re-point procedure.
 
 <!--
 When cutting a release, copy the contents of [Unreleased] into a new
