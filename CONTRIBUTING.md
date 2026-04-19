@@ -106,6 +106,10 @@ CI will block PRs that contain commits without a valid `Signed-off-by:` line.
 - Maintainers publish updates to dedicated `publish/<slug>-<shortsha>` branches.
 - Contributor PRs should always target `main`, never `publish/*`.
 
+## Releases & versioning
+
+Pretensor follows the PEP 440 + SemVer policy documented in [docs/releases.md](docs/releases.md). The exact version chosen for any given tag is decided at tag time from the state of `main`, not pre-committed in backlog issues.
+
 ## Repository expectations
 
 The public repo CI focuses on the core verification suite (`ruff`, `pyright`, and `pytest`). Maintainers may also review pull requests against the expectations below.
