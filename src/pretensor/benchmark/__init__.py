@@ -11,6 +11,7 @@ land in follow-up changes.
 from __future__ import annotations
 
 from pretensor.benchmark.cli import register_benchmark_command
+from pretensor.benchmark.fixtures import Fixture, load_dataset
 from pretensor.benchmark.results import (
     BenchmarkResult,
     ComparisonError,
@@ -37,10 +38,12 @@ __all__ = [
     "ComparisonReport",
     "Dataset",
     "Direction",
+    "Fixture",
     "Metric",
     "MetricDiff",
     "RunnerKind",
     "compare",
+    "load_dataset",
     "read_json",
     "register_benchmark_command",
     "run_l1",

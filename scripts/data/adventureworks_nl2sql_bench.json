@@ -1,0 +1,112 @@
+[
+  {
+    "id": "employee_count",
+    "question": "How many employees work at the company?",
+    "expected_sql": "SELECT COUNT(*) AS employee_count FROM humanresources.employee"
+  },
+  {
+    "id": "employees_per_department",
+    "question": "How many employees are currently assigned to each department?",
+    "expected_sql": "SELECT d.name AS department, COUNT(*) AS employee_count FROM humanresources.employeedepartmenthistory AS h JOIN humanresources.department AS d ON h.departmentid = d.departmentid WHERE h.enddate IS NULL GROUP BY d.name ORDER BY employee_count DESC"
+  },
+  {
+    "id": "employee_names_with_titles",
+    "question": "List each employee's first name, last name, and job title.",
+    "expected_sql": "SELECT p.firstname, p.lastname, e.jobtitle FROM humanresources.employee AS e JOIN person.person AS p ON e.businessentityid = p.businessentityid ORDER BY p.lastname, p.firstname"
+  },
+  {
+    "id": "salaried_employees",
+    "question": "How many employees are salaried (not hourly)?",
+    "expected_sql": "SELECT COUNT(*) AS salaried_count FROM humanresources.employee WHERE salariedflag = TRUE"
+  },
+  {
+    "id": "avg_vacation_hours_by_department",
+    "question": "What is the average number of vacation hours per department for currently assigned employees?",
+    "expected_sql": "SELECT d.name AS department, AVG(e.vacationhours) AS avg_vacation_hours FROM humanresources.employee AS e JOIN humanresources.employeedepartmenthistory AS h ON e.businessentityid = h.businessentityid JOIN humanresources.department AS d ON h.departmentid = d.departmentid WHERE h.enddate IS NULL GROUP BY d.name ORDER BY avg_vacation_hours DESC"
+  },
+  {
+    "id": "products_by_category",
+    "question": "How many products are there in each product category?",
+    "expected_sql": "SELECT c.name AS category, COUNT(*) AS product_count FROM production.product AS p JOIN production.productsubcategory AS s ON p.productsubcategoryid = s.productsubcategoryid JOIN production.productcategory AS c ON s.productcategoryid = c.productcategoryid GROUP BY c.name ORDER BY product_count DESC"
+  },
+  {
+    "id": "most_expensive_products",
+    "question": "What are the five most expensive products by list price?",
+    "expected_sql": "SELECT name, listprice FROM production.product ORDER BY listprice DESC LIMIT 5"
+  },
+  {
+    "id": "products_without_subcategory",
+    "question": "How many products have no product subcategory assigned?",
+    "expected_sql": "SELECT COUNT(*) AS products_without_subcategory FROM production.product WHERE productsubcategoryid IS NULL"
+  },
+  {
+    "id": "orders_per_customer_top10",
+    "question": "Which ten customers have placed the most sales orders?",
+    "expected_sql": "SELECT c.customerid, COUNT(*) AS order_count FROM sales.salesorderheader AS o JOIN sales.customer AS c ON o.customerid = c.customerid GROUP BY c.customerid ORDER BY order_count DESC LIMIT 10"
+  },
+  {
+    "id": "total_sales_by_territory",
+    "question": "What is the total sales revenue booked in each territory?",
+    "expected_sql": "SELECT t.name AS territory, SUM(o.subtotal) AS total_revenue FROM sales.salesorderheader AS o JOIN sales.salesterritory AS t ON o.territoryid = t.territoryid GROUP BY t.name ORDER BY total_revenue DESC"
+  },
+  {
+    "id": "top_selling_products",
+    "question": "What are the ten products with the highest total quantity sold?",
+    "expected_sql": "SELECT p.name AS product, SUM(d.orderqty) AS total_sold FROM sales.salesorderdetail AS d JOIN production.product AS p ON d.productid = p.productid GROUP BY p.name ORDER BY total_sold DESC LIMIT 10"
+  },
+  {
+    "id": "average_order_value",
+    "question": "What is the average sales-order subtotal?",
+    "expected_sql": "SELECT AVG(subtotal) AS avg_order_subtotal FROM sales.salesorderheader"
+  },
+  {
+    "id": "online_vs_offline_orders",
+    "question": "How many sales orders were placed online versus in-store?",
+    "expected_sql": "SELECT onlineorderflag, COUNT(*) AS order_count FROM sales.salesorderheader GROUP BY onlineorderflag"
+  },
+  {
+    "id": "customers_never_ordered",
+    "question": "How many customers have never placed a sales order?",
+    "expected_sql": "SELECT COUNT(*) AS customers_without_orders FROM sales.customer AS c WHERE NOT EXISTS (SELECT 1 FROM sales.salesorderheader AS o WHERE o.customerid = c.customerid)"
+  },
+  {
+    "id": "vendors_with_purchase_orders",
+    "question": "List each vendor and the number of purchase orders issued to them.",
+    "expected_sql": "SELECT v.name AS vendor, COUNT(*) AS purchase_orders FROM purchasing.purchaseorderheader AS h JOIN purchasing.vendor AS v ON h.vendorid = v.businessentityid GROUP BY v.name ORDER BY purchase_orders DESC"
+  },
+  {
+    "id": "total_purchase_spend_by_vendor",
+    "question": "What is the total purchase-order spend per vendor?",
+    "expected_sql": "SELECT v.name AS vendor, SUM(h.subtotal) AS total_spend FROM purchasing.purchaseorderheader AS h JOIN purchasing.vendor AS v ON h.vendorid = v.businessentityid GROUP BY v.name ORDER BY total_spend DESC"
+  },
+  {
+    "id": "purchase_order_line_items_per_product",
+    "question": "For each product, how many purchase-order line items reference it?",
+    "expected_sql": "SELECT p.name AS product, COUNT(*) AS po_line_items FROM purchasing.purchaseorderdetail AS d JOIN production.product AS p ON d.productid = p.productid GROUP BY p.name ORDER BY po_line_items DESC"
+  },
+  {
+    "id": "employees_hired_per_year",
+    "question": "How many employees were hired in each calendar year?",
+    "expected_sql": "SELECT EXTRACT(YEAR FROM hiredate)::int AS hire_year, COUNT(*) AS hired FROM humanresources.employee GROUP BY hire_year ORDER BY hire_year"
+  },
+  {
+    "id": "orders_over_threshold",
+    "question": "How many sales orders have a subtotal greater than 10000?",
+    "expected_sql": "SELECT COUNT(*) AS large_orders FROM sales.salesorderheader WHERE subtotal > 10000"
+  },
+  {
+    "id": "rank_products_within_category",
+    "question": "Within each product category, rank products by list price from highest to lowest.",
+    "expected_sql": "SELECT c.name AS category, p.name AS product, p.listprice, RANK() OVER (PARTITION BY c.name ORDER BY p.listprice DESC) AS price_rank FROM production.product AS p JOIN production.productsubcategory AS s ON p.productsubcategoryid = s.productsubcategoryid JOIN production.productcategory AS c ON s.productcategoryid = c.productcategoryid"
+  },
+  {
+    "id": "employees_without_current_department",
+    "question": "How many employees currently have no active department assignment?",
+    "expected_sql": "SELECT COUNT(*) AS unassigned FROM humanresources.employee AS e WHERE NOT EXISTS (SELECT 1 FROM humanresources.employeedepartmenthistory AS h WHERE h.businessentityid = e.businessentityid AND h.enddate IS NULL)"
+  },
+  {
+    "id": "avg_discount_on_orders_with_discount",
+    "question": "Among sales-order line items that have a discount, what is the average discount fraction?",
+    "expected_sql": "SELECT AVG(unitpricediscount) AS avg_discount FROM sales.salesorderdetail WHERE unitpricediscount > 0"
+  }
+]
