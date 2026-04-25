@@ -23,12 +23,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
           python-version: "3.12"
-      - name: Install dev dependencies
-        run: uv sync --extra dev
       - name: Build sdist + wheel
         run: uv build
       - name: Validate distributions
-        run: uv run twine check --strict dist/*
+        run: uvx twine check --strict dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: dist
