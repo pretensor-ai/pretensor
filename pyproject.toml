@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Database",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 dependencies = [
     "httpx>=0.27",
@@ -64,10 +65,6 @@ bigquery = [
 all-connectors = [
     "snowflake-sqlalchemy>=1.5",
     "google-cloud-bigquery>=3.25",
-    "onnxruntime>=1.17",
-    "huggingface-hub>=0.20",
-    "numpy>=1.26",
-    "transformers>=4.38",
 ]
 clustering = [
     "leidenalg>=0.10",

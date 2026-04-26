@@ -1262,11 +1262,7 @@ dependencies = [
 [package.optional-dependencies]
 all-connectors = [
     { name = "google-cloud-bigquery" },
-    { name = "huggingface-hub" },
-    { name = "numpy" },
-    { name = "onnxruntime" },
     { name = "snowflake-sqlalchemy" },
-    { name = "transformers" },
 ]
 bigquery = [
     { name = "google-cloud-bigquery" },
@@ -1312,16 +1308,13 @@ requires-dist = [
     { name = "google-cloud-bigquery", marker = "extra == 'all-connectors'", specifier = ">=3.25" },
     { name = "google-cloud-bigquery", marker = "extra == 'bigquery'", specifier = ">=3.25" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "huggingface-hub", marker = "extra == 'all-connectors'", specifier = ">=0.20" },
     { name = "huggingface-hub", marker = "extra == 'embeddings'", specifier = ">=0.20" },
     { name = "igraph", specifier = ">=0.11,<1" },
     { name = "kuzu", specifier = ">=0.7,<1" },
     { name = "leidenalg", marker = "extra == 'clustering'", specifier = ">=0.10" },
     { name = "mcp", specifier = ">=1.0" },
-    { name = "numpy", marker = "extra == 'all-connectors'", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'embeddings'", specifier = ">=1.26" },
-    { name = "onnxruntime", marker = "extra == 'all-connectors'", specifier = ">=1.17" },
     { name = "onnxruntime", marker = "extra == 'embeddings'", specifier = ">=1.17" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
@@ -1337,7 +1330,6 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "sqlglot", specifier = ">=25.0" },
     { name = "testcontainers", extras = ["postgres"], marker = "extra == 'e2e'", specifier = ">=4.0" },
-    { name = "transformers", marker = "extra == 'all-connectors'", specifier = ">=4.38" },
     { name = "transformers", marker = "extra == 'embeddings'", specifier = ">=4.38" },
     { name = "typer", specifier = ">=0.12" },
 ]
