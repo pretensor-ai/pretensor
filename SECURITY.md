@@ -2,14 +2,15 @@
 
 ## Supported versions
 
-Pretensor is currently in **pre-release development** and is not yet published to PyPI. Until the first packaged release, security fixes land on the latest supported state of this repository.
+Pretensor is currently in **alpha** on PyPI (`pip install pretensor`). Security fixes are released against the latest alpha on PyPI; pin to a specific version (for example `pretensor==0.1.0a0`) until `1.0.0` if you need a stable target.
 
 | Version | Supported |
 |---------|-----------|
-| Current `main` branch snapshot | Yes |
-| Older commits, forks, or unpublished snapshots | No |
+| Latest pre-release on PyPI | Yes |
+| Older pre-releases | No — upgrade to the latest alpha for fixes |
+| Source checkouts ahead of PyPI | Best effort, until the next alpha rolls forward |
 
-Once Pretensor begins shipping packaged releases, this policy will be updated to cover a defined support window.
+Once Pretensor reaches `1.0.0`, this section will be updated to describe a defined support window.
 
 ## Reporting a vulnerability
 
@@ -23,7 +24,7 @@ Include:
 
 - A description of the issue and the affected component.
 - Steps to reproduce, ideally with a minimal proof of concept.
-- The git commit SHA or package metadata you tested against (for example `git rev-parse HEAD` from a source checkout).
+- The version or commit you tested against — for a PyPI install, `pip show pretensor`; for a source checkout, `git rev-parse HEAD`.
 - Your assessment of impact (confidentiality, integrity, availability).
 
 ## What to expect
@@ -38,7 +39,7 @@ Pretensor is maintained by a small team on a best-effort basis during pre-releas
 
 In scope:
 
-- The `pretensor` Python package and CLI when installed from this repository.
+- The `pretensor` Python package and CLI, whether installed from PyPI or from a source checkout of this repository.
 - The MCP server entrypoint (`pretensor serve`).
 - Default connector implementations shipped in this repository.
 

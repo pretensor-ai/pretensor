@@ -1,0 +1,48 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - 'README.md'
+      - 'scripts/check_readme_urls.py'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'scripts/check_readme_urls.py'
+      - '.github/workflows/docs.yml'
+
+concurrency:
+  group: docs-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  readme-urls:
+    name: Verify README URLs are absolute
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: python3 scripts/check_readme_urls.py
+
+  readme-links:
+    name: Verify README links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore lychee cache
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: cache-lychee-
+      - name: Lychee link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --cache --no-progress --max-concurrency 4 --accept 200,206,429 README.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
