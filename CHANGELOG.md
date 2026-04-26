@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [PEP 440](https://peps.python.org/pep-0440/) versioning.
 
-Pretensor is in **pre-release development** and is not yet published to PyPI.
-Until the first packaged release, this changelog tracks notable changes landing on `main`.
+Pretensor is currently in alpha on PyPI (`pip install pretensor` —
+no `--pre` needed yet because no stable release exists). Until `1.0.0`
+ships, the schema and CLI surface can change between versions; this
+changelog tracks what moves between releases.
 
 ## [Unreleased]
 

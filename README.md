@@ -1,12 +1,13 @@
 # Pretensor OSS
 
+[![PyPI](https://img.shields.io/pypi/v/pretensor.svg)](https://pypi.org/project/pretensor/)
 [![CI](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml)
-[![Status: Pre-release](https://img.shields.io/badge/status-pre--release-yellow.svg)](#status)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-yellow.svg)](#status)
 [![Python: 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](#prerequisites)
 
 **Pretensor OSS** introspects **PostgreSQL** and **Snowflake**, with optional **BigQuery** connector support, builds a **Kuzu** knowledge graph of tables, columns, foreign keys, inferred joins, and related metadata, and exposes that graph to AI tools through an **MCP** (Model Context Protocol) server. Agents query schema context and search without issuing raw SQL against your graph store.
 
-> **Status: Pre-release.** Pretensor is not yet published to PyPI. Install and run it from this repository for now; APIs, CLI flags, and graph schema may change before the first packaged release.
+> **Status: Alpha.** Pretensor is on PyPI as `pretensor` (latest alpha: `0.1.0a0`). CLI flags, MCP tools, and graph schema can still change between alpha versions — pin exact versions until `1.0.0`. See [docs/releases.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/releases.md) for the versioning policy.
 
 ## Who is this for
 
@@ -18,29 +19,39 @@
 ## Prerequisites
 
 - **Python 3.11 or 3.12** (3.13 not yet tested).
-- A reachable database for `pretensor index`. PostgreSQL is the fastest local path; Snowflake and BigQuery are also supported from a source checkout with their optional dependencies.
-- **`uv`** is recommended. If `uv` is not installed, create a local `.venv` first and `make install` will use `pip` inside that environment.
+- A reachable database for `pretensor index`. PostgreSQL is the fastest local path; Snowflake and BigQuery are supported via the `pretensor[snowflake]` and `pretensor[bigquery]` extras.
 
-## Install From Source
-
-```bash
-git clone https://github.com/pretensor-ai/pretensor.git
-cd pretensor
-make install
-```
-
-If `uv` is not installed, create and activate a local virtualenv first:
+## Install
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-make install
+pip install pretensor
+# or, inside a uv-managed environment:
+uv pip install pretensor
 ```
+
+Optional features are exposed as extras:
+
+| Extra | Adds | Use when |
+|-------|------|----------|
+| `pretensor[snowflake]` | `snowflake-sqlalchemy` | You're indexing a Snowflake warehouse. |
+| `pretensor[bigquery]` | `google-cloud-bigquery` | You're indexing BigQuery. |
+| `pretensor[clustering]` | `leidenalg` | You want Leiden community detection during indexing. Without this, Pretensor falls back to igraph Louvain (works, but no resolution tuning). |
+
+Combine extras with comma separation, e.g. `pip install 'pretensor[snowflake,clustering]'`.
+
+Try it without installing:
+
+```bash
+uvx --from pretensor pretensor --help
+```
+
+> **A note on alpha versions.** Pretensor is in alpha (`0.1.0aN`). The plain `pip install pretensor` command picks up the latest alpha because PyPI has no stable release yet. Once `1.0.0` ships, future alphas will require `--pre` (e.g. `pip install --pre pretensor`); pin to a specific version (`pretensor==0.1.0a0`) if you want a deterministic install today.
+
+If you want to hack on Pretensor itself rather than use it, see the contributor setup in [CONTRIBUTING.md](https://github.com/pretensor-ai/pretensor/blob/main/CONTRIBUTING.md) for the `git clone` + `make install` flow.
 
 ## Quickstart
 
 ```bash
-make install
 pretensor index postgresql://USER:PASSWORD@HOST:5432/DBNAME
 pretensor serve --config-only   # prints mcpServers JSON for Claude / Cursor
 ```
@@ -80,8 +91,8 @@ Use **`--state-dir`** on `index` / `reindex` and **`--graph-dir`** on `serve` wh
 
 Pretensor is in **pre-release development**. Before the first packaged release:
 
-- There is no PyPI package yet; install from a source checkout.
-- There is no SemVer stability guarantee yet, so APIs, CLI flags, and graph schema may change.
+- The package on PyPI is named `pretensor`. The first stable release will be `1.0.0`; everything before that is alpha. `pip install pretensor` works today because no stable version exists yet — `--pre` will be required once `1.0.0` ships and future alphas resume.
+- There is no SemVer stability guarantee yet, so CLI flags, MCP tools, and graph schema may change between alphas. Pin exact versions.
 - Treat current builds as evaluation software and test upgrades in a staging environment before production use.
 
 Progress and release notes: [CHANGELOG.md](https://github.com/pretensor-ai/pretensor/blob/main/CHANGELOG.md).
@@ -106,4 +117,4 @@ make typecheck # pyright
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/pretensor-ai/pretensor/blob/main/LICENSE).
