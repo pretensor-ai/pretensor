@@ -7,7 +7,7 @@
 
 **Pretensor OSS** introspects **PostgreSQL** and **Snowflake**, with optional **BigQuery** connector support, builds a **Kuzu** knowledge graph of tables, columns, foreign keys, inferred joins, and related metadata, and exposes that graph to AI tools through an **MCP** (Model Context Protocol) server. Agents query schema context and search without issuing raw SQL against your graph store.
 
-> **Status: Alpha.** Pretensor is on PyPI as `pretensor` (latest alpha: `0.1.0a0`). CLI flags, MCP tools, and graph schema can still change between alpha versions — pin exact versions until `1.0.0`. See [docs/releases.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/releases.md) for the versioning policy.
+> **Status: Alpha.** Pretensor is on PyPI as `pretensor` and currently in alpha. CLI flags, MCP tools, and graph schema can still change between alpha versions — pin exact versions until `1.0.0`. See [docs/releases.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/releases.md) for the versioning policy.
 
 ## Who is this for
 
@@ -45,7 +45,7 @@ Try it without installing:
 uvx --from pretensor pretensor --help
 ```
 
-> **A note on alpha versions.** Pretensor is in alpha (`0.1.0aN`). The plain `pip install pretensor` command picks up the latest alpha because PyPI has no stable release yet. Once `1.0.0` ships, future alphas will require `--pre` (e.g. `pip install --pre pretensor`); pin to a specific version (`pretensor==0.1.0a0`) if you want a deterministic install today.
+> **A note on alpha versions.** Pretensor is in alpha. The plain `pip install pretensor` command picks up the latest alpha because PyPI has no stable release yet. Once `1.0.0` ships, future alphas will require `--pre` (e.g. `pip install --pre pretensor`); pin to a specific version (e.g. `pretensor==<version>`) if you want a deterministic install today — see the [PyPI badge above](https://pypi.org/project/pretensor/) for the latest.
 
 If you want to hack on Pretensor itself rather than use it, see the contributor setup in [CONTRIBUTING.md](https://github.com/pretensor-ai/pretensor/blob/main/CONTRIBUTING.md) for the `git clone` + `make install` flow.
 

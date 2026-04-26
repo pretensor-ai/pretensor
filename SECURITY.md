@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Pretensor is currently in **alpha** on PyPI (`pip install pretensor`). Security fixes are released against the latest alpha on PyPI; pin to a specific version (for example `pretensor==0.1.0a0`) until `1.0.0` if you need a stable target.
+Pretensor is currently in **alpha** on PyPI (`pip install pretensor`). Security fixes are released against the latest alpha on PyPI; pin to a specific version (for example `pretensor==<version>`) until `1.0.0` if you need a stable target.
 
 | Version | Supported |
 |---------|-----------|
