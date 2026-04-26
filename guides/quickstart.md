@@ -16,7 +16,7 @@ This guide takes you from zero to a running MCP server connected to a real datab
 
 ## 0. One-command quickstart
 
-After installing from a clone of this repo, this is the fastest way to see Pretensor working end-to-end. Requires Docker and a repo checkout.
+After installing Pretensor (Section 1), this is the fastest way to see it working end-to-end. Requires Docker.
 
 ```bash
 pretensor quickstart
@@ -40,30 +40,37 @@ If you already have a Postgres reachable at `postgresql://postgres:postgres@loca
 
 ## 1. Install
 
-Pretensor is not published to PyPI yet. Install and run it from a source checkout of this repository.
+```bash
+pip install pretensor
+# or
+uv pip install pretensor
+```
+
+Once installed, the `pretensor` CLI is on `$PATH` and Sections 2–8 below assume you can call it directly. Pretensor is currently in alpha; `pip install pretensor` picks up the latest alpha automatically because no stable release exists yet (once `1.0.0` ships, you'll need `--pre` to keep installing alphas).
+
+Optional features are exposed as extras:
+
+| Extra | Adds | Use when |
+|-------|------|----------|
+| `pretensor[snowflake]` | `snowflake-sqlalchemy` | You're indexing a Snowflake warehouse. |
+| `pretensor[bigquery]` | `google-cloud-bigquery` | You're indexing BigQuery. |
+| `pretensor[clustering]` | `leidenalg` | You want Leiden community detection during indexing. Without this, Pretensor falls back to igraph Louvain (works, but no resolution tuning). |
+
+Combine extras with comma separation, e.g. `pip install 'pretensor[snowflake,clustering]'`.
+
+**Prerequisites:** Python 3.11 or 3.12 (3.13 not yet tested). A reachable database for `pretensor index` — Postgres is the fastest local path; the manual smoke test in Section 5 spins one up via Docker.
+
+### Hacking on Pretensor itself
+
+If you're modifying Pretensor source rather than just using it, install from a checkout instead:
 
 ```bash
 git clone https://github.com/pretensor-ai/pretensor.git
 cd pretensor
-make install
+make install   # uses uv if present, falls back to pip in .venv
 ```
 
-Equivalent manual setup with `uv`:
-
-```bash
-uv sync --extra dev
-uv run pre-commit install
-```
-
-Without `uv`, create a local virtualenv first and `make install` will use `pip` inside `.venv`:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-make install
-```
-
-**Prerequisites:** Python 3.11 or 3.12 (3.13 not yet tested). Optional extras are available from the source checkout, for example `pip install -e ".[dev,snowflake]"` inside `.venv` if you need the Snowflake connector.
+`make install` installs the project editable with the `dev` extra and sets up the pre-commit hooks — what `CONTRIBUTING.md` expects for PR work.
 
 ---
 
