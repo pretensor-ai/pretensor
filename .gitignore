@@ -57,7 +57,7 @@ pip-log.txt
 .gitnexus/
 .internal/
 .pretensor/
-skills/
+/skills/
 
 # Agent-only routing files
 AGENTS.md

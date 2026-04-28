@@ -71,3 +71,65 @@ jobs:
         env:
           PYTHONPATH: src
         run: uv run pytest tests/
+
+  build-verify:
+    name: Build wheel & verify packaging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        run: uv build
+      - name: Verify wheel ships every tracked subpackage
+        # Guard against .gitignore (or any other exclude) silently dropping a
+        # package directory from the built wheel. Every `__init__.py` tracked
+        # under `src/pretensor/` must land at the matching path inside the wheel.
+        run: |
+          uv run python <<'PY'
+          import glob, subprocess, sys, zipfile
+
+          whls = sorted(glob.glob("dist/pretensor-*-py3-none-any.whl"))
+          if len(whls) != 1:
+              sys.exit(
+                  f"expected exactly one wheel in dist/, found {len(whls)}: {whls}"
+              )
+          whl = whls[0]
+
+          with zipfile.ZipFile(whl) as z:
+              names = set(z.namelist())
+
+          tracked = subprocess.check_output(
+              ["git", "ls-files", "src/pretensor/"], text=True
+          ).splitlines()
+          expected = sorted(
+              f.removeprefix("src/") for f in tracked if f.endswith("/__init__.py")
+          )
+
+          missing = [e for e in expected if e not in names]
+          if missing:
+              print(f"MISSING from {whl}:", file=sys.stderr)
+              for m in missing:
+                  print(f"  - {m}", file=sys.stderr)
+              sys.exit(1)
+          print(f"OK: {whl} contains all {len(expected)} tracked __init__.py files")
+          PY
+      - name: Smoke-test the installed wheel
+        # Install the freshly built wheel into an isolated env and boot the
+        # CLI. `pretensor --help` imports every subcommand module at startup
+        # (typer registration), which transitively imports
+        # `pretensor.skills.generator` from `cli/commands/index.py`. A missing
+        # subpackage would surface here as ModuleNotFoundError — the exact
+        # failure mode the published 0.1.0a1 wheel had.
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(dist/pretensor-*-py3-none-any.whl)
+          if [ "${#wheels[@]}" -ne 1 ]; then
+            echo "expected exactly one wheel in dist/, found ${#wheels[@]}" >&2
+            exit 1
+          fi
+          uvx --from "${wheels[0]}" pretensor --help > /dev/null
