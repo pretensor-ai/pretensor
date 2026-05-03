@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import time
+from importlib.resources import files
 from pathlib import Path
 
 import typer
@@ -18,17 +19,14 @@ from pretensor.mcp import print_mcp_config
 
 QUICKSTART_DSN = "postgresql://postgres:postgres@localhost:55432/pagila"
 QUICKSTART_NAME = "pagila"
-COMPOSE_REL_PATH = Path("docker/quickstart/docker-compose.yml")
 HEALTH_TIMEOUT_SECONDS = 60
 
 
-def _repo_root() -> Path:
-    # src/pretensor/cli/commands/quickstart.py → repo root is 4 levels up.
-    return Path(__file__).resolve().parents[4]
-
-
 def _compose_path() -> Path:
-    return _repo_root() / COMPOSE_REL_PATH
+    # The compose file ships inside the wheel as a package data file alongside
+    # the pagila SQL fixtures it mounts. Resolving via ``importlib.resources``
+    # works in editable installs and in pip-installed wheels alike.
+    return Path(str(files("pretensor.quickstart") / "docker-compose.yml"))
 
 
 def _wait_healthy(console: Console, container: str, timeout: int) -> None:
