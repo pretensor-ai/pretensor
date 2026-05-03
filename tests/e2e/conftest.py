@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -33,7 +34,7 @@ from tests.fixtures.dbt.synthetic_warehouse import (  # noqa: E402
 )
 
 _FIXTURE_SQL_DIR = Path(__file__).parent / "fixtures" / "sql"
-_PAGILA_DDL_PATH = _FIXTURE_SQL_DIR / "pagila_ddl.sql"
+_PAGILA_DDL_PATH = Path(str(files("pretensor.quickstart") / "pagila_ddl.sql"))
 _ADVENTUREWORKS_DDL_PATH = _FIXTURE_SQL_DIR / "adventureworks_ddl.sql"
 _TPCDS_DDL_PATH = _FIXTURE_SQL_DIR / "tpcds_ddl.sql"
 _TPCH_DDL_PATH = _FIXTURE_SQL_DIR / "tpch_ddl.sql"

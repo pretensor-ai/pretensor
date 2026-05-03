@@ -24,7 +24,7 @@ pretensor quickstart
 
 This:
 
-1. Boots a throwaway Postgres on `localhost:55432` pre-loaded with the Pagila sample schema (`docker/quickstart/docker-compose.yml`).
+1. Boots a throwaway Postgres on `localhost:55432` pre-loaded with the Pagila sample schema.
 2. Indexes it into `./.pretensor/`.
 3. Prints the `mcpServers` snippet to paste into Claude or Cursor.
 

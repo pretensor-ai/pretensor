@@ -8,12 +8,12 @@ rental store), sized for `pretensor quickstart`. Listens on **localhost:55432**.
 The recommended path is `pretensor quickstart`, which starts the container,
 indexes the DB into `./.pretensor/`, and prints an MCP config snippet.
 
-To run the container directly:
+To run the container directly from a clone of the repo:
 
 ```bash
-docker compose -f docker/quickstart/docker-compose.yml up -d
+docker compose -f src/pretensor/quickstart/docker-compose.yml up -d
 # DSN: postgresql://postgres:postgres@localhost:55432/pagila
-docker compose -f docker/quickstart/docker-compose.yml down -v
+docker compose -f src/pretensor/quickstart/docker-compose.yml down -v
 ```
 
 ## Contents
@@ -23,5 +23,7 @@ docker compose -f docker/quickstart/docker-compose.yml down -v
   return non-empty results
 - FK chain: `payment → rental → inventory → film` plus `rental → customer`
 
-The seed lives at `tests/e2e/fixtures/sql/pagila_data.sql` and is a curated
-subset of upstream Pagila.
+The schema and seed live next to this README as `pagila_ddl.sql` and
+`pagila_data.sql` — a curated subset of upstream Pagila. They ship inside
+the wheel so `pretensor quickstart` works after a plain `pip install`
+without needing a clone of the repo.

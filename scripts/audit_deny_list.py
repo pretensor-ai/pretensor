@@ -19,11 +19,12 @@ Run:
 from __future__ import annotations
 
 import re
+from importlib.resources import files
 from pathlib import Path
 
 FIXTURES = Path(__file__).resolve().parent.parent / "tests/e2e/fixtures/sql"
 AW = FIXTURES / "adventureworks_ddl.sql"
-PAGILA = FIXTURES / "pagila_ddl.sql"
+PAGILA = Path(str(files("pretensor.quickstart") / "pagila_ddl.sql"))
 
 # Audit-tier candidates plus rating/length (included for regression
 # sanity-check — already shipped in an earlier commit).
@@ -116,9 +117,7 @@ def main() -> None:
     print(f"# AdventureWorks tables parsed: {len(aw_tables)}")
     print(f"# Pagila tables parsed: {len(pagila_tables)}")
     print()
-    print(
-        "| column | aw_n | aw_pairs | pagila_n | legit_fk? | recommend |"
-    )
+    print("| column | aw_n | aw_pairs | pagila_n | legit_fk? | recommend |")
     print("|---|---:|---:|---:|---|---|")
 
     for col in CANDIDATES:
