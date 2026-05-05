@@ -1,7 +1,7 @@
 """MCP tool plugin registry — McpTool and McpToolRegistry.
 
 Allows dynamic, pluggable registration of MCP tools so that Cloud extensions
-can add tools (e.g. ``suggest_query``, ``semantic_search``) without modifying
+can add tools (e.g. ``semantic_search``) without modifying
 OSS server code.
 """
 
