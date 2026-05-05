@@ -1,0 +1,37 @@
+name: no-internal-refs
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: no-internal-refs-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Block internal tracker references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan tracked files
+        run: |
+          set -euo pipefail
+          git ls-files -z | xargs -0 python3 scripts/check_no_internal_refs.py
+
+      - name: Scan pull-request title and body
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          printf 'title: %s\n\nbody:\n%s\n' "${PR_TITLE}" "${PR_BODY}" > pr-metadata.txt
+          python3 scripts/check_no_internal_refs.py pr-metadata.txt

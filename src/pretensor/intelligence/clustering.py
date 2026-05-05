@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -94,6 +95,11 @@ class ClusteringEngine:
                 "(no resolution tuning). Install the clustering extra for "
                 "better community detection: pip install 'pretensor[clustering]'"
             )
+            # Seed igraph's RNG so the Louvain fallback partitions
+            # deterministically. Without this, BM25 / cluster-aware
+            # callers (including the benchmark harness) see different
+            # cluster labels across re-runs.
+            ig.set_random_number_generator(random.Random(_LEIDEN_SEED))
             vc: Any = g.community_multilevel(weights="weight")
             return list(vc.membership)
 

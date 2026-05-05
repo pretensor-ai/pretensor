@@ -1272,6 +1272,7 @@ clustering = [
 ]
 dev = [
     { name = "gitlint" },
+    { name = "leidenalg" },
     { name = "numpy" },
     { name = "pre-commit" },
     { name = "pyright" },
@@ -1312,6 +1313,7 @@ requires-dist = [
     { name = "igraph", specifier = ">=0.11,<1" },
     { name = "kuzu", specifier = ">=0.7,<1" },
     { name = "leidenalg", marker = "extra == 'clustering'", specifier = ">=0.10" },
+    { name = "leidenalg", marker = "extra == 'dev'", specifier = ">=0.10" },
     { name = "mcp", specifier = ">=1.0" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'embeddings'", specifier = ">=1.26" },

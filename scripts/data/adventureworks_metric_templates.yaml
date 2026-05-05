@@ -1,0 +1,67 @@
+connection_name: adventureworks
+templates:
+  - metric: total_sales_orders
+    notes: Count of sales order headers.
+    semantic_yaml: |
+      connection_name: adventureworks
+      domains:
+        - name: sales
+          description: Sales activity domain.
+          entities:
+            - name: sales_order
+              description: Sales order headers.
+              source_table: sales.salesorderheader
+              attributes:
+                - name: salesorderid
+                  description: Primary key.
+                  role: identifier
+                  source_column: salesorderid
+              metrics:
+                - name: total_sales_orders
+                  description: Count of sales orders.
+                  type: count
+                  field: salesorderid
+
+  - metric: total_sales_revenue
+    notes: Sum of sales order subtotals.
+    semantic_yaml: |
+      connection_name: adventureworks
+      domains:
+        - name: sales
+          description: Sales activity domain.
+          entities:
+            - name: sales_order
+              description: Sales order headers.
+              source_table: sales.salesorderheader
+              attributes:
+                - name: salesorderid
+                  description: Primary key.
+                  role: identifier
+                  source_column: salesorderid
+              metrics:
+                - name: total_sales_revenue
+                  description: Sum of sales order subtotals.
+                  type: sum
+                  field: subtotal
+
+  - metric: total_employees
+    notes: Count of employees on file.
+    semantic_yaml: |
+      connection_name: adventureworks
+      domains:
+        - name: hr
+          description: Human resources domain.
+          entities:
+            - name: employee
+              description: Employees on the payroll.
+              source_table: humanresources.employee
+              attributes:
+                - name: businessentityid
+                  description: Primary key (FK to person).
+                  role: identifier
+                  source_column: businessentityid
+              metrics:
+                - name: total_employees
+                  description: Count of employees.
+                  type: count
+                  field: businessentityid

@@ -1,0 +1,55 @@
+{
+  "dataset": "analytics_dwh",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:25534c8351ddfe7c0bf92252edde26ae7772f8877916be282780e50b6a1c5742",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": null
+    }
+  },
+  "notes": [
+    "role_f1 unavailable for dataset 'analytics_dwh': no gold-role annotation file (only adversarial has labels today)."
+  ],
+  "per_item": [
+    {
+      "expected": true,
+      "id": "public.dim_customer.customer_id\u2194public.fact_sales.customer_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.dim_date.date_id\u2194public.fact_sales.date_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.dim_geography.geo_id\u2194public.fact_sales.geo_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.dim_product.product_id\u2194public.fact_sales.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    }
+  ],
+  "pretensor_version": "0.1.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

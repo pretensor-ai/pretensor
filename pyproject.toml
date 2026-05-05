@@ -55,6 +55,10 @@ dev = [
     "pre-commit>=3.0",
     "gitlint==0.19.1",
     "numpy>=1.26",
+    # Leiden is the production clustering algorithm and is seeded for
+    # determinism. Without it, the L1 benchmark's cluster_stability_jaccard
+    # metric falls back to igraph's unseeded Louvain and drifts in CI.
+    "leidenalg>=0.10",
 ]
 snowflake = [
     "snowflake-sqlalchemy>=1.5",

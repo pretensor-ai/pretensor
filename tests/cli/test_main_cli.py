@@ -22,7 +22,16 @@ def test_root_help_lists_all_commands() -> None:
     assert result.exit_code == 0
     plain = _normalize(result.stdout)
 
-    for cmd in ("index", "reindex", "list", "export", "serve", "add", "remove"):
+    for cmd in (
+        "benchmark",
+        "index",
+        "reindex",
+        "list",
+        "export",
+        "serve",
+        "add",
+        "remove",
+    ):
         assert cmd in plain, f"Command {cmd!r} missing from --help"
 
 
@@ -79,6 +88,12 @@ def test_sync_grants_subcommand_in_help() -> None:
 def test_export_subcommand_in_help() -> None:
     """``pretensor export --help`` returns exit 0."""
     result = CliRunner().invoke(app, ["export", "--help"])
+    assert result.exit_code == 0
+
+
+def test_benchmark_subcommand_in_help() -> None:
+    """``pretensor benchmark --help`` returns exit 0."""
+    result = CliRunner().invoke(app, ["benchmark", "--help"])
     assert result.exit_code == 0
 
 

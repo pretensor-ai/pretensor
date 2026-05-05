@@ -1,0 +1,20 @@
+{
+  "dataset": "pagila",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "level": "l1",
+  "metrics": {
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.75
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 0.88
+    }
+  },
+  "notes": [],
+  "per_item": [],
+  "pretensor_version": "0.1.0",
+  "ran_at": "2026-04-22T12:00:00Z"
+}

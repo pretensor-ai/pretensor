@@ -1,4 +1,4 @@
-# Public repo pre-commit config — ruff + pyright only.
+# Public repo pre-commit config — ruff + pyright + internal-ref guard.
 
 default_language_version:
   python: python3
@@ -19,3 +19,17 @@ repos:
         entry: python
         pass_filenames: false
         args: [-m, pyright, --project, .]
+
+      - id: no-internal-refs
+        name: no internal tracker references
+        language: system
+        entry: python scripts/check_no_internal_refs.py
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: no-internal-refs-commit-msg
+        name: no internal tracker references (commit message)
+        language: system
+        entry: python scripts/check_no_internal_refs.py
+        pass_filenames: true
+        stages: [commit-msg]
