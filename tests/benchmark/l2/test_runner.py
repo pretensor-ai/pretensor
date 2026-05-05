@@ -9,6 +9,7 @@ import pytest
 from pretensor.benchmark.l2 import run_l2
 from pretensor.benchmark.results import read_json
 from pretensor.benchmark.runner import Dataset
+from tests.benchmark._compare import normalize_baseline_bytes
 
 _BASELINES_DIR = Path(__file__).resolve().parents[1] / "baselines"
 _DATASETS_WITH_GOLD = [
@@ -114,7 +115,9 @@ def test_run_l2_matches_committed_baseline(
 
     out = tmp_path / f"{dataset.value}.json"
     run_l2(dataset, out, graph_dir, embeddings=False)
-    assert out.read_bytes() == baseline.read_bytes(), (
+    assert normalize_baseline_bytes(out.read_bytes()) == normalize_baseline_bytes(
+        baseline.read_bytes()
+    ), (
         f"Re-run for {dataset.value} drifted from committed baseline; "
         f"regenerate with `uv run pretensor benchmark l2 --dataset "
         f"{dataset.value} --out {baseline}`."
