@@ -91,11 +91,18 @@ def run_l3(
 
     ``runner=RunnerKind.BASELINE`` runs the agent against the raw schema.
     ``runner=RunnerKind.PRETENSOR`` runs the agent through the MCP server.
+    The baseline ignores ``graph_dir``; the pretensor runner spawns
+    ``pretensor serve --graph-dir <graph_dir>``.
     """
     if runner is RunnerKind.BASELINE:
-        raise NotImplementedError(
-            "L3 baseline runner not implemented yet (agent + raw schema, no Pretensor)."
-        )
-    raise NotImplementedError(
-        "L3 pretensor runner not implemented yet (agent + MCP via `pretensor serve`)."
-    )
+        # Imported lazily so the LLM-client / httpx dependency graph does
+        # not load when other run_* callers import this module.
+        from pretensor.benchmark.l3.runner import run_l3_baseline
+
+        run_l3_baseline(dataset, out, model=model, seed=seed)
+        return
+    # Lazy import: the pretensor runner pulls in the MCP stdio client and
+    # asyncio plumbing; other run_* callers should not pay that cost.
+    from pretensor.benchmark.l3.pretensor_runner import run_l3_pretensor
+
+    run_l3_pretensor(dataset, out, graph_dir, model=model, seed=seed)

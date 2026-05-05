@@ -9,9 +9,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
+
+if TYPE_CHECKING:
+    # Type-only import — runtime cost is paid lazily inside l3_command.
+    from pretensor.benchmark.l3.mcp_client import McpClientError
 
 from pretensor.benchmark.results import (
     ComparisonError,
@@ -68,6 +73,33 @@ def register_benchmark_command(app: typer.Typer) -> None:
 
     def _handle_not_implemented(exc: NotImplementedError) -> None:
         err_console.print(f"[yellow]{exc}[/yellow]")
+        raise typer.Exit(_EXIT_FAILED) from exc
+
+    def _handle_input_error(
+        exc: LookupError | FileNotFoundError | McpClientError,
+    ) -> None:
+        """Friendly exit for the L3 runner's user-recoverable errors.
+
+        Three families land here:
+
+        * ``LookupError`` — missing per-dataset DB URL env var or the
+          LLM-provider key (the L3 runner converts the constructor's
+          ``LlmCallError`` to ``LookupError`` so this handler picks it
+          up too).
+        * ``FileNotFoundError`` — missing DDL bundle, missing gold
+          file, or the pretensor runner's missing-indexed-graph guard.
+        * ``McpClientError`` — the pretensor runner failed to spawn or
+          handshake with ``pretensor serve`` (broken binary, version
+          mismatch, transport fault). Distinct from missing-graph-dir
+          so an operator can tell apart "I forgot to index" from "the
+          serve binary is broken" in the output.
+
+        All three are user-recoverable misconfigurations — print the
+        message as-is (the exception text is already actionable) and
+        exit with the same release-gate code as a stub failure so
+        wrappers don't need to special-case L3 vs L1/L2.
+        """
+        err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(_EXIT_FAILED) from exc
 
     @benchmark_app.command("l1")
@@ -190,6 +222,13 @@ def register_benchmark_command(app: typer.Typer) -> None:
         ),
     ) -> None:
         """Run L3 agent-task-success evaluation against a fixture."""
+        # Lazy import: ``McpClientError`` lives in the L3 MCP-client
+        # module, which transitively pulls in the MCP SDK. Importing it
+        # at CLI module load would defeat the lazy-import strategy used
+        # by the run_l3 dispatcher (and slow `pretensor benchmark
+        # --help` for everyone).
+        from pretensor.benchmark.l3.mcp_client import McpClientError
+
         try:
             run_l3(
                 dataset,
@@ -201,6 +240,8 @@ def register_benchmark_command(app: typer.Typer) -> None:
             )
         except NotImplementedError as exc:
             _handle_not_implemented(exc)
+        except (LookupError, FileNotFoundError, McpClientError) as exc:
+            _handle_input_error(exc)
 
     @benchmark_app.command("compare")
     def compare_command(

@@ -85,6 +85,67 @@ def test_write_json_sorts_keys_and_ends_with_newline(tmp_path: Path) -> None:
     assert keys == sorted(keys), keys
 
 
+def test_extra_field_round_trips(tmp_path: Path) -> None:
+    """The ``extra`` envelope dict round-trips through write_json/read_json."""
+    result = BenchmarkResult(
+        level="l3",
+        dataset="pagila",
+        pretensor_version="0.1.0",
+        embeddings_enabled=False,
+        ran_at="1970-01-01T00:00:00Z",
+        fixture_sha="sha256:0",
+        metrics={},
+        per_item=[],
+        notes=[],
+        extra={
+            "runner": "baseline",
+            "model": "claude-haiku-4-5",
+            "temperature": 0.0,
+            "seed": 42,
+        },
+    )
+    out = tmp_path / "r.json"
+    write_json(result, out)
+    loaded = read_json(out)
+    assert loaded.extra == result.extra
+
+
+def test_extra_field_omitted_when_empty(tmp_path: Path) -> None:
+    """An empty ``extra`` dict must NOT appear in the JSON envelope.
+
+    Keeps L1 / L2 baselines byte-stable against the pre-extra schema —
+    re-running L1 on a freshly-rebased branch must produce the same
+    bytes the committed baseline does.
+    """
+    result = _sample_result()
+    out = tmp_path / "r.json"
+    write_json(result, out)
+    parsed = json.loads(out.read_text(encoding="utf-8"))
+    assert "extra" not in parsed
+
+
+def test_from_dict_tolerates_missing_extra_key(tmp_path: Path) -> None:
+    """Old JSON files without an ``extra`` key still parse cleanly."""
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "level": "l1",
+                "dataset": "pagila",
+                "pretensor_version": "0.1.0",
+                "embeddings_enabled": False,
+                "ran_at": "1970-01-01T00:00:00Z",
+                "fixture_sha": "sha256:0",
+                "metrics": {},
+                "per_item": [],
+                "notes": [],
+            }
+        )
+    )
+    loaded = read_json(legacy)
+    assert loaded.extra == {}
+
+
 def test_metric_value_can_be_none(tmp_path: Path) -> None:
     """A metric with value=None round-trips (unavailable metric)."""
     result = _sample_result(

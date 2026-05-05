@@ -59,7 +59,15 @@ class Metric:
 
 @dataclass(frozen=True, slots=True)
 class BenchmarkResult:
-    """One benchmark run's full output — matches the spec's JSON schema."""
+    """One benchmark run's full output — matches the spec's JSON schema.
+
+    ``extra`` is a free-form per-level envelope for fields that don't
+    belong in ``metrics`` or ``per_item`` but must be captured for
+    reproducibility — e.g. L3 records the LLM model, temperature, seed,
+    and prompt hash here. L1 / L2 leave it empty. The spec's JSON-schema
+    section ("downstream consumers must tolerate additional keys")
+    sanctions adding new top-level keys this way.
+    """
 
     level: str
     dataset: str
@@ -70,9 +78,10 @@ class BenchmarkResult:
     metrics: dict[str, Metric]
     per_item: list[dict[str, Any]]
     notes: list[str] = field(default_factory=list)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "level": self.level,
             "dataset": self.dataset,
             "pretensor_version": self.pretensor_version,
@@ -83,6 +92,9 @@ class BenchmarkResult:
             "per_item": list(self.per_item),
             "notes": list(self.notes),
         }
+        if self.extra:
+            out["extra"] = dict(self.extra)
+        return out
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BenchmarkResult:
@@ -96,6 +108,7 @@ class BenchmarkResult:
             metrics={name: Metric.from_dict(m) for name, m in data["metrics"].items()},
             per_item=list(data["per_item"]),
             notes=list(data.get("notes", [])),
+            extra=dict(data.get("extra", {})),
         )
 
 
