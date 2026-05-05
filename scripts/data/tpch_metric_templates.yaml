@@ -1,0 +1,67 @@
+connection_name: tpch
+templates:
+  - metric: total_orders
+    notes: Count of orders rows.
+    semantic_yaml: |
+      connection_name: tpch
+      domains:
+        - name: orders
+          description: Order activity domain.
+          entities:
+            - name: order
+              description: Customer orders.
+              source_table: public.orders
+              attributes:
+                - name: o_orderkey
+                  description: Primary key.
+                  role: identifier
+                  source_column: o_orderkey
+              metrics:
+                - name: total_orders
+                  description: Count of orders.
+                  type: count
+                  field: o_orderkey
+
+  - metric: total_revenue
+    notes: Sum of order totals.
+    semantic_yaml: |
+      connection_name: tpch
+      domains:
+        - name: orders
+          description: Order activity domain.
+          entities:
+            - name: order
+              description: Customer orders.
+              source_table: public.orders
+              attributes:
+                - name: o_orderkey
+                  description: Primary key.
+                  role: identifier
+                  source_column: o_orderkey
+              metrics:
+                - name: total_revenue
+                  description: Sum of order totals.
+                  type: sum
+                  field: o_totalprice
+
+  - metric: total_lineitems
+    notes: Count of line items.
+    semantic_yaml: |
+      connection_name: tpch
+      domains:
+        - name: orders
+          description: Order activity domain.
+          entities:
+            - name: lineitem
+              description: Order line items.
+              source_table: public.lineitem
+              attributes:
+                - name: l_orderkey
+                  description: Order foreign key (used as identifier).
+                  role: identifier
+                  source_column: l_orderkey
+              metrics:
+                - name: total_lineitems
+                  description: Count of line item rows.
+                  type: count
+                  field: l_orderkey

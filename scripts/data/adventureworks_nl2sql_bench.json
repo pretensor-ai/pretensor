@@ -12,7 +12,13 @@
   {
     "id": "employee_names_with_titles",
     "question": "List each employee's first name, last name, and job title.",
-    "expected_sql": "SELECT p.firstname, p.lastname, e.jobtitle FROM humanresources.employee AS e JOIN person.person AS p ON e.businessentityid = p.businessentityid ORDER BY p.lastname, p.firstname"
+    "expected_sql": "SELECT p.firstname, p.lastname, e.jobtitle FROM humanresources.employee AS e JOIN person.person AS p ON e.businessentityid = p.businessentityid ORDER BY p.lastname, p.firstname",
+    "gold_path": [
+      {
+        "from_table": "humanresources.employee",
+        "to_table": "person.person"
+      }
+    ]
   },
   {
     "id": "salaried_employees",
@@ -42,12 +48,24 @@
   {
     "id": "orders_per_customer_top10",
     "question": "Which ten customers have placed the most sales orders?",
-    "expected_sql": "SELECT c.customerid, COUNT(*) AS order_count FROM sales.salesorderheader AS o JOIN sales.customer AS c ON o.customerid = c.customerid GROUP BY c.customerid ORDER BY order_count DESC LIMIT 10"
+    "expected_sql": "SELECT c.customerid, COUNT(*) AS order_count FROM sales.salesorderheader AS o JOIN sales.customer AS c ON o.customerid = c.customerid GROUP BY c.customerid ORDER BY order_count DESC LIMIT 10",
+    "gold_path": [
+      {
+        "from_table": "sales.salesorderheader",
+        "to_table": "sales.customer"
+      }
+    ]
   },
   {
     "id": "total_sales_by_territory",
     "question": "What is the total sales revenue booked in each territory?",
-    "expected_sql": "SELECT t.name AS territory, SUM(o.subtotal) AS total_revenue FROM sales.salesorderheader AS o JOIN sales.salesterritory AS t ON o.territoryid = t.territoryid GROUP BY t.name ORDER BY total_revenue DESC"
+    "expected_sql": "SELECT t.name AS territory, SUM(o.subtotal) AS total_revenue FROM sales.salesorderheader AS o JOIN sales.salesterritory AS t ON o.territoryid = t.territoryid GROUP BY t.name ORDER BY total_revenue DESC",
+    "gold_path": [
+      {
+        "from_table": "sales.salesorderheader",
+        "to_table": "sales.salesterritory"
+      }
+    ]
   },
   {
     "id": "top_selling_products",

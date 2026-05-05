@@ -32,14 +32,15 @@ class Fixture:
 
     ``name`` is the canonical :class:`Dataset` enum key. ``schema_yaml_path``
     is always set and points to a file that :meth:`SchemaSnapshot.from_yaml`
-    can parse. The other two fields are ``None`` for datasets that have no
-    DDL dump or no gold question set checked in.
+    can parse. The remaining fields are ``None`` for datasets that have no
+    DDL dump, no gold question set, or no metric-templates file checked in.
     """
 
     name: Dataset
     schema_yaml_path: Path
     ddl_sql_path: Path | None
     questions_path: Path | None
+    metric_templates_path: Path | None
 
 
 def load_dataset(name: str | Dataset) -> Fixture:
@@ -69,10 +70,14 @@ def load_dataset(name: str | Dataset) -> Fixture:
 
     ddl_path = _DATA_DIR / key.value / "schema.sql"
     questions_path = _DATA_DIR / f"{key.value}_nl2sql_bench.json"
+    metric_templates_path = _DATA_DIR / f"{key.value}_metric_templates.yaml"
 
     return Fixture(
         name=key,
         schema_yaml_path=schema_path,
         ddl_sql_path=ddl_path if ddl_path.exists() else None,
         questions_path=questions_path if questions_path.exists() else None,
+        metric_templates_path=(
+            metric_templates_path if metric_templates_path.exists() else None
+        ),
     )

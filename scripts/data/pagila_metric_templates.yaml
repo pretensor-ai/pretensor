@@ -1,0 +1,67 @@
+connection_name: pagila
+templates:
+  - metric: total_rentals
+    notes: Count of all rental rows.
+    semantic_yaml: |
+      connection_name: pagila
+      domains:
+        - name: rentals
+          description: Rental activity domain.
+          entities:
+            - name: rental
+              description: Rental events.
+              source_table: public.rental
+              attributes:
+                - name: rental_id
+                  description: Primary key.
+                  role: identifier
+                  source_column: rental_id
+              metrics:
+                - name: total_rentals
+                  description: Count of rental rows.
+                  type: count
+                  field: rental_id
+
+  - metric: total_payments
+    notes: Sum of payment amounts.
+    semantic_yaml: |
+      connection_name: pagila
+      domains:
+        - name: payments
+          description: Payment activity domain.
+          entities:
+            - name: payment
+              description: Customer payments.
+              source_table: public.payment
+              attributes:
+                - name: payment_id
+                  description: Primary key.
+                  role: identifier
+                  source_column: payment_id
+              metrics:
+                - name: total_payments
+                  description: Sum of payment amounts.
+                  type: sum
+                  field: amount
+
+  - metric: total_films
+    notes: Count of catalogued films.
+    semantic_yaml: |
+      connection_name: pagila
+      domains:
+        - name: catalog
+          description: Film catalog domain.
+          entities:
+            - name: film
+              description: Films available for rent.
+              source_table: public.film
+              attributes:
+                - name: film_id
+                  description: Primary key.
+                  role: identifier
+                  source_column: film_id
+              metrics:
+                - name: total_films
+                  description: Count of distinct films in the catalog.
+                  type: count
+                  field: film_id

@@ -1,0 +1,73 @@
+{
+  "dataset": "saas_multitenant",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:f0348a0f8f48260a62624fbf4f0db205fadb446453c565160db947eac744a71e",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.5714285714285714
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": null
+    }
+  },
+  "notes": [
+    "role_f1 unavailable for dataset 'saas_multitenant': no gold-role annotation file (only adversarial has labels today)."
+  ],
+  "per_item": [
+    {
+      "expected": true,
+      "id": "public.accounts.account_id\u2194public.audit_log.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.accounts.account_id\u2194public.subscriptions.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.accounts.account_id\u2194public.users.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.audit_log.account_id\u2194public.subscriptions.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.audit_log.account_id\u2194public.users.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.events.user_id\u2194public.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.subscriptions.account_id\u2194public.users.account_id",
+      "kind": "inferred_join",
+      "predicted": true
+    }
+  ],
+  "pretensor_version": "0.1.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

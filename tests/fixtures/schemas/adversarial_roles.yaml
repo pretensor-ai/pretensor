@@ -1,0 +1,16 @@
+# Gold table-role labels for the L1 role-F1 metric.
+#
+# Roles use the TableRole literal taxonomy from
+# src/pretensor/entities/classifier.py:
+#   system | staging | audit | junction | fact | dimension |
+#   bridge | aggregate | snapshot_scd | entity_candidate | unknown
+#
+# Tables are identified by bare name (no schema prefix). The pairing
+# fixture is tests/fixtures/schemas/adversarial.yaml; both files share
+# the same connection_name (`adversarial`).
+roles:
+  usr_acct: dimension
+  xref_prod_cat: junction
+  tbl_legacy_orders: fact
+  tmp_staging_v2: staging
+  v_active_sessions: aggregate

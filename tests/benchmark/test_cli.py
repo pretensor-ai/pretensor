@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -60,8 +61,9 @@ def test_benchmark_l3_help_documents_flags() -> None:
         assert flag in plain, f"Flag {flag!r} missing from l3 help"
 
 
-def test_benchmark_l1_unimplemented(tmp_path: Path) -> None:
-    """Valid args surface a NotImplementedError naming the L1 scope."""
+def test_benchmark_l1_runs_to_completion(tmp_path: Path) -> None:
+    """L1 runs end-to-end and writes the BenchmarkResult JSON to ``--out``."""
+    out = tmp_path / "l1.json"
     result = CliRunner().invoke(
         app,
         [
@@ -70,15 +72,20 @@ def test_benchmark_l1_unimplemented(tmp_path: Path) -> None:
             "--dataset",
             "pagila",
             "--out",
-            str(tmp_path / "l1.json"),
+            str(out),
         ],
     )
-    assert result.exit_code == 1
-    assert "L1 metrics not implemented" in _normalize(result.stderr)
+    assert result.exit_code == 0, result.stderr
+    assert out.exists()
+    body = json.loads(out.read_text())
+    assert body["level"] == "l1"
+    assert body["dataset"] == "pagila"
+    assert "inferred_join_precision" in body["metrics"]
 
 
-def test_benchmark_l2_unimplemented(tmp_path: Path) -> None:
-    """Valid args surface a NotImplementedError naming the L2 scope."""
+def test_benchmark_l2_runs(tmp_path: Path) -> None:
+    """L2 runs end-to-end and writes a benchmark JSON to ``--out``."""
+    out = tmp_path / "l2.json"
     result = CliRunner().invoke(
         app,
         [
@@ -87,11 +94,20 @@ def test_benchmark_l2_unimplemented(tmp_path: Path) -> None:
             "--dataset",
             "pagila",
             "--out",
-            str(tmp_path / "l2.json"),
+            str(out),
         ],
     )
-    assert result.exit_code == 1
-    assert "L2 metrics not implemented" in _normalize(result.stderr)
+    assert result.exit_code == 0, result.stderr
+    assert out.exists()
+    body = json.loads(out.read_text())
+    assert body["level"] == "l2"
+    assert body["dataset"] == "pagila"
+    # The three core metrics are required by AC #2.
+    assert {
+        "query_recall_at_5",
+        "traverse_correctness",
+        "compile_metric_correctness",
+    } <= set(body["metrics"])
 
 
 def test_benchmark_l3_baseline_unimplemented(tmp_path: Path) -> None:
@@ -189,13 +205,15 @@ def test_benchmark_rejects_unknown_dataset() -> None:
 
 
 def test_benchmark_l1_out_is_optional() -> None:
-    """--out may be omitted; stub still runs and exits 1."""
+    """--out may be omitted; the JSON document is written to stdout."""
     result = CliRunner().invoke(
         app,
-        ["benchmark", "l1", "--dataset", "pagila"],
+        ["benchmark", "l1", "--dataset", "adversarial"],
     )
-    assert result.exit_code == 1
-    assert "L1 metrics not implemented" in _normalize(result.stderr)
+    assert result.exit_code == 0, result.stderr
+    body = json.loads(result.stdout)
+    assert body["level"] == "l1"
+    assert body["dataset"] == "adversarial"
 
 
 def test_benchmark_l1_accepts_embeddings_flag() -> None:
@@ -203,27 +221,40 @@ def test_benchmark_l1_accepts_embeddings_flag() -> None:
     for flag in ("--embeddings", "--no-embeddings"):
         result = CliRunner().invoke(
             app,
-            ["benchmark", "l1", "--dataset", "pagila", flag],
+            ["benchmark", "l1", "--dataset", "adversarial", flag],
         )
-        assert result.exit_code == 1, (
+        assert result.exit_code == 0, (
             f"l1 {flag!r} unexpectedly rejected: {result.stderr!r}"
         )
 
 
 def test_benchmark_l2_accepts_embeddings_flag() -> None:
-    """--embeddings / --no-embeddings are both accepted on l2."""
+    """--embeddings / --no-embeddings are both accepted on l2.
+
+    Asserts that the no-out path emits a valid JSON document on
+    stdout — mirrors ``test_benchmark_l1_out_is_optional`` so the L2
+    stdout branch is not silently broken.
+    """
     for flag in ("--embeddings", "--no-embeddings"):
         result = CliRunner().invoke(
             app,
             ["benchmark", "l2", "--dataset", "pagila", flag],
         )
-        assert result.exit_code == 1, (
+        assert result.exit_code == 0, (
             f"l2 {flag!r} unexpectedly rejected: {result.stderr!r}"
         )
+        body = json.loads(result.stdout)
+        assert body["level"] == "l2"
+        assert body["dataset"] == "pagila"
 
 
 def test_benchmark_accepts_every_spec_dataset() -> None:
-    """Every dataset key in the spec is accepted by the enum."""
+    """Every dataset key in the spec is accepted by the enum.
+
+    Uses ``l3`` (NotImplementedError → exit 1) rather than ``l1`` / ``l2``
+    so the assertion stays cheap — a full sweep through real metric
+    computation across six fixtures runs into minutes.
+    """
     for dataset in (
         "pagila",
         "tpch",
@@ -234,9 +265,18 @@ def test_benchmark_accepts_every_spec_dataset() -> None:
     ):
         result = CliRunner().invoke(
             app,
-            ["benchmark", "l1", "--dataset", dataset],
+            [
+                "benchmark",
+                "l3",
+                "--dataset",
+                dataset,
+                "--runner",
+                "baseline",
+                "--model",
+                "claude-haiku-4-5",
+            ],
         )
-        # Stub raises NotImplementedError → exit 1 (not 2 = bad args).
+        # L3 baseline stub raises NotImplementedError → exit 1 (not 2 = bad args).
         assert result.exit_code == 1, (
             f"dataset={dataset!r} rejected unexpectedly: "
             f"exit={result.exit_code} stderr={result.stderr!r}"

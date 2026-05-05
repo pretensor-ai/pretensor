@@ -17,7 +17,11 @@
   {
     "id": "top_films_by_rentals",
     "question": "What are the five films rented the most often?",
-    "expected_sql": "SELECT f.title, COUNT(*) AS rental_count FROM public.rental AS r JOIN public.inventory AS i ON r.inventory_id = i.inventory_id JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 5"
+    "expected_sql": "SELECT f.title, COUNT(*) AS rental_count FROM public.rental AS r JOIN public.inventory AS i ON r.inventory_id = i.inventory_id JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 5",
+    "gold_path": [
+      {"from_table": "public.rental", "to_table": "public.inventory"},
+      {"from_table": "public.inventory", "to_table": "public.film"}
+    ]
   },
   {
     "id": "avg_rental_days",
@@ -27,7 +31,11 @@
   {
     "id": "films_for_actor",
     "question": "List titles of films starring an actor whose first name is Penelope and last name is Monroe.",
-    "expected_sql": "SELECT f.title FROM public.film AS f JOIN public.film_actor AS fa ON f.film_id = fa.film_id JOIN public.actor AS a ON fa.actor_id = a.actor_id WHERE a.first_name = 'Penelope' AND a.last_name = 'Monroe'"
+    "expected_sql": "SELECT f.title FROM public.film AS f JOIN public.film_actor AS fa ON f.film_id = fa.film_id JOIN public.actor AS a ON fa.actor_id = a.actor_id WHERE a.first_name = 'Penelope' AND a.last_name = 'Monroe'",
+    "gold_path": [
+      {"from_table": "public.actor", "to_table": "public.film_actor"},
+      {"from_table": "public.film_actor", "to_table": "public.film"}
+    ]
   },
   {
     "id": "payment_total",
@@ -37,7 +45,10 @@
   {
     "id": "customers_never_rented",
     "question": "How many customers have never rented a film?",
-    "expected_sql": "SELECT COUNT(*) AS customers_without_rentals FROM public.customer AS c WHERE NOT EXISTS (SELECT 1 FROM public.rental AS r WHERE r.customer_id = c.customer_id)"
+    "expected_sql": "SELECT COUNT(*) AS customers_without_rentals FROM public.customer AS c WHERE NOT EXISTS (SELECT 1 FROM public.rental AS r WHERE r.customer_id = c.customer_id)",
+    "gold_path": [
+      {"from_table": "public.customer", "to_table": "public.rental"}
+    ]
   },
   {
     "id": "staff_with_store",
@@ -47,6 +58,9 @@
   {
     "id": "inventory_per_film",
     "question": "For each film title, how many inventory rows exist?",
-    "expected_sql": "SELECT f.title, COUNT(*) AS inventory_rows FROM public.inventory AS i JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY f.title"
+    "expected_sql": "SELECT f.title, COUNT(*) AS inventory_rows FROM public.inventory AS i JOIN public.film AS f ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY f.title",
+    "gold_path": [
+      {"from_table": "public.inventory", "to_table": "public.film"}
+    ]
   }
 ]

@@ -42,16 +42,19 @@ def run_l1(
 ) -> None:
     """Run L1 (graph-quality) metrics for ``dataset``.
 
-    Will compute inferred-join precision / recall, cluster-stability
-    Jaccard, entity-resolution precision / recall on
-    ``tests/fixtures/pairs/``, and role-classification F1 on
-    ``adversarial.yaml``. ``embeddings=True`` enables the Layer-A
-    embeddings path when the optional extra is installed.
+    Computes inferred-join precision / recall against declared FKs,
+    cluster-stability Jaccard across two reindex runs, and role-
+    classification F1 against ``<dataset>_roles.yaml`` when present.
+    ``embeddings=True`` enables the Layer-A embeddings path when the
+    optional extra is installed; missing extra logs an install hint
+    and falls back to the heuristic-only run.
     """
-    raise NotImplementedError(
-        "L1 metrics not implemented yet "
-        "(inferred-join P/R, cluster Jaccard, pairs P/R, role F1)."
-    )
+    # Imported lazily so the heavy intelligence-pipeline dependency
+    # graph (Kuzu, igraph, etc.) does not load when other run_*
+    # callers import this module.
+    from pretensor.benchmark.l1 import run_l1 as _run_l1
+
+    _run_l1(dataset, out, graph_dir, embeddings=embeddings)
 
 
 def run_l2(
@@ -63,15 +66,16 @@ def run_l2(
 ) -> None:
     """Run L2 (MCP-tool-quality) metrics for ``dataset``.
 
-    Will compute ``query`` + ``semantic_search`` Recall@K, ``traverse``
-    path correctness, and ``compile_metric`` SQL correctness.
-    ``embeddings=True`` enables the Layer-B ``semantic_search`` metric
-    when the optional extra is installed.
+    Computes ``query`` Recall@K, ``traverse`` path correctness, and
+    ``compile_metric`` SQL correctness against the fixture's gold data.
+    When ``embeddings=True`` and the ``semantic_search`` MCP tool is
+    available, also emits ``semantic_search`` Recall@K (Layer-B gate).
     """
-    raise NotImplementedError(
-        "L2 metrics not implemented yet "
-        "(query + semantic_search Recall@K, traverse, compile_metric)."
-    )
+    # Imported lazily so the heavy MCP / Kuzu / sqlglot dependency
+    # graph does not load when other run_* callers import this module.
+    from pretensor.benchmark.l2 import run_l2 as _run_l2
+
+    _run_l2(dataset, out, graph_dir, embeddings=embeddings)
 
 
 def run_l3(

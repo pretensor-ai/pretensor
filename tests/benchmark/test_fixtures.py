@@ -11,6 +11,9 @@ from pretensor.benchmark import Dataset, Fixture, load_dataset
 from pretensor.connectors.models import SchemaSnapshot
 
 _QUESTION_KEYS = {"id", "question", "expected_sql"}
+# Optional per-entry keys added by L2: ``tables_touched`` (bare table name list)
+# and ``gold_path`` (list of ``{from_table, to_table}`` hops). Either may be
+# absent on a given entry — only the required keys must always be present.
 
 
 def test_load_pagila_has_all_paths() -> None:
@@ -20,6 +23,10 @@ def test_load_pagila_has_all_paths() -> None:
     assert fx.schema_yaml_path.exists()
     assert fx.ddl_sql_path is not None and fx.ddl_sql_path.exists()
     assert fx.questions_path is not None and fx.questions_path.exists()
+    assert fx.metric_templates_path is not None and fx.metric_templates_path.exists(), (
+        "pagila_metric_templates.yaml must exist on disk; missing this "
+        "would silently drop compile_metric_correctness from L2 output."
+    )
 
     # Schema YAML round-trips.
     snap = SchemaSnapshot.from_yaml(fx.schema_yaml_path.read_text())
@@ -36,6 +43,7 @@ def test_load_adventureworks_has_all_paths() -> None:
     assert fx.schema_yaml_path.exists()
     assert fx.ddl_sql_path is not None and fx.ddl_sql_path.exists()
     assert fx.questions_path is not None and fx.questions_path.exists()
+    assert fx.metric_templates_path is not None and fx.metric_templates_path.exists()
 
     snap = SchemaSnapshot.from_yaml(fx.schema_yaml_path.read_text())
     assert snap.connection_name == "adventureworks"
@@ -51,7 +59,7 @@ def test_load_adventureworks_has_all_paths() -> None:
     questions = json.loads(fx.questions_path.read_text())
     assert len(questions) >= 20
     for q in questions:
-        assert set(q.keys()) == _QUESTION_KEYS
+        assert set(q.keys()) >= _QUESTION_KEYS
 
 
 def test_load_tpch_has_all_paths() -> None:
@@ -59,6 +67,7 @@ def test_load_tpch_has_all_paths() -> None:
     assert fx.name is Dataset.TPCH
     assert fx.ddl_sql_path is not None and fx.ddl_sql_path.exists()
     assert fx.questions_path is not None and fx.questions_path.exists()
+    assert fx.metric_templates_path is not None and fx.metric_templates_path.exists()
 
     snap = SchemaSnapshot.from_yaml(fx.schema_yaml_path.read_text())
     assert snap.connection_name == "tpch"
@@ -71,7 +80,7 @@ def test_load_tpch_has_all_paths() -> None:
     questions = json.loads(fx.questions_path.read_text())
     assert len(questions) >= 20
     for q in questions:
-        assert set(q.keys()) == _QUESTION_KEYS
+        assert set(q.keys()) >= _QUESTION_KEYS
 
 
 def test_load_dataset_accepts_enum_and_string() -> None:
