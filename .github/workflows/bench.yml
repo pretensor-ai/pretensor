@@ -47,7 +47,7 @@ jobs:
             extras_args: "--extra dev --extra embeddings"
             extras_label: "dev,embeddings"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
@@ -90,7 +90,7 @@ jobs:
     env:
       ANTHROPIC_API_KEY: ${{ secrets.BENCH_ANTHROPIC_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true

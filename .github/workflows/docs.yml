@@ -24,7 +24,7 @@ jobs:
     name: Verify README URLs are absolute
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check
         run: python3 scripts/check_readme_urls.py
 
@@ -32,7 +32,7 @@ jobs:
     name: Verify README links resolve
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Restore lychee cache
         uses: actions/cache@v4
         with:
