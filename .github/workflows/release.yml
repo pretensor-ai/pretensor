@@ -39,7 +39,7 @@ jobs:
         run: uv run python -m pretensor.benchmark.release_gate
       - name: Upload candidate-tag results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-gate-results
           path: tests/benchmark/results/${{ github.ref_name }}/
@@ -65,7 +65,7 @@ jobs:
         run: uv build
       - name: Validate distributions
         run: uvx twine check --strict dist/*
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/

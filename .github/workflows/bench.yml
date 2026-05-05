@@ -64,7 +64,7 @@ jobs:
             --current current.json
       - name: Upload current result on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.level }}-${{ matrix.dataset }}-${{ matrix.extras }}-current
           path: current.json
@@ -108,7 +108,7 @@ jobs:
             --out results.json
       - name: Upload result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: l3-${{ matrix.dataset }}-${{ matrix.runner }}-${{ github.run_id }}
           path: results.json
