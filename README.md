@@ -2,6 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/pretensor.svg)](https://pypi.org/project/pretensor/)
 [![CI](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml)
+[![Bench](https://github.com/pretensor-ai/pretensor/actions/workflows/bench.yml/badge.svg?branch=main)](https://github.com/pretensor-ai/pretensor/actions/workflows/bench.yml)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-yellow.svg)](#status)
 [![Python: 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](#prerequisites)
 
