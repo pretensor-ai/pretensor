@@ -191,6 +191,22 @@ def test_source_snowflake_config() -> None:
     assert "PUBLIC" in cfg.schema_filter.include
 
 
+def test_source_snowflake_private_key_config() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        private_key_path="/keys/snowflake.pem",
+        private_key_passphrase="secret",
+    )
+    cfg = connection_config_from_source("sf1", src)
+    assert cfg.type == DatabaseType.SNOWFLAKE
+    assert cfg.private_key_path == "/keys/snowflake.pem"
+    assert cfg.private_key_passphrase == "secret"
+    assert cfg.password is None
+
+
 def test_source_bigquery_config() -> None:
     src = SourceConfig(
         dialect="bigquery", project="my-project", dataset="analytics",

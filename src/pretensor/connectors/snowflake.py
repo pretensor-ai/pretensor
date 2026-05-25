@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -120,12 +124,76 @@ class SnowflakeConnector(BaseConnector):
             query_parts.append(f"role={quote(role, safe='')}")
 
         q = ("?" + "&".join(query_parts)) if query_parts else ""
+        # Key-pair auth takes precedence: omit password from URL when a
+        # private key is configured.
+        if cfg.private_key_path:
+            return f"snowflake://{user}@{account}{path}{q}"
         return f"snowflake://{user}:{password}@{account}{path}{q}"
+
+    def _load_private_key(self) -> bytes:
+        """Read and serialize the configured private key for Snowflake.
+
+        Returns the key as DER-encoded PKCS8 bytes suitable for the
+        Snowflake Python connector's ``private_key`` connect argument.
+
+        Raises:
+            SnowflakeConnectorError: If the file is missing, unreadable,
+                or the key cannot be parsed/decrypted.
+        """
+        cfg = self.config
+        key_path_str = cfg.private_key_path
+        if not key_path_str:
+            raise SnowflakeConnectorError("No private_key_path configured")
+
+        key_path = Path(key_path_str)
+        try:
+            pem_data = key_path.read_bytes()
+        except FileNotFoundError as exc:
+            raise SnowflakeConnectorError(
+                f"Private key file not found: {key_path}"
+            ) from exc
+        except OSError as exc:
+            raise SnowflakeConnectorError(
+                f"Cannot read private key file {key_path}: {exc}"
+            ) from exc
+
+        passphrase: bytes | None = None
+        if cfg.private_key_passphrase:
+            passphrase = cfg.private_key_passphrase.encode("utf-8")
+
+        try:
+            p_key = serialization.load_pem_private_key(
+                pem_data,
+                password=passphrase,
+                backend=default_backend(),
+            )
+        except Exception as exc:
+            raise SnowflakeConnectorError(
+                f"Failed to parse private key from {key_path}: {exc}"
+            ) from exc
+
+        try:
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        except Exception as exc:
+            raise SnowflakeConnectorError(
+                f"Failed to serialize private key from {key_path}: {exc}"
+            ) from exc
+
+        return pkb
 
     def connect(self) -> None:
         url = self._snowflake_url()
+        connect_args: dict[str, Any] = {}
+        if self.config.private_key_path:
+            connect_args["private_key"] = self._load_private_key()
         try:
-            self._engine = create_engine(url, pool_pre_ping=True)
+            self._engine = create_engine(
+                url, pool_pre_ping=True, connect_args=connect_args
+            )
             with self._engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             logger.info(

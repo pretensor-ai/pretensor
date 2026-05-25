@@ -342,6 +342,56 @@ def test_load_sources_from_config(tmp_path: Path) -> None:
     assert bq.location == "US"
 
 
+def test_load_sources_private_key_path_resolved_relative_to_config(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  my_sf:",
+                "    dialect: snowflake",
+                "    account: xy12345.us-east-1.aws",
+                "    user: bob",
+                "    database: ANALYTICS",
+                "    private_key_path: ./keys/sf.pem",
+                "    private_key_passphrase: secret",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(config_path)
+    sf = cfg.sources["my_sf"]
+    assert sf.private_key_path == (tmp_path / "keys" / "sf.pem").resolve()
+    assert sf.private_key_passphrase == "secret"
+
+
+def test_load_sources_private_key_path_keeps_absolute(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  my_sf:",
+                "    dialect: snowflake",
+                "    account: xy12345.us-east-1.aws",
+                "    user: bob",
+                "    database: ANALYTICS",
+                f"    private_key_path: {tmp_path / 'sf.pem'}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(config_path)
+    sf = cfg.sources["my_sf"]
+    assert sf.private_key_path == (tmp_path / "sf.pem").resolve()
+
+
 def test_sources_secrets_merge(tmp_path: Path) -> None:
     cfg_dir = tmp_path / ".pretensor"
     cfg_dir.mkdir()

@@ -56,6 +56,8 @@ class ConnectionConfig(PretensorModel):
     database: str | None = None
     user: str | None = None
     password: str | None = None
+    private_key_path: str | None = None
+    private_key_passphrase: str | None = None
     schema_filter: SchemaFilter = Field(default_factory=SchemaFilter)
     metadata_extra: dict[str, Any] = Field(default_factory=dict)
 

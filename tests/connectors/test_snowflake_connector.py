@@ -1055,3 +1055,143 @@ class TestPrimaryKeyCache:
         connector = _make_connector()
         result = connector._load_check_constraints_for_table("TPCH_SF1", "ORDERS")
         assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# Tests: private key authentication
+# ---------------------------------------------------------------------------
+
+
+class TestPrivateKeyAuth:
+    def test_url_omits_password_when_private_key_set(self) -> None:
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            user="alice",
+            password="secret",
+            private_key_path="/some/key.pem",
+        )
+        connector = SnowflakeConnector(cfg)
+        url = connector._snowflake_url()
+
+        assert "secret" not in url
+        assert "snowflake://alice@acct/DB" in url
+
+    def test_load_private_key_file_not_found(self) -> None:
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            private_key_path="/nonexistent/key.pem",
+        )
+        connector = SnowflakeConnector(cfg)
+        with pytest.raises(SnowflakeConnectorError, match="not found"):
+            connector._load_private_key()
+
+    def test_load_private_key_invalid_format(self, tmp_path: Path) -> None:
+        bad_key = tmp_path / "bad.pem"
+        bad_key.write_text("not a valid key", encoding="utf-8")
+
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            private_key_path=str(bad_key),
+        )
+        connector = SnowflakeConnector(cfg)
+        with pytest.raises(SnowflakeConnectorError, match="Failed to parse"):
+            connector._load_private_key()
+
+    def test_load_private_key_success(self, tmp_path: Path) -> None:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        key_file = tmp_path / "key.pem"
+        key_file.write_bytes(pem)
+
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            private_key_path=str(key_file),
+        )
+        connector = SnowflakeConnector(cfg)
+        pkb = connector._load_private_key()
+
+        assert isinstance(pkb, bytes)
+        assert len(pkb) > 0
+
+    def test_load_private_key_with_passphrase(self, tmp_path: Path) -> None:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.BestAvailableEncryption(b"my-pass"),
+        )
+        key_file = tmp_path / "key.pem"
+        key_file.write_bytes(pem)
+
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            private_key_path=str(key_file),
+            private_key_passphrase="my-pass",
+        )
+        connector = SnowflakeConnector(cfg)
+        pkb = connector._load_private_key()
+
+        assert isinstance(pkb, bytes)
+        assert len(pkb) > 0
+
+    def test_load_private_key_wrong_passphrase(self, tmp_path: Path) -> None:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.BestAvailableEncryption(b"my-pass"),
+        )
+        key_file = tmp_path / "key.pem"
+        key_file.write_bytes(pem)
+
+        from pretensor.introspection.models.config import ConnectionConfig
+
+        cfg = ConnectionConfig(
+            name="x",
+            type=DatabaseType.SNOWFLAKE,
+            host="acct",
+            database="DB",
+            private_key_path=str(key_file),
+            private_key_passphrase="wrong-pass",
+        )
+        connector = SnowflakeConnector(cfg)
+        with pytest.raises(SnowflakeConnectorError, match="Failed to parse"):
+            connector._load_private_key()

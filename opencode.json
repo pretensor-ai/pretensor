@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "pretensor": {
+      "type": "local",
+      "command": ["/home/maximo/Development/pretensor/.venv/bin/pretensor", "serve", "--graph-dir", "/home/maximo/Development/pretensor/.pretensor"],
+      "enabled": true
+    }
+  }
+}

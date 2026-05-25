@@ -71,6 +71,8 @@ _SOURCE_ALLOWED_KEYS = frozenset(
         "schema",
         "warehouse",
         "role",
+        "private_key_path",
+        "private_key_passphrase",
         # BigQuery
         "project",
         "dataset",
@@ -94,6 +96,8 @@ class SourceConfig:
     schema: str | None = None
     warehouse: str | None = None
     role: str | None = None
+    private_key_path: str | None = None
+    private_key_passphrase: str | None = None
     # BigQuery
     project: str | None = None
     dataset: str | None = None
@@ -185,6 +189,7 @@ def _graph_config_from_mapping(raw: Any) -> GraphConfig:
 def _source_config_from_mapping(
     name: str,
     raw: Any,
+    base_dir: Path,
 ) -> SourceConfig:
     """Validate and build a :class:`SourceConfig` from a raw YAML mapping."""
     if not isinstance(raw, dict):
@@ -213,6 +218,7 @@ def _source_config_from_mapping(
         "project",
         "dataset",
         "location",
+        "private_key_passphrase",
     }
     kwargs: dict[str, Any] = {"dialect": dialect.strip().lower(), "port": port}
     for key in str_fields:
@@ -223,12 +229,19 @@ def _source_config_from_mapping(
             raise CliConfigError(f"Source `{name}`: `{key}` must be a string")
         else:
             kwargs[key] = val.strip() or None
+    # Resolve private_key_path relative to config file location
+    kwargs["private_key_path"] = _resolved_optional_path(
+        data.get("private_key_path"),
+        field="private_key_path",
+        base_dir=base_dir,
+    )
     return SourceConfig(**kwargs)
 
 
 def _parse_sources(
     raw: Any,
     secrets_raw: dict[str, Any] | None,
+    base_dir: Path,
 ) -> dict[str, SourceConfig]:
     """Parse the ``sources:`` block and merge optional secrets overlay."""
     mapping = _as_mapping(raw, field="sources")
@@ -247,7 +260,7 @@ def _parse_sources(
                 )
             if isinstance(merged, dict):
                 merged = {**merged, **secret_block}
-        sources[name.strip()] = _source_config_from_mapping(name.strip(), merged)
+        sources[name.strip()] = _source_config_from_mapping(name.strip(), merged, base_dir)
     return sources
 
 
@@ -329,7 +342,7 @@ def load_cli_config(config_path: Path | None) -> PretensorCliConfig:
     )
 
     secrets_raw = _load_secrets_file(base_dir)
-    sources = _parse_sources(raw.get("sources"), secrets_raw)
+    sources = _parse_sources(raw.get("sources"), secrets_raw, base_dir)
 
     return PretensorCliConfig(
         source_path=source,

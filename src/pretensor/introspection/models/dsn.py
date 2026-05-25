@@ -303,6 +303,8 @@ def connection_config_from_source(
             database=source.database,
             user=source.user,
             password=source.password,
+            private_key_path=source.private_key_path,
+            private_key_passphrase=source.private_key_passphrase,
             schema_filter=_snowflake_schema_filter(sf_schema),
             metadata_extra={
                 "snowflake_schema": sf_schema,
