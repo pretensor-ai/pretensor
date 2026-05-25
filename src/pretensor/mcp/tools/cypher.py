@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 from typing import Any
 
@@ -88,11 +86,15 @@ def json_safe_cypher_value(value: Any) -> Any:
     return str(value)
 
 
-def _materialize_read_only_rows(graph_path: Path, q: str) -> list[dict[str, Any]]:
-    """Open DB, run Cypher, return row dicts (runs in a worker thread for timeouts)."""
+def _materialize_read_only_rows(
+    graph_path: Path, q: str, *, timeout_seconds: float
+) -> list[dict[str, Any]]:
+    """Open DB, run Cypher with a native Kuzu timeout, return row dicts."""
     store = KuzuStore(graph_path)
     try:
         store.ensure_schema()
+        timeout_ms = max(0, int(timeout_seconds * 1000))
+        store.set_query_timeout(timeout_ms)
         raw = store.execute(q)
         if isinstance(raw, list):
             raise TypeError("Unexpected multi-statement Cypher result")
@@ -313,11 +315,13 @@ def cypher_payload(
         return {"error": f"Graph file not found for database: {db!r}"}
 
     try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(_materialize_read_only_rows, graph_path, q)
-            rows = future.result(timeout=timeout_seconds)
-    except FutureTimeoutError:
-        return {"error": f"Query timed out after {timeout_seconds:g}s"}
+        rows = _materialize_read_only_rows(
+            graph_path, q, timeout_seconds=timeout_seconds
+        )
+    except RuntimeError as exc:
+        if "interrupted" in str(exc).lower():
+            return {"error": f"Query timed out after {timeout_seconds:g}s"}
+        return {"error": _enrich_kuzu_error(exc, q, graph_path)}
     except Exception as exc:
         return {"error": _enrich_kuzu_error(exc, q, graph_path)}
     vf = visibility_filter or get_effective_visibility_filter()
