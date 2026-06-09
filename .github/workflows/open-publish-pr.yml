@@ -1,0 +1,36 @@
+name: open-publish-pr
+
+# Opens the promotion PR when the private repo pushes a publish/<tag> branch
+# here via the deploy key. Uses the built-in GITHUB_TOKEN (no extra credential).
+# A GITHUB_TOKEN-opened PR does not trigger pull_request workflows, but that is
+# fine: ci.yml already runs on push for publish/**, so required checks attach to
+# the pushed commit SHA and satisfy branch protection.
+
+on:
+  push:
+    branches:
+      - "publish/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update the promotion PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version="${BRANCH#publish/}"
+          if gh pr view "$BRANCH" --repo "$REPO" --json number >/dev/null 2>&1; then
+            echo "PR already open for ${BRANCH}."
+          else
+            gh pr create --repo "$REPO" --base main --head "$BRANCH" \
+              --title "Promote: ${version}" \
+              --body "Automated promotion from the private repo. Review the diff, confirm CI is green, then merge. After merging, run the publish-tag workflow in the private repo (version ${version}) to tag public main and cut the release."
+          fi
