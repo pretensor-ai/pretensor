@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
+from pretensor.core.store import KuzuStore
 from pretensor.mcp.tool_registry import McpTool, McpToolRegistry
 
 # ---------------------------------------------------------------------------
@@ -108,6 +109,69 @@ def test_open_store_for_entry_raises_on_corrupt_graph(tmp_path: Path) -> None:
     ):
         with pytest.raises(RuntimeError, match="Cannot open graph file"):
             open_store_for_entry(entry)
+
+
+# ---------------------------------------------------------------------------
+# Native Kuzu query timeout (no ThreadPoolExecutor leak)
+# ---------------------------------------------------------------------------
+
+
+def test_native_query_timeout_raises_interrupted(graph_store: KuzuStore) -> None:
+    """A query that exceeds the native Kuzu timeout must raise RuntimeError('Interrupted.')."""
+    graph_store.set_query_timeout(1)  # 1 ms — essentially instant timeout
+    with pytest.raises(RuntimeError, match="Interrupted"):
+        graph_store.execute("UNWIND range(1, 100000) AS a UNWIND range(1, 100000) AS b RETURN count(a)")
+
+
+def test_cypher_payload_uses_native_timeout(tmp_path: Path) -> None:
+    """The cypher tool must return a timeout error dict without spawning threads."""
+    from datetime import datetime, timezone
+
+    from pretensor.connectors.models import Column, SchemaSnapshot, Table
+    from pretensor.core.builder import GraphBuilder
+    from pretensor.core.registry import GraphRegistry
+    from pretensor.core.store import KuzuStore
+    from pretensor.mcp.tools.cypher import cypher_payload
+
+    graph = tmp_path / "graphs" / "demo.kuzu"
+    graph.parent.mkdir(parents=True)
+    store = KuzuStore(graph)
+    try:
+        snap = SchemaSnapshot(
+            connection_name="demo",
+            database="demo",
+            schemas=["public"],
+            tables=[
+                Table(
+                    name="orders",
+                    schema_name="public",
+                    columns=[Column(name="id", data_type="int")],
+                )
+            ],
+            introspected_at=datetime.now(timezone.utc),
+        )
+        GraphBuilder().build(snap, store, run_relationship_discovery=False)
+    finally:
+        store.close()
+
+    reg = GraphRegistry(tmp_path / "registry.json").load()
+    reg.upsert(
+        connection_name="demo",
+        database="demo",
+        dsn="postgresql://u@localhost/demo",
+        graph_path=graph,
+        indexed_at=datetime.now(timezone.utc),
+    )
+    reg.save()
+
+    result = cypher_payload(
+        tmp_path,
+        query="UNWIND range(1, 100000) AS a UNWIND range(1, 100000) AS b RETURN count(a)",
+        database="demo",
+        timeout_seconds=0.001,  # 1 ms
+    )
+    assert "error" in result
+    assert "timed out" in result["error"].lower()
 
 
 # ---------------------------------------------------------------------------

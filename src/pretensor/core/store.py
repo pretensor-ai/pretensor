@@ -1325,6 +1325,13 @@ class KuzuStore:
         """Run a read query (or arbitrary Cypher) with optional parameters."""
         return self._conn.execute(cypher, parameters)
 
+    def set_query_timeout(self, timeout_ms: int) -> None:
+        """Set the query timeout value in ms for executing queries on this connection.
+
+        A value of ``0`` disables the timeout (default Kuzu behavior).
+        """
+        self._conn.set_query_timeout(timeout_ms)
+
     def query_all_rows(
         self, cypher: str, parameters: dict[str, Any] | None = None
     ) -> list[tuple[Any, ...]]:
