@@ -1,8 +1,12 @@
 name: no-internal-refs
 
+# publish/** is included so the scan also attaches to release-snapshot pushes,
+# whose PRs are opened by GITHUB_TOKEN and therefore never fire pull_request
+# events — without the push trigger, a required "Block internal tracker
+# references" check would wait forever on those PRs.
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 'publish/**']
   pull_request:
 
 concurrency:
