@@ -26,7 +26,7 @@ class BaseSearchIndex(ABC):
     """Abstract search index over graph metadata.
 
     Concrete implementations may use keyword (BM25), vector (embeddings),
-    or hybrid strategies.  OSS ships ``KeywordSearchIndex``; Cloud can register
+    or hybrid strategies.  OSS ships ``KeywordSearchIndex``; plugins can register
     a ``HybridSearchIndex`` subclass.
     """
 
@@ -59,7 +59,7 @@ class BaseSearchIndex(ABC):
     ) -> list[SearchResult]:
         """Return nodes related to the named node.
 
-        OSS implementations use graph proximity (FK / join edges).  Cloud
+        OSS implementations use graph proximity (FK / join edges).  Other
         implementations may additionally use vector similarity.
 
         Args:

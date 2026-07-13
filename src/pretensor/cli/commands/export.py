@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from pretensor.cli import constants as cli_constants
-from pretensor.cli.config_file import get_cli_config, resolve_path_option
+from pretensor.cli.config_file import get_cli_config, resolve_aliased_path_option
 from pretensor.core.portable_export import export_graph_payload
 from pretensor.core.registry import DatabaseNotFoundError, GraphRegistry
 from pretensor.core.store import KuzuStore
@@ -42,6 +42,15 @@ def register_export_command(app: typer.Typer, *, console: Console) -> None:
             dir_okay=True,
             resolve_path=True,
         ),
+        graph_dir: Path | None = typer.Option(
+            None,
+            "--graph-dir",
+            hidden=True,
+            help="Deprecated alias for --state-dir.",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
         ctx: typer.Context = typer.Option(
             None,
             hidden=True,
@@ -49,10 +58,12 @@ def register_export_command(app: typer.Typer, *, console: Console) -> None:
     ) -> None:
         """Dump one indexed graph to portable pretty-printed JSON."""
         cli_config = get_cli_config(ctx)
-        state_dir = resolve_path_option(
+        state_dir = resolve_aliased_path_option(
             ctx,
-            param_name="state_dir",
-            cli_value=state_dir,
+            primary_param="state_dir",
+            primary_value=state_dir,
+            alias_param="graph_dir",
+            alias_value=graph_dir,
             config_value=cli_config.state_dir,
         )
         reg_path = state_dir / cli_constants.REGISTRY_FILENAME

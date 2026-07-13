@@ -98,8 +98,8 @@ def test_add_name_flag_overrides_default(tmp_path: Path) -> None:
 
 
 def test_add_prints_index_hint(tmp_path: Path) -> None:
-    """``add`` prints a hint to run ``pretensor index`` next."""
-    dsn = "postgresql://u:p@localhost/mydb"
+    """``add`` prints a hint to run ``pretensor index`` next, with a masked DSN."""
+    dsn = "postgresql://u:sup3rsecret@localhost/mydb"
 
     with patch(
         "pretensor.cli.commands.connections.add_remove.DSNEncryptor",
@@ -113,6 +113,9 @@ def test_add_prints_index_hint(tmp_path: Path) -> None:
     assert result.exit_code == 0, _normalize(result.stdout)
     plain = _normalize(result.stdout)
     assert "pretensor index" in plain
+    # The hint must not leak the password; it is shown masked.
+    assert "sup3rsecret" not in plain
+    assert "u:***@localhost/mydb" in plain
 
 
 def test_add_encrypts_dsn_in_registry(tmp_path: Path) -> None:

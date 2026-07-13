@@ -1,6 +1,6 @@
 """MCP tool plugin registry — McpTool and McpToolRegistry.
 
-Allows dynamic, pluggable registration of MCP tools so that Cloud extensions
+Allows dynamic, pluggable registration of MCP tools so that extensions
 can add tools (e.g. ``semantic_search``) without modifying
 OSS server code.
 """
@@ -8,7 +8,7 @@ OSS server code.
 from __future__ import annotations
 
 import logging
-import traceback
+import uuid
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
@@ -94,16 +94,21 @@ class McpToolRegistry:
     ) -> dict[str, Any]:
         """Dispatch a tool call to its registered handler.
 
-        All handler exceptions are caught and returned as ``{"error": ...}``
-        so the MCP server never crashes on a bad tool invocation.
+        All handler exceptions are caught and returned as an opaque error
+        envelope so the MCP server never crashes on a bad tool invocation and
+        never discloses internals (tracebacks, filesystem paths, exception
+        text) to the semi-trusted client. The full stack is kept server-side
+        via ``logger.exception`` tagged with the same ``correlation_id`` so an
+        operator can still join a client-reported id to the server log.
 
         Args:
             name: Tool name as sent by the MCP client.
             arguments: Raw argument dict (may be ``None`` or empty).
 
         Returns:
-            JSON-serialisable result dict from the handler, or
-            ``{"error": "..."}`` when the handler raises.
+            JSON-serialisable result dict from the handler, or an opaque
+            ``{"error": "Internal tool error", "tool": ..., "correlation_id":
+            ...}`` envelope when the handler raises.
         """
         tool = self._tools.get(name)
         if tool is None:
@@ -111,12 +116,17 @@ class McpToolRegistry:
         args = arguments or {}
         try:
             return await tool.handler(args)
-        except Exception as exc:
-            logger.exception("Unhandled exception in MCP tool %r", name)
+        except Exception:
+            correlation_id = uuid.uuid4().hex
+            logger.exception(
+                "Unhandled exception in MCP tool %r [correlation_id=%s]",
+                name,
+                correlation_id,
+            )
             return {
-                "error": f"Internal tool error: {exc}",
+                "error": "Internal tool error",
                 "tool": name,
-                "traceback": traceback.format_exc(),
+                "correlation_id": correlation_id,
             }
 
     def __len__(self) -> int:

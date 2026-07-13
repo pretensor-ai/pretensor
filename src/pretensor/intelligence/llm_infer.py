@@ -1,4 +1,4 @@
-"""LLM relationship inference Protocol and null client (Cloud extension point)."""
+"""LLM relationship inference Protocol and null client (extension point)."""
 
 from __future__ import annotations
 

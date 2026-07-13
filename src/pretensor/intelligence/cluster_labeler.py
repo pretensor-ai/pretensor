@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 import math
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from pretensor.core.store import KuzuStore
 from pretensor.intelligence.clustering import Cluster
+from pretensor.intelligence.embeddings import cosine_similarity
 from pretensor.search.index import _identifier_tokens
 
 # Shared with MCP context resolution when a table has multiple IN_CLUSTER edges.
@@ -55,9 +56,11 @@ class ClusterLabeler:
         self,
         store: KuzuStore,
         llm_client: LlmClusterLabelingClient | None = None,
+        embedding_resolver: Callable[[str], list[float] | None] | None = None,
     ) -> None:
         self._store = store
         self._llm = llm_client
+        self._embedding_resolver = embedding_resolver
 
     async def label_and_persist(
         self,
@@ -69,9 +72,29 @@ class ClusterLabeler:
         """Label clusters via heuristic and upsert into Kuzu."""
         out: list[LabeledCluster] = []
         batch_size = 5
+        # Pre-pass: compute one centroid per cluster so the per-cluster
+        # ``_heuristic_label`` call can use centroid distance as a tiebreaker
+        # when role-weighted degree and row count tie.  Only fires when an
+        # ``embedding_resolver`` was provided (default: no centroid tiebreaker
+        # → identical to the pre-PR labeler).
+        centroids: dict[int, list[float] | None] = {}
+        if self._embedding_resolver is not None:
+            for idx, cluster in enumerate(clusters):
+                centroids[idx] = _compute_cluster_centroid(
+                    cluster, self._embedding_resolver
+                )
+
         for batch_start in range(0, len(clusters), batch_size):
             batch = clusters[batch_start : batch_start + batch_size]
-            labels_descs = [_heuristic_label(self._store, c) for c in batch]
+            labels_descs = [
+                _heuristic_label(
+                    self._store,
+                    c,
+                    centroid=centroids.get(batch_start + i),
+                    embedding_resolver=self._embedding_resolver,
+                )
+                for i, c in enumerate(batch)
+            ]
             logger.info(
                 "Cluster labeling (heuristic): %d clusters in this batch",
                 len(batch),
@@ -271,7 +294,69 @@ def _frequent_noun(
     return tiebreak.get(candidates[0], candidates[0])
 
 
-def _heuristic_label(store: KuzuStore, cluster: Cluster) -> tuple[str, str]:
+def _compute_cluster_centroid(
+    cluster: Cluster,
+    embedding_resolver: Callable[[str], list[float] | None],
+) -> list[float] | None:
+    """Mean-pool the embeddings for tables in ``cluster`` that have one.
+
+    Returns ``None`` when no table in the cluster carries an embedding (the
+    labeler then falls back to the pre-embedding tiebreaker chain).  Tables
+    with ``None`` embeddings are simply skipped — they neither pull nor push
+    the centroid.
+    """
+    vecs: list[list[float]] = []
+    for tid in cluster.table_ids:
+        v = embedding_resolver(tid)
+        if v is None:
+            continue
+        vecs.append([float(x) for x in v])
+    if not vecs:
+        return None
+    dim = len(vecs[0])
+    centroid = [0.0] * dim
+    # Track the count of vectors that actually contribute to the sum so
+    # the divisor matches the numerator. Dividing by ``len(vecs)`` would
+    # dilute the mean when any vector was skipped for dim mismatch
+    # (matches the pattern in ``role_exemplars.compute_role_centroids``).
+    count = 0
+    for v in vecs:
+        if len(v) != dim:
+            # Mismatched dim shouldn't happen with a single fixed model
+            # revision; skip the offender rather than pollute the mean.
+            continue
+        for i in range(dim):
+            centroid[i] += v[i]
+        count += 1
+    if count == 0:
+        return None
+    return [x / count for x in centroid]
+
+
+def _centroid_distance(
+    embedding: list[float] | None, centroid: list[float] | None
+) -> float:
+    """``1 - cosine(emb, centroid)``; ``inf`` if either side is missing.
+
+    ``inf`` ensures unembedded tables sort *after* embedded ones in the
+    tiebreaker, but only matters when prior keys (``-effective_degree``,
+    ``-row_count``) tie — heuristic signals always dominate.
+    """
+    if embedding is None or centroid is None:
+        return float("inf")
+    try:
+        return 1.0 - cosine_similarity(embedding, centroid)
+    except ValueError:
+        return float("inf")
+
+
+def _heuristic_label(
+    store: KuzuStore,
+    cluster: Cluster,
+    *,
+    centroid: list[float] | None = None,
+    embedding_resolver: Callable[[str], list[float] | None] | None = None,
+) -> tuple[str, str]:
     entries = _cluster_table_rows(store, list(cluster.table_ids))
     if not entries:
         return "Schema domain", HEURISTIC_CLUSTER_DESCRIPTION
@@ -280,19 +365,26 @@ def _heuristic_label(store: KuzuStore, cluster: Cluster) -> tuple[str, str]:
     cluster_set = {nid for nid, _, _, _, _, _, _ in entries}
     # Anchor: highest *role-weighted* in-cluster FK degree. Bridges/links
     # contribute at 0.4× so a 2-degree dimension (``person``) beats a
-    # 3-degree bridge (``businessentity``) on the AW person cluster. Ties
-    # fall through to row_count then name.
-    best: tuple[float, int, str, str, str] | None = None
-    # key shape: (-effective_degree, -row_count, schema, table, node_id)
+    # 3-degree bridge (``businessentity``) on the AW person cluster. When
+    # role-weighted degree and row count tie AND a cluster centroid is
+    # available, prefer the table closest to centroid.
+    # Heuristic signals stay primary — centroid distance only resolves ties.
+    best: tuple[float, int, float, str, str, str] | None = None
+    # key shape: (-effective_degree, -row_count, centroid_distance,
+    #             schema, table, node_id)
     for nid, sn, tn, outs, ins, rc, role in entries:
         in_degree = sum(1 for o in outs if o in cluster_set)
         in_degree += sum(1 for i in ins if i in cluster_set)
         eff = in_degree * _role_weight(role)
-        key = (-eff, -rc, sn.lower(), tn.lower(), nid)
+        if embedding_resolver is not None and centroid is not None:
+            dist = _centroid_distance(embedding_resolver(nid), centroid)
+        else:
+            dist = float("inf")
+        key = (-eff, -rc, dist, sn.lower(), tn.lower(), nid)
         if best is None or key < best:
             best = key
     assert best is not None
-    anchor_nid = best[4]
+    anchor_nid = best[5]
     rep_schema = next(
         sn for nid, sn, _tn, _o, _i, _rc, _role in entries if nid == anchor_nid
     )
@@ -327,9 +419,7 @@ def _heuristic_label(store: KuzuStore, cluster: Cluster) -> tuple[str, str]:
         weight = (deg + 1) * math.log10(max(rc, 0) + 10) * _role_weight(role)
         weighted_entries.append((sn, tn, weight))
     noun = _frequent_noun(weighted_entries, schema_stopwords)
-    head = (
-        noun.replace("_", " ").title() if noun else anchor_table.replace("_", " ")
-    )
+    head = noun.replace("_", " ").title() if noun else anchor_table.replace("_", " ")
     suffix = f" cluster ({table_count} tables)" if table_count > 1 else ""
     label = f"{rep_schema}.{anchor_table} · {head}{suffix}"
     return label, HEURISTIC_CLUSTER_DESCRIPTION

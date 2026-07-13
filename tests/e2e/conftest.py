@@ -19,6 +19,9 @@ if not os.getenv("PRETENSOR_E2E"):
 import subprocess  # noqa: E402
 
 import psycopg2  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy import text as sa_text
+from testcontainers.mysql import MySqlContainer  # noqa: E402
 from testcontainers.postgres import PostgresContainer  # noqa: E402
 
 from pretensor.cli.constants import REGISTRY_FILENAME  # noqa: E402
@@ -38,7 +41,10 @@ _PAGILA_DDL_PATH = Path(str(files("pretensor.quickstart") / "pagila_ddl.sql"))
 _ADVENTUREWORKS_DDL_PATH = _FIXTURE_SQL_DIR / "adventureworks_ddl.sql"
 _TPCDS_DDL_PATH = _FIXTURE_SQL_DIR / "tpcds_ddl.sql"
 _TPCH_DDL_PATH = _FIXTURE_SQL_DIR / "tpch_ddl.sql"
+_SAKILA_MYSQL_DDL_PATH = _FIXTURE_SQL_DIR / "sakila_mysql_ddl.sql"
+_MESSY_WAREHOUSE_DDL_PATH = _FIXTURE_SQL_DIR / "messy_warehouse_ddl.sql"
 _POSTGRES_IMAGE = "postgres:16-alpine"
+_MYSQL_IMAGE = "mysql:8.0"
 
 
 def _ensure_image(image: str) -> None:
@@ -345,3 +351,87 @@ def synthetic_dbt_warehouse(
         state_dir=state_dir,
         graph_path=graph_path,
     )
+
+
+# ----------------------------------------------------------------------------
+# MySQL / Sakila fixture
+# ----------------------------------------------------------------------------
+
+
+def _start_mysql_with_ddl(ddl_path: Path) -> Iterator[str]:
+    """Boot a session-scoped MySQL container, apply ``ddl_path``, yield DSN."""
+    _ensure_image(_MYSQL_IMAGE)
+    with MySqlContainer(_MYSQL_IMAGE) as mysql:
+        raw_url: str = mysql.get_connection_url()
+        # testcontainers returns mysql+pymysql://... — strip the driver suffix
+        dsn = raw_url.replace("mysql+pymysql://", "mysql://")
+
+        # Apply schema DDL via SQLAlchemy (PyMySQL driver already installed)
+        engine = create_engine(raw_url)
+        ddl_text = ddl_path.read_text(encoding="utf-8")
+        with engine.begin() as conn:
+            for stmt in ddl_text.split(";\n"):
+                stmt = stmt.strip().rstrip(";").strip()
+                if stmt and not stmt.startswith("--"):
+                    conn.execute(sa_text(stmt))
+        engine.dispose()
+
+        yield dsn
+
+
+@pytest.fixture(scope="session")
+def sakila_mysql_dsn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
+    """Start a MySQL container, apply Sakila DDL, yield the DSN, stop on teardown."""
+    yield from _start_mysql_with_ddl(_SAKILA_MYSQL_DDL_PATH)
+
+
+@pytest.fixture(scope="session")
+def indexed_state_mysql(
+    sakila_mysql_dsn: str,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    """Run the full pretensor index pipeline against the Sakila MySQL fixture."""
+    return _index_database(
+        sakila_mysql_dsn,
+        "sakila_mysql",
+        tmp_path_factory.mktemp("e2e_state_mysql"),
+    )
+
+
+@pytest.fixture(scope="session")
+def graph_dir_mysql(indexed_state_mysql: Path) -> Path:
+    """Alias of ``indexed_state_mysql`` used by MySQL-specific tests."""
+    return indexed_state_mysql
+
+
+# ----------------------------------------------------------------------------
+# Messy-warehouse fixture — multi-schema dbt-style warehouse with audit tables,
+# SCD2 snapshots, cross-schema FKs, and junk-schema noise
+# ----------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def messy_warehouse_dsn(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[str]:
+    """Start a Postgres container, apply messy-warehouse DDL, yield the DSN."""
+    yield from _start_postgres_with_ddl(_MESSY_WAREHOUSE_DDL_PATH)
+
+
+@pytest.fixture(scope="session")
+def indexed_state_messy_warehouse(
+    messy_warehouse_dsn: str,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    """Run the full pretensor index pipeline against the messy-warehouse fixture."""
+    return _index_database(
+        messy_warehouse_dsn,
+        "messy_warehouse",
+        tmp_path_factory.mktemp("e2e_state_messy_wh"),
+    )
+
+
+@pytest.fixture(scope="session")
+def graph_dir_messy_warehouse(indexed_state_messy_warehouse: Path) -> Path:
+    """Alias of ``indexed_state_messy_warehouse`` used by messy-warehouse tests."""
+    return indexed_state_messy_warehouse

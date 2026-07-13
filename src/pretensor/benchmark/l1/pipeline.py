@@ -19,9 +19,24 @@ from pretensor.core.store import KuzuStore
 from pretensor.intelligence.clustering import ClusteringEngine
 from pretensor.intelligence.discovery import RelationshipDiscovery
 from pretensor.intelligence.graph_export import GraphExporter
+from pretensor.intelligence.heuristic import HeuristicScorer
 from pretensor.intelligence.schema_classification import classify_database_tables
+from pretensor.intelligence.scoring import ScorerRegistry
 
-__all__ = ["L1Artifacts", "build_l1_artifacts", "discover_inferred_joins_blind"]
+__all__ = [
+    "L1_EMBEDDING_JOIN_THRESHOLD",
+    "L1Artifacts",
+    "build_l1_artifacts",
+    "discover_inferred_joins_blind",
+]
+
+# Cosine threshold used by the L1 embeddings lane for the embedding
+# relationship scorer. ``EmbeddingsConfig.join_threshold`` has no
+# production default (None = scorer off); the benchmark pins the
+# documented "typical" value so the lane measures one fixed, reproducible
+# operating point. Bump deliberately and regenerate the
+# ``<dataset>-l1-embeddings.json`` baselines when retuning.
+L1_EMBEDDING_JOIN_THRESHOLD = 0.85
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +92,7 @@ def discover_inferred_joins_blind(
     snapshot: SchemaSnapshot,
     *,
     work_dir: Path,
+    embeddings: bool = False,
 ) -> list[JoinKey]:
     """Run heuristic discovery against an FK-masked snapshot.
 
@@ -86,6 +102,13 @@ def discover_inferred_joins_blind(
     helper masks the snapshot, runs the heuristic, and returns the
     candidate joins as canonical (table-name, column) pairs ready for
     :func:`pretensor.benchmark.l1.metrics.inferred_join_pr`.
+
+    With ``embeddings=True`` (the L1 embeddings lane), table vectors are
+    computed on the masked store first and an
+    :class:`EmbeddingRelationshipScorer` is registered after the heuristic
+    at :data:`L1_EMBEDDING_JOIN_THRESHOLD` — the same staging production
+    uses — so ``inferred_join_precision`` / ``recall`` measure the
+    heuristic + embedding scorer combination.
     """
     work_dir.mkdir(parents=True, exist_ok=True)
     masked = _mask_foreign_keys(snapshot)
@@ -94,7 +117,34 @@ def discover_inferred_joins_blind(
         # Build the FK-masked graph so RelationshipDiscovery has node
         # context (column metadata, neighbours) to score candidates.
         GraphBuilder().build(masked, store, run_relationship_discovery=False)
-        candidates = RelationshipDiscovery(store).discover(masked)
+        scorers = None
+        if embeddings:
+            from pretensor.intelligence.semantic import (
+                extend_with_embedding_scorer,
+            )
+            from pretensor.intelligence.steps_embedding import (
+                compute_table_embeddings,
+            )
+
+            compute_table_embeddings(store, masked.database)
+            if not store.has_any_table_embeddings():
+                # Mirror the L2 guard: the production embed path degrades
+                # silently on download failure, but a benchmark lane that
+                # measures the heuristic-only path under an embeddings
+                # baseline reports a bogus regression. Fail loudly.
+                msg = (
+                    "L1 was invoked with --embeddings but no table vectors "
+                    "were computed; the embedding model is likely "
+                    "unavailable (download failure / rate limit)."
+                )
+                raise RuntimeError(msg)
+            scorers = extend_with_embedding_scorer(
+                ScorerRegistry([HeuristicScorer()]),
+                store=store,
+                database_key=masked.database,
+                threshold=L1_EMBEDDING_JOIN_THRESHOLD,
+            )
+        candidates = RelationshipDiscovery(store, scorers=scorers).discover(masked)
     finally:
         store.close()
 

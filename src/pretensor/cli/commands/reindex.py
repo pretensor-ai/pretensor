@@ -11,17 +11,22 @@ import typer
 from rich.console import Console
 
 from pretensor.cli import constants as cli_constants
+from pretensor.cli.commands._source_runner import (
+    check_source_exists,
+    resolve_embeddings_mode,
+    run_for_all_sources,
+)
 from pretensor.cli.config_file import (
     get_cli_config,
+    resolve_aliased_path_option,
     resolve_optional_str_option,
-    resolve_path_option,
 )
 from pretensor.cli.dbt_enrichment import (
     apply_dbt_enrichment_cli,
     preload_dbt_manifest,
 )
 from pretensor.cli.paths import default_connection_name, keystore_path
-from pretensor.config import PretensorConfig
+from pretensor.config import EmbeddingsConfig, PretensorConfig
 from pretensor.connectors.inspect import inspect
 from pretensor.connectors.snapshot import diff_snapshots
 from pretensor.core.dsn_crypto import DSNEncryptor
@@ -36,7 +41,6 @@ from pretensor.introspection.models.dsn import (
     connection_config_from_url,
     dsn_from_source,
     registry_dialect_for,
-    validate_source_env_vars,
 )
 from pretensor.observability import log_timed_operation
 from pretensor.skills.generator import SkillGenerator
@@ -89,6 +93,16 @@ def register_reindex_command(app: typer.Typer, *, console: Console) -> None:
             "--recompute-intelligence",
             help="After patching, re-run relationship discovery and clustering/join paths.",
         ),
+        embeddings: bool | None = typer.Option(
+            None,
+            "--embeddings/--no-embeddings",
+            help=(
+                "Compute a 384-dim embedding for every SchemaTable during reindex. "
+                "Only effective together with --recompute-intelligence. "
+                "Requires the [embeddings] extra (pip install 'pretensor[embeddings]'). "
+                "Default: auto — on when the extra is installed, off otherwise."
+            ),
+        ),
         state_dir: Path = typer.Option(
             cli_constants.DEFAULT_STATE_DIR,
             "--state-dir",
@@ -96,6 +110,15 @@ def register_reindex_command(app: typer.Typer, *, console: Console) -> None:
             file_okay=False,
             dir_okay=True,
             writable=True,
+            resolve_path=True,
+        ),
+        graph_dir: Path | None = typer.Option(
+            None,
+            "--graph-dir",
+            hidden=True,
+            help="Deprecated alias for --state-dir.",
+            file_okay=False,
+            dir_okay=True,
             resolve_path=True,
         ),
         skills_target: str = typer.Option(
@@ -144,81 +167,58 @@ def register_reindex_command(app: typer.Typer, *, console: Console) -> None:
             )
             raise typer.Exit(1)
 
-        state_dir = resolve_path_option(
+        embeddings_was_explicit = embeddings is True
+        embeddings = resolve_embeddings_mode(embeddings, console)
+        if embeddings_was_explicit and not recompute_intelligence:
+            console.print(
+                "[yellow]Warning:[/yellow] --embeddings has no effect "
+                "without --recompute-intelligence; no vectors will be "
+                "computed. Re-run with both flags to update embeddings."
+            )
+
+        state_dir = resolve_aliased_path_option(
             ctx,
-            param_name="state_dir",
-            cli_value=state_dir,
+            primary_param="state_dir",
+            primary_value=state_dir,
+            alias_param="graph_dir",
+            alias_value=graph_dir,
             config_value=cli_config.state_dir,
         )
 
         # --- --all: iterate all configured sources ----------------------------
         if all_sources:
-            if not cli_config.sources:
-                console.print(
-                    "[red]No sources defined in config.[/red] "
-                    "Add a `sources:` section to .pretensor/config.yaml."
-                )
-                raise typer.Exit(1)
-            results: list[tuple[str, bool, str]] = []
-            for src_name in cli_config.sources:
-                console.print(
-                    f"\n[bold]{'─' * 40}[/bold]\n"
-                    f"[bold blue]Reindexing source:[/bold blue] {src_name}\n"
-                )
-                src_cfg = cli_config.sources[src_name]
-                missing_vars = validate_source_env_vars(src_cfg)
-                if missing_vars:
-                    msg = f"missing env vars: {', '.join(missing_vars)}"
-                    console.print(f"[yellow]Skipping {src_name}:[/yellow] {msg}")
-                    logger.warning("Skipping source %s: %s", src_name, msg)
-                    results.append((src_name, False, f"skipped ({msg})"))
-                    continue
-                try:
-                    _run_single_reindex(
-                        console=console,
-                        cli_config=cli_config,
-                        ctx=ctx,
-                        dsn=None,
-                        source_name=src_name,
-                        dialect=dialect,
-                        database=src_name,
-                        dry_run=dry_run,
-                        recompute_intelligence=recompute_intelligence,
-                        state_dir=state_dir,
-                        skills_target=skills_target,
-                        dbt_manifest=dbt_manifest,
-                        dbt_sources=dbt_sources,
-                    )
-                    results.append((src_name, True, "ok"))
-                except typer.Exit:
-                    logger.warning("Source %s exited with failure", src_name)
-                    results.append((src_name, False, "failed"))
-                except Exception as e:
-                    logger.exception("Error reindexing source %s", src_name)
-                    console.print(f"[red]Error reindexing {src_name}:[/red] {e}")
-                    results.append((src_name, False, str(e)))
 
-            console.print(f"\n[bold]{'─' * 40}[/bold]")
-            console.print("[bold]Summary:[/bold]")
-            failed = 0
-            for src_name, ok, msg in results:
-                status = "[green]✓[/green]" if ok else "[red]✗[/red]"
-                console.print(f"  {status} {src_name}: {msg}")
-                if not ok:
-                    failed += 1
-            if failed:
-                raise typer.Exit(1)
+            def _run_one(src_name: str) -> None:
+                _run_single_reindex(
+                    console=console,
+                    cli_config=cli_config,
+                    ctx=ctx,
+                    dsn=None,
+                    source_name=src_name,
+                    dialect=dialect,
+                    database=src_name,
+                    dry_run=dry_run,
+                    recompute_intelligence=recompute_intelligence,
+                    embeddings=embeddings,
+                    state_dir=state_dir,
+                    skills_target=skills_target,
+                    dbt_manifest=dbt_manifest,
+                    dbt_sources=dbt_sources,
+                )
+
+            run_for_all_sources(
+                cli_config=cli_config,
+                console=console,
+                logger=logger,
+                source_banner="Reindexing source:",
+                action_verb="reindexing",
+                run_one=_run_one,
+            )
             return
 
         # --- --source: single named source ------------------------------------
         if source is not None:
-            if source not in cli_config.sources:
-                available = ", ".join(cli_config.sources) or "(none)"
-                console.print(
-                    f"[red]Unknown source {source!r}.[/red] "
-                    f"Available: {available}"
-                )
-                raise typer.Exit(1)
+            check_source_exists(source, cli_config, console)
             _run_single_reindex(
                 console=console,
                 cli_config=cli_config,
@@ -229,6 +229,7 @@ def register_reindex_command(app: typer.Typer, *, console: Console) -> None:
                 database=source,
                 dry_run=dry_run,
                 recompute_intelligence=recompute_intelligence,
+                embeddings=embeddings,
                 state_dir=state_dir,
                 skills_target=skills_target,
                 dbt_manifest=dbt_manifest,
@@ -262,6 +263,7 @@ def register_reindex_command(app: typer.Typer, *, console: Console) -> None:
             database=database,
             dry_run=dry_run,
             recompute_intelligence=recompute_intelligence,
+            embeddings=embeddings,
             state_dir=state_dir,
             skills_target=skills_target,
             dbt_manifest=dbt_manifest,
@@ -280,6 +282,7 @@ def _run_single_reindex(
     database: str | None,
     dry_run: bool,
     recompute_intelligence: bool,
+    embeddings: bool,
     state_dir: Path,
     skills_target: str,
     dbt_manifest: Path | None,
@@ -314,7 +317,27 @@ def _run_single_reindex(
             console.print(f"[red]Cannot build DSN from source:[/red] {e}")
             raise typer.Exit(1) from e
     elif dsn is not None:
-        connection_name = database or default_connection_name(dsn)
+        try:
+            connection_name = database or default_connection_name(dsn)
+        except ValueError as e:
+            registry_names: list[str] = []
+            reg_path_probe = state_dir / cli_constants.REGISTRY_FILENAME
+            if reg_path_probe.exists():
+                try:
+                    registry_names = [
+                        entry.connection_name
+                        for entry in GraphRegistry(reg_path_probe).load().list_entries()
+                    ]
+                except Exception:
+                    registry_names = []
+            if dsn in registry_names:
+                console.print(
+                    f"[red]{dsn!r} looks like a registry connection name, not a DSN.[/red] "
+                    f"Use `pretensor reindex --database {dsn}` instead."
+                )
+            else:
+                console.print(f"[red]Invalid DSN:[/red] {e}")
+            raise typer.Exit(1) from e
         dsn_resolved = dsn
     else:
         connection_name = database or ""
@@ -462,7 +485,9 @@ def _run_single_reindex(
                     console=console,
                 )
             indexed_at = datetime.now(timezone.utc)
-            enc = DSNEncryptor(ks) if ks.exists() and entry.dsn_encrypted else None
+            # Always re-encrypt at rest: reindex must never silently downgrade
+            # an entry to cleartext (and upgrades pre-existing cleartext ones).
+            enc = DSNEncryptor(ks)
             reg.upsert(
                 connection_name=connection_name,
                 database=new_snapshot.database,
@@ -472,12 +497,13 @@ def _run_single_reindex(
                 if entry.unified_graph_path
                 else None,
                 indexed_at=indexed_at,
-                encrypt_dsn=bool(entry.dsn_encrypted),
+                encrypt_dsn=True,
                 encryptor=enc,
                 dialect=registry_dialect_for(config.type),
                 table_count=entry.table_count,
                 dbt_manifest_path=(
-                    str(dbt_manifest) if dbt_manifest is not None
+                    str(dbt_manifest)
+                    if dbt_manifest is not None
                     else entry.dbt_manifest_path
                 ),
                 llm_enrichment_ran=entry.llm_enrichment_ran,
@@ -488,12 +514,49 @@ def _run_single_reindex(
             return
 
         if recompute_intelligence and not dry_run:
+            from pretensor.intelligence.embeddings import (
+                embeddings_disabled_via_env,
+            )
+            from pretensor.intelligence.semantic import (
+                extend_with_embedding_scorer,
+            )
+            from pretensor.intelligence.steps_embedding import (
+                compute_table_embeddings,
+            )
+
+            reindex_config = PretensorConfig(
+                graph=cli_config.graph,
+                embeddings=EmbeddingsConfig(index_tables=embeddings),
+            )
+            # Compute vectors BEFORE relationship discovery so the
+            # embedding scorer and every intelligence pass read this run's
+            # vectors (same staging as `pretensor index`).
+            embeddings_precomputed = False
+            if embeddings and not embeddings_disabled_via_env():
+                with log_timed_operation(
+                    logger,
+                    event="reindex.table_embeddings",
+                    connection_name=connection_name,
+                ):
+                    compute_table_embeddings(store, new_snapshot.database)
+                embeddings_precomputed = True
             with log_timed_operation(
                 logger,
                 event="reindex.relationship_discovery",
                 connection_name=connection_name,
             ):
-                RelationshipDiscovery(store).discover(new_snapshot)
+                scorers = extend_with_embedding_scorer(
+                    reindex_config.scorer_registry,
+                    store=store,
+                    database_key=new_snapshot.database,
+                    threshold=reindex_config.embeddings.join_threshold,
+                )
+                RelationshipDiscovery(
+                    store,
+                    scorers=scorers,
+                    combiner=reindex_config.combiner,
+                    graph_config=reindex_config.graph,
+                ).discover(new_snapshot)
             with log_timed_operation(
                 logger,
                 event="reindex.intelligence_sync",
@@ -502,7 +565,8 @@ def _run_single_reindex(
                 run_intelligence_layer_sync(
                     store,
                     new_snapshot.database,
-                    config=PretensorConfig(graph=cli_config.graph),
+                    config=reindex_config,
+                    embeddings_precomputed=embeddings_precomputed,
                 )
 
         if preloaded_manifest is not None and not dry_run:
@@ -523,10 +587,10 @@ def _run_single_reindex(
             """,
             {"cn": connection_name},
         )
-        table_count = (
-            int(tc_rows[0][0]) if tc_rows and tc_rows[0][0] is not None else 0
-        )
-        enc = DSNEncryptor(ks) if ks.exists() and entry.dsn_encrypted else None
+        table_count = int(tc_rows[0][0]) if tc_rows and tc_rows[0][0] is not None else 0
+        # Always re-encrypt at rest: reindex must never silently downgrade an
+        # entry to cleartext (and upgrades pre-existing cleartext ones).
+        enc = DSNEncryptor(ks)
         reg.upsert(
             connection_name=connection_name,
             database=new_snapshot.database,
@@ -536,12 +600,13 @@ def _run_single_reindex(
             if entry.unified_graph_path
             else None,
             indexed_at=indexed_at,
-            encrypt_dsn=bool(entry.dsn_encrypted),
+            encrypt_dsn=True,
             encryptor=enc,
             dialect=registry_dialect_for(config.type),
             table_count=table_count,
             dbt_manifest_path=(
-                str(dbt_manifest) if dbt_manifest is not None
+                str(dbt_manifest)
+                if dbt_manifest is not None
                 else entry.dbt_manifest_path
             ),
             llm_enrichment_ran=entry.llm_enrichment_ran,

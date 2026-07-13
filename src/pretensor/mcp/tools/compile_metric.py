@@ -8,15 +8,17 @@ from typing import Any
 from pretensor.introspection.models.semantic import (
     SemanticLayer as SemanticLayerModel,
 )
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.semantic.compiler import MetricCompileError, MetricSqlCompiler
 
 from ..service_registry import (
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
 
-__all__ = ["compile_metric_payload"]
+__all__ = ["compile_metric_payload", "create_tool"]
 
 
 def compile_metric_payload(
@@ -63,7 +65,7 @@ def compile_metric_payload(
         except MetricCompileError as exc:
             return {"error": str(exc)}
     finally:
-        store.close()
+        release_store(store)
 
     return {
         "metric": compiled.metric,
@@ -85,3 +87,58 @@ def compile_metric_payload(
         ],
         "suggestions": compiled.validation.suggestions,
     }
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        yaml_s = str(args.get("semantic_yaml", ""))
+        metric_s = str(args.get("metric", "")).strip()
+        db_t = str(args.get("database", "")).strip()
+        if not yaml_s.strip():
+            return {"error": "Missing `semantic_yaml`"}
+        if not metric_s:
+            return {"error": "Missing `metric`"}
+        if not db_t:
+            return {"error": "Missing `database`"}
+        with timed_tool("compile_metric", graph_dir, database=db_t, metric=metric_s):
+            return compile_metric_payload(
+                graph_dir,
+                semantic_yaml=yaml_s,
+                metric=metric_s,
+                database=db_t,
+            )
+
+    return McpTool(
+        name="compile_metric",
+        description=(
+            "Compile a user-authored YAML metric to validated SQL against the "
+            "indexed graph. Accepts the semantic-layer YAML inline and a metric "
+            "name; returns SQL plus a validation report (missing tables/columns, "
+            "invalid joins, suggestions)."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "semantic_yaml": {
+                    "type": "string",
+                    "description": (
+                        "Full YAML text of the semantic layer "
+                        "(metric definitions, joins, and base tables)."
+                    ),
+                },
+                "metric": {
+                    "type": "string",
+                    "description": "Name of the metric to compile",
+                },
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database",
+                },
+            },
+            "required": ["semantic_yaml", "metric", "database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

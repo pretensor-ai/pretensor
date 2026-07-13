@@ -14,6 +14,11 @@ from pretensor.entities.classifier import (
     TableClassifierInput,
 )
 from pretensor.intelligence.clustering import Cluster
+from pretensor.intelligence.embeddings import EmbeddingClient
+from pretensor.intelligence.role_exemplars import (
+    compute_role_centroids,
+    embedding_role_vote,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -250,8 +255,19 @@ def compute_cluster_schema_patterns(
 def classify_database_tables(
     store: KuzuStore,
     database_key: str,
+    *,
+    role_weight: float = 0.0,
+    embedding_client: EmbeddingClient | None = None,
 ) -> dict[str, TableClassification]:
-    """Write classifier fields and return heuristic results."""
+    """Write classifier fields and return heuristic results.
+
+    When ``role_weight > 0`` and an ``embedding_client`` is provided, this
+    function computes per-role centroids (cached on the client identity)
+    and bulk-fetches every table's stored embedding.  Each table's role
+    classification then receives an additive ``role_weight * cosine``
+    signal per role; heuristic scores remain primary.
+    Defaults keep behavior byte-identical to the pre-embedding pipeline.
+    """
     store.ensure_schema()
     fk_rows = _fk_degree_rows(store, database_key)
     fk_out = {str(r[0]): int(r[1] or 0) for r in fk_rows}
@@ -259,6 +275,22 @@ def classify_database_tables(
     col_map = _columns_by_table(store, database_key)
     ctx_rows = _table_context_rows(store, database_key)
     results: dict[str, TableClassification] = {}
+
+    # Pre-pass: compute role centroids + bulk-fetch every table's embedding.
+    # Both are no-ops when role_weight is 0, when no embedding_client is
+    # supplied, or when the [embeddings] extra is missing (the client raises
+    # ImportError → role_exemplars logs once and returns {}).
+    centroids: dict[str, list[float]] = {}
+    embeddings_by_id: dict[str, list[float]] = {}
+    if role_weight > 0.0 and embedding_client is not None:
+        centroids = compute_role_centroids(embedding_client)
+        if centroids:
+            for emb_row in store.iter_table_embeddings(database=database_key):
+                if emb_row.embedding is None:
+                    continue
+                embeddings_by_id[emb_row.node_id] = [
+                    float(x) for x in emb_row.embedding
+                ]
 
     for row in ctx_rows:
         tid = str(row[0])
@@ -282,7 +314,17 @@ def classify_database_tables(
             insert_count=ins,
             update_count=upd,
         )
-        cls = _initial_classification(inp)
+
+        vote: dict[str, float] | None = None
+        emb = embeddings_by_id.get(tid)
+        if centroids and emb is not None:
+            vote = embedding_role_vote(emb, centroids)
+
+        cls = _CLASSIFIER.classify(
+            inp,
+            embedding_vote=vote,
+            role_weight=role_weight if vote is not None else 0.0,
+        )
         results[tid] = cls
         store.set_table_classification(
             tid,
@@ -301,6 +343,18 @@ async def classify_database_tables_async(
     database_key: str,
     *,
     llm_client: LlmTableClassificationClient | None = None,
+    role_weight: float = 0.0,
+    embedding_client: EmbeddingClient | None = None,
 ) -> dict[str, TableClassification]:
-    """Run heuristic classification. ``llm_client`` is accepted but ignored."""
-    return classify_database_tables(store, database_key)
+    """Run heuristic classification with optional embedding role vote.
+
+    ``llm_client`` is accepted but ignored (legacy parameter).  See the
+    sync :func:`classify_database_tables` for ``role_weight`` /
+    ``embedding_client`` semantics.
+    """
+    return classify_database_tables(
+        store,
+        database_key,
+        role_weight=role_weight,
+        embedding_client=embedding_client,
+    )

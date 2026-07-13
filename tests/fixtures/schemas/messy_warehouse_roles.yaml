@@ -1,0 +1,43 @@
+# Gold table-role labels for the L1 role-F1 metric.
+#
+# Roles use the TableRole literal taxonomy from
+# src/pretensor/entities/classifier.py:
+#   system | staging | audit | junction | fact | dimension |
+#   bridge | aggregate | snapshot_scd | entity_candidate | unknown
+#
+# Tables are identified by bare name (no schema prefix). The pairing
+# fixture is tests/fixtures/schemas/messy_warehouse.yaml; both files share
+# the same connection_name (`messy_warehouse`).
+roles:
+  # raw schema — upstream ingestion, all staging
+  raw_users: staging
+  raw_orders: staging
+  raw_events: staging
+  raw_products: staging
+  # staging schema — dbt stg_* models
+  stg_users: staging
+  stg_orders: staging
+  stg_products: staging
+  stg_events: staging
+  # intermediate schema — dbt int_* models (pipeline artifacts, not serving-layer facts)
+  int_user_orders: staging
+  int_order_items: staging
+  # mart schema — near-duplicate entity cluster
+  users: entity_candidate
+  user_accounts: entity_candidate
+  customer_master: entity_candidate
+  # mart schema — fact / dimension
+  orders: fact
+  products: dimension
+  # mart schema — SCD2 snapshot
+  users_snapshot: snapshot_scd
+  # mart schema — audit / log tables
+  user_audit_log: audit
+  order_audit_log: audit
+  login_log: audit
+  schema_change_log: audit
+  # junk schema — temp and legacy noise
+  tmp_user_import: staging
+  tmp_order_backfill: staging
+  _legacy_customers: unknown
+  _legacy_order_items: unknown

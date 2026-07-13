@@ -135,9 +135,7 @@ def test_call_tool_none_arguments_treated_as_empty() -> None:
         return {}
 
     reg = McpToolRegistry()
-    reg.register(
-        McpTool(name="cap", description="", input_schema={}, handler=_capture)
-    )
+    reg.register(McpTool(name="cap", description="", input_schema={}, handler=_capture))
     asyncio.run(reg.call_tool("cap", None))
     assert received == [{}]
 
@@ -150,23 +148,24 @@ def test_call_tool_unknown_returns_error() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Integration — all 10 OSS tools registered in create_server
+# Integration — all 11 OSS tools registered in create_server
 # ---------------------------------------------------------------------------
 
 
 def test_oss_registry_has_expected_tools() -> None:
-    """Verify _build_oss_registry registers exactly the 10 OSS tools."""
+    """Verify _build_oss_registry registers exactly the 11 OSS tools."""
     from pathlib import Path
 
     from pretensor.mcp.server import _build_oss_registry
 
     registry = _build_oss_registry(Path("/tmp/fake"))
-    assert len(registry) == 10
+    assert len(registry) == 11
     expected_tools = {
         "list_databases",
         "schema",
         "cypher",
         "query",
+        "semantic_search",
         "context",
         "traverse",
         "impact",
@@ -187,7 +186,7 @@ def test_create_server_accepts_extra_tools(tmp_path: Path) -> None:
 
     extra = McpTool(
         name="suggest_query",
-        description="Cloud semantic suggest",
+        description="Plugin semantic suggest",
         input_schema={"type": "object"},
         handler=_noop,
     )
@@ -195,4 +194,4 @@ def test_create_server_accepts_extra_tools(tmp_path: Path) -> None:
     registry = _build_oss_registry(tmp_path)
     registry.register(extra)
     assert "suggest_query" in registry
-    assert len(registry) == 11
+    assert len(registry) == 12

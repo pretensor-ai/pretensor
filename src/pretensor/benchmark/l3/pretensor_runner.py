@@ -65,6 +65,13 @@ DEFAULT_TEMPERATURE = 0.0
 _DETERMINISTIC_RAN_AT = "1970-01-01T00:00:00Z"
 """Pinned timestamp; mirrors the baseline runner's reproducibility convention."""
 
+_now = time.perf_counter
+"""Wall-clock source for per-item latency measurement.
+
+Module-private so tests can monkeypatch it to a deterministic stub
+(``lambda: 0.0``) — mirrors the pattern in the baseline runner.
+"""
+
 _AGENT_ERROR_MAX_CHARS = 500
 """Truncation limit for per-item ``error`` strings (matches the baseline)."""
 
@@ -237,7 +244,7 @@ def _evaluate_one(
         "pretensor_pass": False,
         "error": None,
     }
-    t0 = time.perf_counter()
+    t0 = _now()
     try:
         _populate_record(
             record,
@@ -251,7 +258,7 @@ def _evaluate_one(
             dsn=dsn,
         )
     finally:
-        record["latency_ms"] = int((time.perf_counter() - t0) * 1000)
+        record["latency_ms"] = int((_now() - t0) * 1000)
     return record
 
 

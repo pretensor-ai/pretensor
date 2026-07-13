@@ -1,11 +1,21 @@
-"""Per-process MCP server context (visibility filter bound to ``graph_dir``)."""
+"""Per-process MCP server context (visibility filter bound to ``graph_dir``).
+
+The active context is stored in a :class:`contextvars.ContextVar` rather than a
+bare mutable module global. In the current stdio server it is set once at
+startup, so every async task observes the same value; the ContextVar's benefit
+is removing ``global`` mutation and giving each thread / async context an
+independent binding, which future-proofs the context for a concurrent transport
+(HTTP/SSE) without reintroducing a shared-mutable-global hazard.
+"""
 
 from __future__ import annotations
 
+import contextvars
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from pretensor.config import GraphConfig, PretensorConfig
+from pretensor.mcp.store_cache import StoreCache
 from pretensor.search.base import BaseSearchIndex
 from pretensor.search.index import KeywordSearchIndex
 from pretensor.visibility.filter import VisibilityFilter
@@ -33,6 +43,7 @@ class ServerContext:
     graph_dir: Path
     visibility_filter: VisibilityFilter
     config: PretensorConfig = field(default_factory=PretensorConfig)
+    store_cache: StoreCache = field(default_factory=StoreCache)
 
     @property
     def graph_config(self) -> GraphConfig:
@@ -45,29 +56,34 @@ class ServerContext:
         return self.config.search_index_cls
 
 
-_ctx: ServerContext | None = None
+_ctx: contextvars.ContextVar[ServerContext | None] = contextvars.ContextVar(
+    "pretensor_mcp_server_context", default=None
+)
 
 
 def set_server_context(ctx: ServerContext) -> None:
     """Install context for the current MCP server process (stdio)."""
-    global _ctx
-    _ctx = ctx
+    _ctx.set(ctx)
 
 
 def reset_server_context() -> None:
     """Clear the active server context.
 
-    Intended for test teardown only — production servers never need to call this.
+    Closes any open stores in the cache before clearing. Intended for test
+    teardown only — production servers never need to call this.
     """
-    global _ctx
-    _ctx = None
+    ctx = _ctx.get()
+    if ctx is not None:
+        ctx.store_cache.close()
+    _ctx.set(None)
 
 
 def get_server_context() -> ServerContext:
     """Return the active server context (must be set before handling tools)."""
-    if _ctx is None:
+    val = _ctx.get()
+    if val is None:
         raise RuntimeError("MCP server context not initialized")
-    return _ctx
+    return val
 
 
 def build_server_context(

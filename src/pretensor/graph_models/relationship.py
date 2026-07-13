@@ -10,7 +10,13 @@ from pretensor.graph_models.base import GraphModel
 
 __all__ = ["RelationshipCandidate", "RelationshipSource"]
 
-RelationshipSource = Literal["explicit_fk", "heuristic", "llm_inferred", "statistical"]
+RelationshipSource = Literal[
+    "explicit_fk",
+    "heuristic",
+    "llm_inferred",
+    "statistical",
+    "embedding",
+]
 
 
 class RelationshipCandidate(GraphModel):

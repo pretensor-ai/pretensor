@@ -233,12 +233,28 @@ def test_recording_step_satisfies_protocol() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_build_oss_pipeline_returns_runner_with_four_steps() -> None:
+def test_build_oss_pipeline_returns_runner_with_five_steps() -> None:
     runner = build_oss_pipeline()
     # Access internal steps to verify count and names
     step_names = [s.name for s in runner._steps]  # type: ignore[attr-defined]
-    assert set(step_names) == {"classify", "cluster", "label", "join_paths"}
-    assert len(step_names) == 4
+    assert set(step_names) == {
+        "classify",
+        "cluster",
+        "embedding_index",
+        "label",
+        "join_paths",
+    }
+    assert len(step_names) == 5
+
+
+def test_build_oss_pipeline_places_embedding_index_before_classify() -> None:
+    """``embedding_index`` must run before ``classify`` (role vote reads
+    same-run vectors) and before ``label`` (centroid tiebreaker)."""
+    runner = build_oss_pipeline()
+    ordered = runner._ordered()  # type: ignore[attr-defined]
+    names = [s.name for s in ordered]
+    assert names.index("embedding_index") < names.index("classify")
+    assert names.index("embedding_index") < names.index("label")
 
 
 def test_build_oss_pipeline_can_register_extra_step() -> None:

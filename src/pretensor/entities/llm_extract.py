@@ -1,4 +1,4 @@
-"""LLM entity extraction Protocol and null client (Cloud extension point)."""
+"""LLM entity extraction Protocol and null client (extension point)."""
 
 from __future__ import annotations
 
@@ -62,5 +62,5 @@ class LLMEntityExtractor:
         self._client = client or NullLlmEntityClient()
 
     async def extract(self, snapshot: SchemaSnapshot) -> list[ExtractedEntity]:
-        """Return extracted entities (empty in OSS; Cloud wires a real client)."""
+        """Return extracted entities (empty in OSS; plugins wire a real client)."""
         return []

@@ -1,4 +1,4 @@
-"""MCP ``traverse`` tool: join paths and cross-database paths."""
+"""MCP ``traverse`` tool: join paths between tables in an indexed database."""
 
 from __future__ import annotations
 
@@ -11,8 +11,15 @@ from typing import Any
 
 from pretensor.core.registry import RegistryEntry
 from pretensor.core.store import KuzuStore
+from pretensor.intelligence.embeddings import (
+    EmbeddingClient,
+    cosine_similarity,
+    embeddings_disabled_via_env,
+    get_default_embedding_client,
+)
 from pretensor.intelligence.join_paths import JoinPathEngine, StoredJoinPath
 from pretensor.intelligence.shadow_alias import get_shadow_alias_node_ids
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.visibility.filter import VisibilityFilter
 from pretensor.visibility.kuzu_helpers import visible_schema_table_node_ids
 
@@ -22,6 +29,7 @@ from ..service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
 from .context import qualified_from_node_id, resolve_table_node_id
@@ -161,6 +169,7 @@ def dijkstra_join_path(
     shortcut (e.g. pagila ``film → customer`` across cluster boundaries).
     """
     from pretensor.intelligence.join_paths.on_demand import AdjEdge, edge_cost
+
     fk_rows = store.query_all_rows(
         """
         MATCH (a:SchemaTable)-[r:FK_REFERENCES]->(b:SchemaTable)
@@ -192,12 +201,8 @@ def dijkstra_join_path(
         cname = str(cn) if cn is not None else None
         s_col = str(sc)
         t_col = str(tc)
-        adj.setdefault(sa, []).append(
-            (AdjEdge(sb, s_col, t_col, "fk", 1.0), cname)
-        )
-        adj.setdefault(sb, []).append(
-            (AdjEdge(sa, t_col, s_col, "fk", 1.0), cname)
-        )
+        adj.setdefault(sa, []).append((AdjEdge(sb, s_col, t_col, "fk", 1.0), cname))
+        adj.setdefault(sb, []).append((AdjEdge(sa, t_col, s_col, "fk", 1.0), cname))
     for a, b, sc, tc, conf in inf_rows:
         sa, sb = str(a), str(b)
         if sa in _shadows or sb in _shadows:
@@ -205,12 +210,8 @@ def dijkstra_join_path(
         w = float(conf) if conf is not None else 0.5
         s_col = str(sc)
         t_col = str(tc)
-        adj.setdefault(sa, []).append(
-            (AdjEdge(sb, s_col, t_col, "inferred", w), None)
-        )
-        adj.setdefault(sb, []).append(
-            (AdjEdge(sa, t_col, s_col, "inferred", w), None)
-        )
+        adj.setdefault(sa, []).append((AdjEdge(sb, s_col, t_col, "inferred", w), None))
+        adj.setdefault(sb, []).append((AdjEdge(sa, t_col, s_col, "inferred", w), None))
 
     counter = 0
     heap: list[
@@ -289,6 +290,9 @@ def step_dict_from_edge(
     return step
 
 
+# Extension surface: indexing never populates SAME_ENTITY, so this always
+# returns an error in standard deployments. Kept as an integration point for
+# deployments that supply entity-resolution results via external pipelines.
 def traverse_cross_database(
     store: KuzuStore,
     *,
@@ -352,9 +356,7 @@ def traverse_cross_database(
     allowed_from = visible_schema_table_node_ids(
         store, from_connection, visibility_filter
     )
-    allowed_to = visible_schema_table_node_ids(
-        store, to_connection, visibility_filter
-    )
+    allowed_to = visible_schema_table_node_ids(store, to_connection, visibility_filter)
     shadow_from = get_shadow_alias_node_ids(store, from_database_key)
     shadow_to = get_shadow_alias_node_ids(store, to_database_key)
 
@@ -415,7 +417,7 @@ def traverse_cross_database(
         return {
             "error": (
                 "No cross-database path found via confirmed SAME_ENTITY links. "
-                "Confirm entity links with `pretensor confirm`."
+                "Entity links are populated by external tooling, not by indexing."
             ),
             "from": from_table,
             "to": to_table,
@@ -463,6 +465,162 @@ def traverse_cross_database(
     }
 
 
+def _intermediate_keys(path: TraversePathPayload) -> list[tuple[str, str]]:
+    """Return ``(schema, table)`` pairs for every node a path passes *through*.
+
+    The ``from`` endpoint is ``steps[0].from_table``; the ``to`` endpoint is
+    ``steps[-1].to_table``. Intermediates are the ``to_table`` of every step
+    except the last (equivalently, the ``from_table`` of every step except
+    the first). Table names in step payloads are already ``"schema.table"``.
+    """
+    steps = path.get("steps") or []
+    if len(steps) <= 1:
+        return []
+    keys: list[tuple[str, str]] = []
+    for step in steps[:-1]:
+        qual = str(step.get("to_table", ""))
+        if "." in qual:
+            sn, tn = qual.split(".", 1)
+        else:
+            sn, tn = "", qual
+        keys.append((sn, tn))
+    return keys
+
+
+def _embedding_tie_break(
+    store: KuzuStore,
+    *,
+    db_key: str,
+    from_id: str,
+    to_id: str,
+    paths: list[TraversePathPayload],
+    embedding_client: EmbeddingClient | None = None,
+) -> tuple[list[TraversePathPayload], bool]:
+    """Reorder equal-cost ``paths`` by embedding similarity.
+
+    Scoring: ``cosine(embed(from.description ⊕ to.description),
+    embed(⊕ intermediate.description))`` per path. Embeds all texts in one
+    batch call — endpoints at index 0, each path's concatenated intermediate
+    text at indices 1..N.
+
+    Returns ``(paths, False)`` unchanged (pre-PR behavior) when any of:
+      * ``PRETENSOR_EMBEDDINGS_DISABLED`` is set (kill switch);
+      * fewer than two paths (no tie to break);
+      * either endpoint row is missing its ``SchemaTable.embedding``;
+      * every path has zero intermediates (direct ``from → to`` hops);
+      * the embedding client is missing, unavailable, or raises.
+
+    Returns ``(reranked, True)`` with paths sorted by descending score.
+    Python's ``sorted`` is stable, so paths with identical scores retain
+    their incoming order — all top-tied paths are emitted together.
+    """
+    if len(paths) <= 1:
+        return paths, False
+
+    # Kill switch wins over everything, including an injected client.
+    if embeddings_disabled_via_env():
+        return paths, False
+
+    # Two-stage check: first confirm both endpoints carry an embedding
+    # (cheap boolean), then fetch only the descriptions used by the
+    # tie-break input.  Avoids reading the 384-float vector for both
+    # endpoints when we only need a null-check on them — that data is
+    # never consulted; the tie-break embeds the descriptions, not the
+    # endpoints' own vectors.
+    endpoint_rows = store.query_all_rows(
+        """
+        MATCH (t:SchemaTable)
+        WHERE t.database = $db AND t.node_id IN [$fid, $tid]
+        RETURN t.node_id, t.description, t.embedding IS NOT NULL
+        """,
+        {"db": db_key, "fid": from_id, "tid": to_id},
+    )
+    by_nid: dict[str, tuple[str, bool]] = {}
+    for row in endpoint_rows:
+        nid = str(row[0])
+        desc = str(row[1] or "")
+        has_vec = bool(row[2])
+        by_nid[nid] = (desc, has_vec)
+    from_entry = by_nid.get(from_id)
+    to_entry = by_nid.get(to_id)
+    if from_entry is None or to_entry is None:
+        return paths, False
+    if not from_entry[1] or not to_entry[1]:
+        return paths, False
+    from_desc = from_entry[0]
+    to_desc = to_entry[0]
+
+    path_intermediates = [_intermediate_keys(p) for p in paths]
+    if not any(path_intermediates):
+        return paths, False
+
+    wanted_schemas: set[str] = set()
+    wanted_tables: set[str] = set()
+    for keys in path_intermediates:
+        for sn, tn in keys:
+            wanted_schemas.add(sn)
+            wanted_tables.add(tn)
+    desc_rows = store.query_all_rows(
+        """
+        MATCH (t:SchemaTable)
+        WHERE t.database = $db
+          AND t.schema_name IN $schemas
+          AND t.table_name IN $tables
+        RETURN t.schema_name, t.table_name, t.description
+        """,
+        {
+            "db": db_key,
+            "schemas": list(wanted_schemas),
+            "tables": list(wanted_tables),
+        },
+    )
+    desc_by_key: dict[tuple[str, str], str] = {}
+    for row in desc_rows:
+        desc_by_key[(str(row[0] or ""), str(row[1] or ""))] = str(row[2] or "")
+
+    # ``LocalEmbeddingClient.__init__`` is I/O-free; a fresh-or-cached
+    # construction here cannot raise.  Errors from the actual embed()
+    # call are caught below, where they route to skipping the tie-break
+    # without raising up to the MCP caller.
+    client = embedding_client or get_default_embedding_client()
+
+    texts: list[str] = [f"{from_desc} {to_desc}"]
+    for keys in path_intermediates:
+        texts.append(" ".join(desc_by_key.get(k, "") for k in keys))
+
+    try:
+        vectors = client.embed(texts)
+    except ImportError as exc:
+        logger.warning("traverse: [embeddings] extra not installed: %s", exc)
+        return paths, False
+    except Exception as exc:  # noqa: BLE001 — tool must never raise
+        logger.warning(
+            "traverse: embedding client failed (%s); skipping tie-break", exc
+        )
+        return paths, False
+
+    if not vectors or len(vectors) != len(texts):
+        return paths, False
+    if any(not v for v in vectors):
+        return paths, False
+
+    anchor = vectors[0]
+    scored: list[tuple[int, float, TraversePathPayload]] = []
+    for idx, path in enumerate(paths):
+        try:
+            score = cosine_similarity(anchor, vectors[idx + 1])
+        except ValueError as exc:
+            logger.warning("traverse: tie-break dim mismatch (%s); skipping", exc)
+            return paths, False
+        scored.append((idx, score, path))
+
+    # Python's sort is stable — paths with identical scores retain
+    # input order, preserving the incoming order across all top-tied paths.
+    scored.sort(key=lambda item: item[1], reverse=True)
+    reranked = [item[2] for item in scored]
+    return reranked, True
+
+
 def traverse_payload(
     graph_dir: Path,
     *,
@@ -475,6 +633,7 @@ def traverse_payload(
     edge_types: tuple[str, ...] | None = None,
     max_inferred_hops: int = 2,
     visibility_filter: VisibilityFilter | None = None,
+    embedding_client: EmbeddingClient | None = None,
 ) -> dict[str, Any]:
     """Join paths between two tables (precomputed or on-demand Yen's K-shortest)."""
     edge_kinds: tuple[Any, ...] | None = None
@@ -567,6 +726,7 @@ def traverse_payload(
         engine = JoinPathEngine(store)
         stored = engine.load_stored_paths(db_key, from_id, to_id)
         used_fallback = False
+        tie_break_ran = False
         paths_payload: list[TraversePathPayload] = []
         visible_stored: list[StoredJoinPath] = []
         for p in stored:
@@ -658,7 +818,14 @@ def traverse_payload(
                 ):
                     tied_payloads.append(tpay)
             if len(tied_payloads) > 1:
-                paths_payload = tied_payloads
+                paths_payload, tie_break_ran = _embedding_tie_break(
+                    store,
+                    db_key=db_key,
+                    from_id=from_id,
+                    to_id=to_id,
+                    paths=tied_payloads,
+                    embedding_client=embedding_client,
+                )
 
         if not paths_payload:
             bfs = dijkstra_join_path(
@@ -734,7 +901,12 @@ def traverse_payload(
                 "to": to_table,
                 "database": database,
             }
-        return {
+        # Only include ``tie_break`` when a tie-break actually ran. Always
+        # emitting ``"tie_break": None`` would change the response shape
+        # for every caller of ``traverse`` — backward-incompatible.  Existing
+        # tests on the null path assert the key is absent; this preserves
+        # that contract.
+        out: dict[str, Any] = {
             "from": from_table,
             "to": to_table,
             "database": database,
@@ -746,8 +918,110 @@ def traverse_payload(
                 else None
             ),
         }
+        if tie_break_ran:
+            out["tie_break"] = "embedding"
+        return out
     finally:
-        store.close()
+        release_store(store)
 
 
-__all__ = ["traverse_payload"]
+__all__ = ["create_tool", "traverse_payload"]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        from_t = str(args.get("from_table", "")).strip()
+        to_t = str(args.get("to_table", "")).strip()
+        db_t = str(args.get("database", "")).strip()
+        if not from_t or not to_t:
+            return {"error": "Missing `from_table` or `to_table`"}
+        if not db_t:
+            return {"error": "Missing `database`"}
+        to_db = args.get("to_database")
+        to_db_s = str(to_db).strip() if to_db is not None else None
+        if to_db_s == "":
+            to_db_s = None
+        max_depth = int(args.get("max_depth", 4))
+        top_k = max(1, min(10, int(args.get("top_k", 3))))
+        max_inf = max(0, min(8, int(args.get("max_inferred_hops", 2))))
+        raw_kinds = args.get("edge_types")
+        edge_types: tuple[str, ...] | None = None
+        if isinstance(raw_kinds, list):
+            cleaned = tuple(str(k).strip() for k in raw_kinds if isinstance(k, str))
+            if cleaned:
+                edge_types = cleaned
+        with timed_tool(
+            "traverse",
+            graph_dir,
+            database=db_t,
+            to_database=to_db_s,
+            max_depth=max_depth,
+            top_k=top_k,
+        ):
+            return traverse_payload(
+                graph_dir,
+                from_table=from_t,
+                to_table=to_t,
+                database=db_t,
+                to_database=to_db_s,
+                max_depth=max_depth,
+                top_k=top_k,
+                edge_types=edge_types,
+                max_inferred_hops=max_inf,
+            )
+
+    return McpTool(
+        name="traverse",
+        description=(
+            "Find a join path between two physical tables (precomputed or on-demand), "
+            "with SQL JOIN hints."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "from_table": {
+                    "type": "string",
+                    "description": "Source table (name or schema.table)",
+                },
+                "to_table": {
+                    "type": "string",
+                    "description": "Target table (name or schema.table)",
+                },
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database (required if multiple graphs)",
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "default": 4,
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "Max hops",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "default": 3,
+                    "minimum": 1,
+                    "maximum": 10,
+                    "description": "Yen's K — return up to this many ranked alternative paths",
+                },
+                "edge_types": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["fk", "inferred"]},
+                    "description": "Restrict adjacency to these edge kinds (default: both)",
+                },
+                "max_inferred_hops": {
+                    "type": "integer",
+                    "default": 2,
+                    "minimum": 0,
+                    "maximum": 8,
+                    "description": "Cap on inferred-join hops per path (FK hops uncapped beyond max_depth)",
+                },
+            },
+            "required": ["from_table", "to_table", "database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

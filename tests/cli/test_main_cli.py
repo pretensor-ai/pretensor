@@ -105,3 +105,35 @@ def test_root_help_includes_logging_flags() -> None:
     assert "--log-level" in plain
     assert "--log-format" in plain
     assert "--log-file" in plain
+
+
+def test_short_help_flag() -> None:
+    """`pretensor -h` is equivalent to --help."""
+    result = CliRunner().invoke(app, ["-h"])
+    assert result.exit_code == 0
+    plain = _normalize(result.stdout)
+    assert "--log-level" in plain
+
+
+def test_default_log_level_is_warning() -> None:
+    """--log-level defaults to 'warning' in the help text."""
+    result = CliRunner().invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "warning" in result.stdout.lower()
+
+
+def test_version_flag_prints_version() -> None:
+    """``pretensor --version`` prints the installed package version and exits 0."""
+    from importlib.metadata import version as pkg_version
+
+    result = CliRunner().invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert "pretensor" in result.stdout.lower()
+    assert pkg_version("pretensor") in result.stdout
+
+
+def test_root_help_includes_version_flag() -> None:
+    """``pretensor --help`` documents --version."""
+    result = CliRunner().invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "--version" in _normalize(result.stdout)

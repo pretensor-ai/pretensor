@@ -21,6 +21,7 @@ from pretensor.connectors.base import (
 )
 from pretensor.connectors.lineage_sqlglot import dml_write_targets, table_refs_from_sql
 from pretensor.connectors.models import ViewDependency
+from pretensor.errors import ConnectorError as _ConnectorError
 from pretensor.introspection.models.config import ConnectionConfig, SchemaFilter
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def _parse_snowflake_table_fqn(fq: str, expected_db: str) -> tuple[str, str] | N
     return None
 
 
-class SnowflakeConnectorError(Exception):
+class SnowflakeConnectorError(_ConnectorError):
     """Raised when Snowflake connector operations fail."""
 
 
@@ -76,6 +77,47 @@ def _sf_table_type(raw: str | None) -> str:
 def _quote_ident(name: str) -> str:
     """Quote a Snowflake identifier with double-quote escaping."""
     return f'"{name.replace(chr(34), chr(34) * 2)}"'
+
+
+def _load_private_key_bytes(path: str, passphrase: str | None) -> bytes:
+    """Read a PEM private key file and return its DER-encoded bytes for Snowflake."""
+    from pathlib import Path as _Path
+
+    key_path = _Path(path).expanduser().resolve()
+    try:
+        key_data = key_path.read_bytes()
+    except FileNotFoundError:
+        raise SnowflakeConnectorError(
+            f"Private key file not found: {key_path}"
+        ) from None
+    except OSError as exc:
+        raise SnowflakeConnectorError(
+            f"Cannot read private key file {key_path}: {exc}"
+        ) from exc
+    try:
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding,
+            NoEncryption,
+            PrivateFormat,
+            load_pem_private_key,
+        )
+    except ImportError as exc:
+        raise SnowflakeConnectorError(
+            "Private key authentication requires the `cryptography` package. "
+            "Install `pretensor[snowflake]` to get it."
+        ) from exc
+    try:
+        pkey = load_pem_private_key(
+            key_data,
+            password=passphrase.encode() if passphrase else None,
+        )
+        return pkey.private_bytes(Encoding.DER, PrivateFormat.PKCS8, NoEncryption())
+    except SnowflakeConnectorError:
+        raise
+    except Exception as exc:
+        raise SnowflakeConnectorError(
+            f"Invalid private key in {key_path}: {exc}"
+        ) from exc
 
 
 class SnowflakeConnector(BaseConnector):
@@ -120,12 +162,24 @@ class SnowflakeConnector(BaseConnector):
             query_parts.append(f"role={quote(role, safe='')}")
 
         q = ("?" + "&".join(query_parts)) if query_parts else ""
+        private_key_path = (extra.get("private_key_path") or "").strip()
+        if private_key_path:
+            # Key-pair auth: password is passed via connect_args, not in the URL.
+            return f"snowflake://{user}@{account}{path}{q}"
         return f"snowflake://{user}:{password}@{account}{path}{q}"
 
     def connect(self) -> None:
+        extra = self.config.metadata_extra or {}
+        private_key_path = (extra.get("private_key_path") or "").strip()
+        engine_kwargs: dict[str, Any] = {"pool_pre_ping": True}
+        if private_key_path:
+            pkb = _load_private_key_bytes(
+                private_key_path, extra.get("private_key_passphrase") or None
+            )
+            engine_kwargs["connect_args"] = {"private_key": pkb}
         url = self._snowflake_url()
         try:
-            self._engine = create_engine(url, pool_pre_ping=True)
+            self._engine = create_engine(url, **engine_kwargs)
             with self._engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             logger.info(
@@ -133,9 +187,24 @@ class SnowflakeConnector(BaseConnector):
                 self.config.host,
                 self.config.database,
             )
+        except SnowflakeConnectorError:
+            raise
         except Exception as exc:
+            # The driver error may echo the DSN (incl. password); keep it in the
+            # server log only and raise an account/db-scoped message with no
+            # secret. (The Snowflake dialect uses a two-segment ``/db/schema``
+            # path that the generic ``URL.create`` cannot represent, so the URL
+            # is still assembled as a string above; SQLAlchemy masks the
+            # password in its own URL repr.)
+            logger.warning(
+                "Snowflake connection failed for account %s db %s: %s",
+                self.config.host,
+                self.config.database,
+                exc,
+            )
             raise SnowflakeConnectorError(
-                f"Failed to connect to Snowflake: {exc}"
+                f"Failed to connect to Snowflake account {self.config.host!r} "
+                f"database {self.config.database!r}"
             ) from exc
 
     def disconnect(self) -> None:
@@ -268,11 +337,10 @@ class SnowflakeConnector(BaseConnector):
                 schema_name,
             )
         except Exception:
-            logger.warning(
+            logger.debug(
                 "SHOW PRIMARY KEYS failed for %s.%s; PK info unavailable",
                 self.config.database,
                 schema_name,
-                exc_info=True,
             )
         self._pk_cache = cache
 
@@ -324,10 +392,9 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.exec_driver_sql(sql).all()
         except Exception:
-            logger.warning(
+            logger.debug(
                 "SHOW IMPORTED KEYS failed for %s",
                 self.config.database,
-                exc_info=True,
             )
             return [], False
         if not rows:
@@ -384,10 +451,9 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.execute(query).mappings().all()
         except SQLAlchemyError:
-            logger.warning(
+            logger.debug(
                 "INFORMATION_SCHEMA FK fallback failed for %s",
                 self.config.database,
-                exc_info=True,
             )
             return []
         sorted_rows = sorted(
@@ -509,16 +575,14 @@ class SnowflakeConnector(BaseConnector):
             return u
         return None
 
-    def load_view_dependencies(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def load_view_dependencies(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         """Lineage from OBJECT_DEPENDENCIES, view SQL, SHOW STREAMS, and SHOW TASKS."""
         deps: list[ViewDependency] = []
         obj_dep_keys: set[tuple[str, str, str, str]] = set()
-        deps.extend(
-            self._snowflake_object_dependencies(schema_filter, obj_dep_keys)
-        )
-        deps.extend(
-            self._snowflake_view_sql_fallback(schema_filter, obj_dep_keys)
-        )
+        deps.extend(self._snowflake_object_dependencies(schema_filter, obj_dep_keys))
+        deps.extend(self._snowflake_view_sql_fallback(schema_filter, obj_dep_keys))
         deps.extend(self._snowflake_streams_lineage(schema_filter))
         deps.extend(self._snowflake_tasks_lineage(schema_filter))
         return deps
@@ -544,7 +608,7 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.execute(q).mappings().all()
         except Exception as exc:
-            logger.warning("Snowflake OBJECT_DEPENDENCIES unavailable: %s", exc)
+            logger.debug("Snowflake OBJECT_DEPENDENCIES unavailable: %s", exc)
             return out
         for row in rows:
             ref_schema = str(row["referenced_object_schema"] or "")
@@ -590,7 +654,7 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.execute(q).mappings().all()
         except Exception as exc:
-            logger.warning("Snowflake VIEWS lineage fallback skipped: %s", exc)
+            logger.debug("Snowflake VIEWS lineage fallback skipped: %s", exc)
             return out
         for row in rows:
             ts = str(row["table_schema"] or "")
@@ -624,7 +688,9 @@ class SnowflakeConnector(BaseConnector):
                 )
         return out
 
-    def _snowflake_streams_lineage(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def _snowflake_streams_lineage(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         out: list[ViewDependency] = []
         db = (self.config.database or "").replace('"', '""')
         if not db:
@@ -634,7 +700,7 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.execute(q).mappings().all()
         except Exception as exc:
-            logger.warning("Snowflake SHOW STREAMS unavailable: %s", exc)
+            logger.debug("Snowflake SHOW STREAMS unavailable: %s", exc)
             return out
         for row in rows:
             m = dict(row)
@@ -646,7 +712,9 @@ class SnowflakeConnector(BaseConnector):
             tgt_schema = str(schema_key)
             tgt_name = str(name)
             src_table = str(table_key)
-            src_schema = str(m.get("source_schema") or m.get("SOURCE_SCHEMA") or tgt_schema)
+            src_schema = str(
+                m.get("source_schema") or m.get("SOURCE_SCHEMA") or tgt_schema
+            )
             if not self._schema_ok(tgt_schema, schema_filter):
                 continue
             if not self._schema_ok(src_schema, schema_filter):
@@ -664,7 +732,9 @@ class SnowflakeConnector(BaseConnector):
             )
         return out
 
-    def _snowflake_tasks_lineage(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def _snowflake_tasks_lineage(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         out: list[ViewDependency] = []
         db = (self.config.database or "").replace('"', '""')
         if not db:
@@ -674,7 +744,7 @@ class SnowflakeConnector(BaseConnector):
             with self.engine.connect() as conn:
                 rows = conn.execute(q).mappings().all()
         except Exception as exc:
-            logger.warning("Snowflake SHOW TASKS unavailable: %s", exc)
+            logger.debug("Snowflake SHOW TASKS unavailable: %s", exc)
             return out
         for row in rows:
             m = dict(row)
@@ -691,9 +761,7 @@ class SnowflakeConnector(BaseConnector):
             reads = table_refs_from_sql(
                 sql_text, dialect="snowflake", default_schema=ts
             )
-            writes = dml_write_targets(
-                sql_text, dialect="snowflake", default_schema=ts
-            )
+            writes = dml_write_targets(sql_text, dialect="snowflake", default_schema=ts)
             if not writes:
                 continue
             for ws, wt in writes:
@@ -760,7 +828,7 @@ class SnowflakeConnector(BaseConnector):
                     if entry:
                         table_extra.setdefault(key, {}).update(entry)
         except Exception as exc:
-            logger.warning("Snowflake TABLES extended fields skipped: %s", exc)
+            logger.debug("Snowflake TABLES extended fields skipped: %s", exc)
 
         read_sql = text("""\
             SELECT
@@ -802,7 +870,7 @@ class SnowflakeConnector(BaseConnector):
                         continue
                     write_map[str(fq)] = int(row["write_count"] or 0)
         except Exception as exc:
-            logger.warning("Snowflake ACCOUNT_USAGE access history skipped: %s", exc)
+            logger.debug("Snowflake ACCOUNT_USAGE access history skipped: %s", exc)
 
         now = datetime.now(timezone.utc)
         all_fq = set(read_map) | set(write_map)

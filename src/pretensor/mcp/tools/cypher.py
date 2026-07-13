@@ -9,13 +9,16 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
 from typing import Any
 
+from pretensor.core.schema import format_catalog_summary
 from pretensor.core.store import KuzuStore
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.visibility.filter import VisibilityFilter
 
 from ..service_context import get_effective_visibility_filter
 from ..service_registry import (
     graph_path_for_entry,
     load_registry,
+    release_store,
     resolve_registry_entry,
 )
 
@@ -24,6 +27,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "DEFAULT_CYPHER_TIMEOUT_SECONDS",
     "assert_read_only_cypher",
+    "create_tool",
     "cypher_payload",
     "json_safe_cypher_value",
 ]
@@ -36,8 +40,43 @@ _STRING_LITERAL_RE = re.compile(
     r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"",
 )
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", flags=re.DOTALL)
+
+# Read-only enforcement is a *positive allowlist* on the leading clause, plus a
+# forbidden-token backstop, plus pre-execution rejection of multi-statement
+# input. A blocklist of a few mutating clauses is not enough: the pinned Kuzu
+# driver also supports COPY ... TO (arbitrary host file write + exfiltration),
+# EXPORT/IMPORT DATABASE, ATTACH, INSTALL/LOAD and DDL (DROP/ALTER/RENAME), and
+# a ``;``-chained statement executes in full before any post-hoc shape check.
+#
+# Note on the driver-level read-only backstop (see ``_materialize_read_only_rows``):
+# Kuzu read-only mode blocks *graph mutations* (CREATE/SET/DELETE/MERGE/DROP/
+# ALTER) but does NOT block COPY ... TO / EXPORT DATABASE file I/O. The allowlist
+# below is therefore the load-bearing guard against arbitrary file writes; the
+# read-only driver is defense-in-depth for graph integrity.
+
+# A read statement must begin with one of these clauses (matched on the
+# comment-stripped, string-masked text). ``OPTIONAL`` covers ``OPTIONAL MATCH``.
+_STATEMENT_START_ALLOWED = frozenset(
+    {"MATCH", "OPTIONAL", "RETURN", "WITH", "UNWIND", "CALL"}
+)
+_LEADING_WORD_RE = re.compile(r"[A-Za-z_]+")
+
+# Mutating clauses that can legally follow MATCH/WITH within a single statement,
+# so the leading-clause allowlist alone would not catch them. The negative
+# lookbehind keeps property accessors like ``t.set`` from false-positiving.
 _FORBIDDEN_CLAUSE_RE = re.compile(
-    r"\b(CREATE|DELETE|MERGE|SET)\b",
+    r"(?<![.\w])(CREATE|DELETE|MERGE|SET)\b",
+    flags=re.IGNORECASE,
+)
+
+# Statement-leading DDL / utility / file-I/O commands. These are only valid as
+# the first token of a statement, so the leading-clause allowlist already
+# rejects them; they are scanned here as well for defense-in-depth. COMMENT is
+# intentionally omitted because ``comment`` is a first-class graph property
+# (e.g. ``RETURN c.comment``); COMMENT-as-DDL is still rejected by the
+# leading-clause allowlist and cannot commit under the read-only driver.
+_FORBIDDEN_COMMAND_RE = re.compile(
+    r"(?<![.\w])(COPY|EXPORT|IMPORT|ATTACH|DETACH|USE|INSTALL|LOAD|DROP|ALTER|RENAME)\b",
     flags=re.IGNORECASE,
 )
 _PROPERTY_NOT_FOUND_RE = re.compile(
@@ -89,10 +128,17 @@ def json_safe_cypher_value(value: Any) -> Any:
 
 
 def _materialize_read_only_rows(graph_path: Path, q: str) -> list[dict[str, Any]]:
-    """Open DB, run Cypher, return row dicts (runs in a worker thread for timeouts)."""
-    store = KuzuStore(graph_path)
+    """Open DB read-only, run Cypher, return row dicts (in a worker thread).
+
+    The connection is opened in Kuzu read-only mode so graph mutations cannot
+    commit even if the allowlist is somehow bypassed. ``ensure_schema`` is
+    intentionally not called: it issues DDL that read-only mode rejects, and the
+    graph file already carries its schema from indexing. The per-server store
+    cache is deliberately bypassed here — pooled handles are writable, which
+    would defeat the engine-level backstop.
+    """
+    store = KuzuStore(graph_path, read_only=True)
     try:
-        store.ensure_schema()
         raw = store.execute(q)
         if isinstance(raw, list):
             raise TypeError("Unexpected multi-statement Cypher result")
@@ -106,19 +152,47 @@ def _materialize_read_only_rows(graph_path: Path, q: str) -> list[dict[str, Any]
             rows.append({str(k): json_safe_cypher_value(v) for k, v in row.items()})
         return rows
     finally:
-        store.close()
+        release_store(store)
 
 
 def assert_read_only_cypher(query: str) -> None:
-    """Raise ValueError if ``query`` may perform graph mutations.
+    """Raise ``ValueError`` unless ``query`` is a single read-only statement.
 
-    Rejects CREATE, DELETE, MERGE, and SET as top-level clauses (after comments
-    and string literals are stripped). Results are post-filtered for hidden tables.
+    Enforcement (after stripping comments and masking string literals):
+
+    1. Multi-statement input is rejected *before execution* — more than one
+       non-empty ``;``-separated statement is refused, since the engine would
+       otherwise run every statement before any post-hoc check fires.
+    2. The statement must begin with a read clause (``MATCH``, ``OPTIONAL
+       MATCH``, ``RETURN``, ``WITH``, ``UNWIND``, or ``CALL``). This rejects
+       statement-leading DDL / file-I/O commands such as ``COPY``, ``EXPORT``,
+       ``DROP``, ``ALTER``, ``ATTACH``, ``INSTALL`` and ``LOAD``.
+    3. Mutating clauses (``CREATE``/``DELETE``/``MERGE``/``SET``) and DDL /
+       file-I/O command tokens are rejected anywhere in the statement as a
+       backstop.
     """
-    stripped = _strip_comments_and_mask_strings(query)
-    if _FORBIDDEN_CLAUSE_RE.search(stripped):
+    masked = _strip_comments_and_mask_strings(query)
+    statements = [s for s in masked.split(";") if s.strip()]
+    if len(statements) > 1:
         raise ValueError(
-            "Only read queries are allowed; CREATE, DELETE, MERGE, and SET are not permitted."
+            "Only read queries are allowed; a single statement is permitted, "
+            "multiple ';'-separated statements are not."
+        )
+    statement = statements[0] if statements else ""
+    leading = _LEADING_WORD_RE.search(statement)
+    if leading is None or leading.group(0).upper() not in _STATEMENT_START_ALLOWED:
+        raise ValueError(
+            "Only read queries are allowed; the statement must begin with "
+            "MATCH, OPTIONAL MATCH, RETURN, WITH, UNWIND, or CALL."
+        )
+    if _FORBIDDEN_CLAUSE_RE.search(statement) or _FORBIDDEN_COMMAND_RE.search(
+        statement
+    ):
+        raise ValueError(
+            "Only read queries are allowed; mutating clauses (CREATE, DELETE, "
+            "MERGE, SET) and DDL / file-I/O commands (COPY, EXPORT, IMPORT, "
+            "ATTACH, DETACH, USE, INSTALL, LOAD, DROP, ALTER, RENAME) are not "
+            "permitted."
         )
 
 
@@ -198,9 +272,8 @@ def _parse_node_aliases(query: str) -> dict[str, str]:
 
 def _get_node_properties(graph_path: Path, label: str) -> list[str]:
     """Return property names for a Kuzu node table, or empty list on error."""
-    store = KuzuStore(graph_path)
+    store = KuzuStore(graph_path, read_only=True)
     try:
-        store.ensure_schema()
         result = store.execute(f"CALL table_info('{label}') RETURN name")
         if isinstance(result, list):
             return []
@@ -214,11 +287,36 @@ def _get_node_properties(graph_path: Path, label: str) -> list[str]:
     except Exception:
         return []
     finally:
-        store.close()
+        release_store(store)
+
+
+# POSIX absolute-path-looking tokens, used to defensively strip filesystem
+# paths (e.g. the on-disk graph path) out of engine errors before they are
+# returned to the semi-trusted client.
+_ABS_PATH_RE = re.compile(r"/(?:[^\s'\"]+/)*[^\s'\"]+")
+
+
+def _scrub_paths(text: str, graph_path: Path) -> str:
+    """Remove the graph path and any absolute-path tokens from ``text``.
+
+    The concrete graph file is masked as ``<graph>``; any other absolute-path
+    token (including the graph's parent directory) is masked as ``<path>`` by
+    the sweep, so generic directories are not mislabeled as the graph.
+    """
+    candidate = str(graph_path)
+    if candidate and candidate != "/":
+        text = text.replace(candidate, "<graph>")
+    return _ABS_PATH_RE.sub("<path>", text)
 
 
 def _enrich_kuzu_error(exc: Exception, query: str, graph_path: Path) -> str:
-    """Wrap raw Kuzu parser/runtime errors with actionable hints when possible."""
+    """Return an actionable, path-scrubbed message for a Kuzu engine error.
+
+    The MCP client controls the query, so a raw engine error is an oracle and
+    may embed the on-disk graph path. Recognised parser errors are enriched
+    with hints; everything else is logged server-side and returned with
+    filesystem paths scrubbed.
+    """
     err_str = str(exc)
     reserved = _RESERVED_TOKEN_RE.search(err_str)
     if reserved and reserved.group(1).lower() in _KUZU_RESERVED:
@@ -230,7 +328,8 @@ def _enrich_kuzu_error(exc: Exception, query: str, graph_path: Path) -> str:
         )
     match = _PROPERTY_NOT_FOUND_RE.search(err_str)
     if not match:
-        return f"Cypher error: {err_str}"
+        logger.warning("cypher: unhandled Kuzu error: %s", err_str)
+        return f"Cypher error: {_scrub_paths(err_str, graph_path)}"
     prop_name, alias = match.group(1), match.group(2)
     aliases = _parse_node_aliases(query)
     label = aliases.get(alias)
@@ -239,7 +338,7 @@ def _enrich_kuzu_error(exc: Exception, query: str, graph_path: Path) -> str:
         props = _get_node_properties(graph_path, label)
         if props:
             hint += f" Available properties on {label}: {', '.join(sorted(props))}"
-    return f"Cypher error: {err_str}. Hint: {hint}"
+    return _scrub_paths(f"Cypher error: {err_str}. Hint: {hint}", graph_path)
 
 
 def cypher_payload(
@@ -298,7 +397,8 @@ def cypher_payload(
             return {
                 "error": (
                     "Missing `database`: multiple graphs are indexed, pass one of "
-                    f"[{names}]." if entries
+                    f"[{names}]."
+                    if entries
                     else "Missing `database`: no graphs are indexed."
                 )
             }
@@ -331,3 +431,56 @@ def cypher_payload(
     if auto_picked_warning is not None:
         result["warning"] = auto_picked_warning
     return result
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        q = str(args.get("query", "")).strip()
+        db_t = str(args.get("database", "")).strip()
+        timeout_raw = args.get("timeout_seconds", 5)
+        try:
+            timeout_s = float(timeout_raw)
+        except (TypeError, ValueError):
+            return {"error": "Invalid `timeout_seconds`"}
+        with timed_tool("cypher", graph_dir, database=db_t, timeout_seconds=timeout_s):
+            return cypher_payload(
+                graph_dir, query=q, database=db_t, timeout_seconds=timeout_s
+            )
+
+    return McpTool(
+        name="cypher",
+        description=(
+            "Read-only Kuzu Cypher against one indexed graph. Returns JSON rows. "
+            "A single read statement is required: it must begin with MATCH, "
+            "OPTIONAL MATCH, RETURN, WITH, UNWIND, or CALL. Mutating clauses "
+            "and DDL / file-I/O commands (e.g. CREATE, DELETE, SET, COPY, "
+            "EXPORT, DROP, ATTACH, LOAD) are rejected.\n\n"
+            + format_catalog_summary()
+            + "\n\nCall the `schema` tool for full property lists per label."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Single Cypher read query",
+                },
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database",
+                },
+                "timeout_seconds": {
+                    "type": "number",
+                    "default": 5,
+                    "minimum": 0.1,
+                    "maximum": 120,
+                    "description": "Query wall-clock timeout in seconds (default 5)",
+                },
+            },
+            "required": ["query", "database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

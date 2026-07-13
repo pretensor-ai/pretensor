@@ -18,6 +18,7 @@ from pretensor.core.dsn_crypto import DSNEncryptor
 from pretensor.core.registry import GraphRegistry
 from pretensor.introspection.models.dsn import (
     connection_config_from_url,
+    redact_dsn,
     registry_dialect_for,
 )
 
@@ -85,8 +86,11 @@ def register_add_remove_commands(app: typer.Typer) -> None:
         console.print(
             f"[green]Registered[/green] connection {connection_name!r} (DSN encrypted)."
         )
+        # Mask the password in the hint so the DSN does not land in terminal
+        # scrollback, screen-shares or CI logs.
         console.print(
-            f"Run: pretensor index {dsn!r} --name {connection_name} --unified"
+            f"Run: pretensor index '{redact_dsn(dsn)}' "
+            f"--name {connection_name} --unified"
         )
 
     @app.command("remove")

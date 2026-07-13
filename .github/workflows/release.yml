@@ -34,7 +34,7 @@ jobs:
         # not exercised. Skip it to keep the gate job fast. If a future
         # change starts gating the embeddings legs too, add `--extra
         # embeddings` here and pass `--embeddings` below.
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
       - name: Run release gate
         run: uv run python -m pretensor.benchmark.release_gate
       - name: Upload candidate-tag results

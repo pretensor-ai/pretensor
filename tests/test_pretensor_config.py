@@ -102,15 +102,15 @@ def test_custom_search_index_cls() -> None:
     assert cfg.search_index_cls is _CustomIndex
 
 
-def test_cloud_subclass_override() -> None:
-    """Cloud pattern: subclass PretensorConfig to override defaults."""
+def test_downstream_subclass_override() -> None:
+    """Downstream pattern: subclass PretensorConfig to override defaults."""
 
-    class _CloudConfig(PretensorConfig):
+    class _CustomConfig(PretensorConfig):
         pass
 
-    cloud_cfg = _CloudConfig()
-    assert isinstance(cloud_cfg, PretensorConfig)
-    assert cloud_cfg.search_index_cls is KeywordSearchIndex
+    custom_cfg = _CustomConfig()
+    assert isinstance(custom_cfg, PretensorConfig)
+    assert custom_cfg.search_index_cls is KeywordSearchIndex
 
 
 def test_server_context_uses_configured_search_index_cls(tmp_path: Path) -> None:
@@ -158,7 +158,9 @@ def test_query_payload_uses_context_search_index_cls(tmp_path: Path) -> None:
             return graph_dir / "custom-search-index.bin"
 
         @classmethod
-        def load_or_build(cls, registry: GraphRegistry, index_path: Path) -> "_TrackingIndex":
+        def load_or_build(
+            cls, registry: GraphRegistry, index_path: Path
+        ) -> "_TrackingIndex":
             calls["load_or_build_registry"] = registry
             calls["load_or_build_path"] = index_path
             return cls(index_path)
@@ -369,9 +371,9 @@ def test_discovery_explicit_params_override_config(tmp_path) -> None:
                     comment=t.comment,
                 )
             )
-        RelationshipDiscovery(
-            store, combiner=_ExplicitCombiner(), config=cfg
-        ).discover(snap)
+        RelationshipDiscovery(store, combiner=_ExplicitCombiner(), config=cfg).discover(
+            snap
+        )
         assert explicit_combiner_called
     finally:
         store.close()

@@ -12,7 +12,6 @@ Test files **must** mirror the source tree one-for-one:
 | `src/pretensor/staleness/` | `tests/staleness/` |
 | `src/pretensor/connectors/` | `tests/connectors/` |
 | `src/pretensor/entities/` | `tests/entities/` |
-| `src/pretensor/cross_db/` | `tests/cross_db/` |
 | `src/pretensor/search/` | `tests/search/` |
 | `src/pretensor/skills/` | `tests/skills/` |
 | `src/pretensor/validation/` | `tests/validation/` |

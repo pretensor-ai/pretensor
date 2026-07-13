@@ -18,7 +18,7 @@
     }
   },
   "notes": [
-    "semantic_search_recall_at_5 skipped: the semantic_search MCP tool is not yet available in this build. Re-run once the tool ships."
+    "semantic_search_recall_at_5 skipped: --embeddings not requested or the [embeddings] extra is not installed."
   ],
   "per_item": [
     {
@@ -557,6 +557,6 @@
       "to_table": "public.orders"
     }
   ],
-  "pretensor_version": "0.1.0",
+  "pretensor_version": "0.1.0a3",
   "ran_at": "1970-01-01T00:00:00Z"
 }

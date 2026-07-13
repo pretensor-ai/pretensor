@@ -1,7 +1,7 @@
 """Contract tests for RelationshipScorer extension point.
 
 ``ScorerContractTest`` is an abstract base class that any implementation of
-:class:`~pretensor.intelligence.scoring.RelationshipScorer` must pass.  Cloud
+:class:`~pretensor.intelligence.scoring.RelationshipScorer` must pass.  Downstream
 implementations import this class and bind ``make_scorer`` to their own factory.
 
 Concrete tests for the OSS :class:`~pretensor.intelligence.heuristic.HeuristicScorer`
@@ -66,11 +66,11 @@ class ScorerContractTest(abc.ABC):
 
     Subclass this and implement :meth:`make_scorer` to verify any scorer.
 
-    Example (Cloud)::
+    Example (downstream)::
 
-        class TestMyCloudScorer(ScorerContractTest):
+        class TestMyScorer(ScorerContractTest):
             def make_scorer(self) -> RelationshipScorer:
-                return MyCloudScorer()
+                return MyScorer()
     """
 
     @abc.abstractmethod
@@ -166,12 +166,16 @@ class ScorerContractTest(abc.ABC):
             )
             for c in with_exclusions
         }
-        assert first not in with_exclusions or (
-            first.source_node_id,
-            first.target_node_id,
-            first.source_column,
-            first.target_column,
-        ) not in result_keys
+        assert (
+            first not in with_exclusions
+            or (
+                first.source_node_id,
+                first.target_node_id,
+                first.source_column,
+                first.target_column,
+            )
+            not in result_keys
+        )
 
     def test_candidate_confidence_in_range(self) -> None:
         """Every candidate confidence must be in [0.0, 1.0]."""
@@ -243,13 +247,20 @@ class TestHeuristicScorerContract(ScorerContractTest):
         ]
         assert customer_id_candidates, "expected customer_id candidate before exclusion"
         c = customer_id_candidates[0]
-        explicit: set[JoinKey] = {(c.source_node_id, c.target_node_id, c.source_column, c.target_column)}
+        explicit: set[JoinKey] = {
+            (c.source_node_id, c.target_node_id, c.source_column, c.target_column)
+        }
         after = scorer.score(snapshot, explicit)
         excluded_keys = {
             (x.source_node_id, x.target_node_id, x.source_column, x.target_column)
             for x in after
         }
-        assert (c.source_node_id, c.target_node_id, c.source_column, c.target_column) not in excluded_keys
+        assert (
+            c.source_node_id,
+            c.target_node_id,
+            c.source_column,
+            c.target_column,
+        ) not in excluded_keys
 
     def test_no_self_join_candidates(self) -> None:
         """A candidate must not reference the same source and target node."""

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import math
+import os
 from pathlib import Path
 from typing import Any, Callable, Protocol, cast, runtime_checkable
 
@@ -15,7 +16,12 @@ __all__ = [
     "LocalEmbeddingClient",
     "NullEmbeddingClient",
     "cosine_similarity",
+    "embeddings_disabled_via_env",
+    "embeddings_extra_installed",
+    "resolve_embeddings_auto",
     "format_entity_text",
+    "get_default_embedding_client",
+    "verify_embeddings_extra_installed",
 ]
 
 EMBEDDING_MODEL_ID = "Snowflake/snowflake-arctic-embed-xs"
@@ -29,6 +35,23 @@ _EMBEDDINGS_INSTALL_HINT = (
     "Install embedding dependencies with: pip install 'pretensor[embeddings]' "
     "(requires onnxruntime, huggingface_hub, numpy, transformers)."
 )
+
+_ENV_DISABLED_FLAG = "PRETENSOR_EMBEDDINGS_DISABLED"
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def embeddings_disabled_via_env() -> bool:
+    """Return True iff ``PRETENSOR_EMBEDDINGS_DISABLED`` is set to a truthy value.
+
+    Honored by every embedding-consuming code path — index-time steps,
+    intelligence toggles, and query-time MCP tools — so setting the variable
+    forces the null path even when the ``[embeddings]`` extra is installed
+    and toggles are on.  CI exercises an "extras installed but disabled"
+    lane that must produce output byte-identical to the "extras absent"
+    lane.  Truthy values are ``1``, ``true``, ``yes``, ``on``
+    (case-insensitive).
+    """
+    return os.environ.get(_ENV_DISABLED_FLAG, "").strip().lower() in _TRUTHY
 
 
 @runtime_checkable
@@ -62,6 +85,48 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     if na == 0.0 or nb == 0.0:
         return 0.0
     return dot / (math.sqrt(na) * math.sqrt(nb))
+
+
+def verify_embeddings_extra_installed() -> None:
+    """Raise ``ImportError`` with an install hint when ``[embeddings]`` is missing.
+
+    Public guard intended for callers (notably the CLI ``index`` and
+    ``reindex`` commands) that want to surface a friendly install hint
+    *before* spinning up a pipeline that would otherwise fail mid-run
+    when ``LocalEmbeddingClient.embed()`` reaches its lazy import.
+    Returns ``None`` on success.
+    """
+    _require_embeddings_imports()
+
+
+def embeddings_extra_installed() -> bool:
+    """Return True iff the optional ``[embeddings]`` dependencies import cleanly."""
+    try:
+        _require_embeddings_imports()
+    except ImportError:
+        return False
+    return True
+
+
+def resolve_embeddings_auto(requested: bool | None) -> bool:
+    """Resolve the CLI's tri-state ``--embeddings/--no-embeddings`` flag.
+
+    ``None`` (neither flag given) means AUTO: embeddings are on whenever
+    the ``[embeddings]`` extra is installed and the
+    ``PRETENSOR_EMBEDDINGS_DISABLED`` kill switch is not set.  Installing
+    the extra is the opt-in; the base install never pays the cost.  An
+    explicit ``True``/``False`` always wins — ``True`` is validated by the
+    caller via :func:`verify_embeddings_extra_installed` so a missing
+    extra errors with the install hint instead of silently downgrading.
+
+    The AUTO behavior lives at the CLI boundary on purpose: library-level
+    defaults (``EmbeddingsConfig()``) stay all-off so the null-path parity
+    contract for direct ``GraphBuilder`` / ``run_intelligence_layer``
+    callers is unchanged.
+    """
+    if requested is not None:
+        return requested
+    return embeddings_extra_installed() and not embeddings_disabled_via_env()
 
 
 def _require_embeddings_imports() -> tuple[Any, Any, Callable[..., str], Any]:
@@ -130,6 +195,16 @@ class LocalEmbeddingClient:
                 repo_id=self._model_id,
                 revision=self._revision,
                 local_files_only=False,
+                # Only the ONNX graph + tokenizer/config files are read;
+                # without the filter the full repo snapshot (PyTorch
+                # weights, every quantized ONNX variant) is ~4x larger on
+                # the cold first download.
+                allow_patterns=[
+                    self._onnx_relative,
+                    "*.json",
+                    "*.txt",
+                    "1_Pooling/*",
+                ],
             )
             model_dir = Path(cache_dir)
         onnx_path = model_dir / self._onnx_relative
@@ -184,8 +259,20 @@ class LocalEmbeddingClient:
 
         outputs = self._session.run(None, feed)
         last_hidden = np.asarray(outputs[self._output_index_cls], dtype=np.float32)
-        # CLS token at index 0 (per Snowflake / BERT-style pooling).
-        pooled = last_hidden[:, 0, :]
+        if last_hidden.ndim == 3:
+            # CLS token at index 0 (per Snowflake / BERT-style pooling).
+            pooled = last_hidden[:, 0, :]
+        elif last_hidden.ndim == 2:
+            # Already-pooled export (e.g. a ``sentence_embedding`` output):
+            # shape [batch, dim], nothing to slice.
+            pooled = last_hidden
+        else:
+            msg = (
+                "Unexpected ONNX output shape "
+                f"{tuple(last_hidden.shape)}; expected [batch, seq, dim] "
+                "or [batch, dim]"
+            )
+            raise RuntimeError(msg)
         norms = np.linalg.norm(pooled, axis=1, keepdims=True)
         norms = np.where(norms == 0, 1.0, norms)
         pooled = pooled / norms
@@ -196,3 +283,35 @@ def format_entity_text(entity_name: str, column_names: list[str]) -> str:
     """Format schema text for embedding: ``\"{entity}: col1, col2\"`` (short, within model length)."""
     cols = ", ".join(column_names)
     return f"{entity_name}: {cols}"
+
+
+# Process-wide cached default ``LocalEmbeddingClient``.  Every consumer
+# (compile_metric, query rerank, traverse tie-break, semantic_search,
+# role-vote, EmbeddingIndexStep) goes through ``get_default_embedding_client``
+# so the multi-MB ONNX session/tokenizer state loads at most once per
+# process.  Constructing ``LocalEmbeddingClient()`` is cheap (no I/O until
+# ``embed()`` is called), but the model download + ``InferenceSession``
+# init on first ``embed()`` is dominant on cold runs; sharing one instance
+# keeps that cost amortized across all embedding-driven tools.
+_DEFAULT_CLIENT: LocalEmbeddingClient | None = None
+
+
+def get_default_embedding_client() -> LocalEmbeddingClient:
+    """Return the process-wide cached ``LocalEmbeddingClient``.
+
+    Constructs one on first call; every subsequent call returns the
+    same instance.  Tests that need to reset the cache (e.g. to swap a
+    stub embedder per test) should call
+    :func:`_reset_default_embedding_client_for_tests` in an autouse
+    fixture.
+    """
+    global _DEFAULT_CLIENT
+    if _DEFAULT_CLIENT is None:
+        _DEFAULT_CLIENT = LocalEmbeddingClient()
+    return _DEFAULT_CLIENT
+
+
+def _reset_default_embedding_client_for_tests() -> None:
+    """Test helper: drop the module-level default-client cache."""
+    global _DEFAULT_CLIENT
+    _DEFAULT_CLIENT = None

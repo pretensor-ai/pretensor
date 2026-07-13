@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from pretensor.cli import constants as cli_constants
-from pretensor.cli.config_file import get_cli_config, resolve_path_option
+from pretensor.cli.config_file import get_cli_config, resolve_aliased_path_option
 from pretensor.mcp.service_registry import (
     load_registry,
     open_store_for_entry,
@@ -37,10 +37,17 @@ def register_validate_command(app: typer.Typer, *, console: Console) -> None:
                 "existing file, its contents are read."
             ),
         ),
+        database: str | None = typer.Option(
+            None,
+            "--database",
+            "-d",
+            help="connection_name or logical database; omit if only one is indexed.",
+        ),
         db: str | None = typer.Option(
             None,
             "--db",
-            help="connection_name or logical database; omit if only one is indexed.",
+            hidden=True,
+            help="Deprecated alias for --database/-d.",
         ),
         dialect: str = typer.Option(
             "postgres",
@@ -55,6 +62,15 @@ def register_validate_command(app: typer.Typer, *, console: Console) -> None:
             dir_okay=True,
             resolve_path=True,
         ),
+        graph_dir: Path | None = typer.Option(
+            None,
+            "--graph-dir",
+            hidden=True,
+            help="Deprecated alias for --state-dir.",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
         as_json: bool = typer.Option(
             False,
             "--json",
@@ -64,10 +80,14 @@ def register_validate_command(app: typer.Typer, *, console: Console) -> None:
     ) -> None:
         """Validate SQL against the indexed graph for one database."""
         cli_config = get_cli_config(ctx)
-        state_dir = resolve_path_option(
+        if database is None and db is not None:
+            database = db
+        state_dir = resolve_aliased_path_option(
             ctx,
-            param_name="state_dir",
-            cli_value=state_dir,
+            primary_param="state_dir",
+            primary_value=state_dir,
+            alias_param="graph_dir",
+            alias_value=graph_dir,
             config_value=cli_config.state_dir,
         )
 
@@ -82,12 +102,12 @@ def register_validate_command(app: typer.Typer, *, console: Console) -> None:
             raise typer.Exit(_EXIT_BAD_ARGS)
 
         reg = load_registry(state_dir)
-        entry = resolve_registry_entry(reg, db)
+        entry = resolve_registry_entry(reg, database)
         if entry is None:
             msg = (
-                f"no registry entry matches --db {db!r}"
-                if db is not None
-                else "multiple indexed databases — pass --db"
+                f"no registry entry matches --database {database!r}"
+                if database is not None
+                else "multiple indexed databases — pass --database"
             )
             console.print(f"[red]{msg}[/red]")
             raise typer.Exit(_EXIT_BAD_ARGS)

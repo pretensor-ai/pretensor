@@ -19,6 +19,7 @@ _ALL_DATASETS = [
     Dataset.ADVERSARIAL,
     Dataset.ANALYTICS_DWH,
     Dataset.SAAS_MULTITENANT,
+    Dataset.MESSY_WAREHOUSE,
 ]
 _REQUIRED_METRIC_KEYS = {
     "inferred_join_precision",
@@ -53,12 +54,20 @@ def test_run_l1_is_byte_identical_across_runs(tmp_path: Path, graph_dir: Path):
     assert a.read_bytes() == b.read_bytes()
 
 
-def test_run_l1_role_f1_only_for_adversarial(tmp_path: Path, graph_dir: Path):
+def test_run_l1_role_f1_non_null_for_datasets_with_gold_roles(
+    tmp_path: Path, graph_dir: Path
+):
     out = tmp_path / "out.json"
-    run_l1(Dataset.ADVERSARIAL, out, graph_dir, embeddings=False)
-    adv = read_json(out)
-    assert adv.metrics["role_f1"].value is not None
 
+    # Both adversarial and messy_warehouse ship a *_roles.yaml gold file.
+    for dataset in (Dataset.ADVERSARIAL, Dataset.MESSY_WAREHOUSE):
+        run_l1(dataset, out, graph_dir, embeddings=False)
+        result = read_json(out)
+        assert result.metrics["role_f1"].value is not None, (
+            f"{dataset.value}: expected non-null role_f1 (has gold roles file)"
+        )
+
+    # Datasets without a roles file must produce null role_f1 + an explanatory note.
     run_l1(Dataset.PAGILA, out, graph_dir, embeddings=False)
     pag = read_json(out)
     assert pag.metrics["role_f1"].value is None
@@ -102,3 +111,62 @@ def test_run_l1_matches_committed_baseline(
         f"regenerate with `uv run pretensor benchmark l1 --dataset "
         f"{dataset.value} --out {baseline}`."
     )
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    [Dataset.PAGILA, Dataset.TPCH, Dataset.ADVENTUREWORKS],
+    ids=lambda d: d.value,
+)
+def test_run_l1_embeddings_matches_committed_baseline(
+    tmp_path: Path, graph_dir: Path, dataset: Dataset
+):
+    """The embeddings lane must reproduce its committed baseline byte-for-byte.
+
+    Requires the ``[embeddings]`` extra (real model, pinned revision);
+    skips cleanly in environments without it — the bench workflow's
+    dev-embeddings lane is the enforcing run.
+    """
+    from pretensor.intelligence.embeddings import embeddings_extra_installed
+
+    if not embeddings_extra_installed():
+        pytest.skip("requires the [embeddings] extra")
+
+    baseline = _BASELINES_DIR / f"{dataset.value}-l1-embeddings.json"
+    if not baseline.exists():
+        pytest.skip(f"baseline {baseline.name} not committed yet")
+
+    out = tmp_path / f"{dataset.value}.json"
+    run_l1(dataset, out, graph_dir, embeddings=True)
+    assert normalize_baseline_bytes(out.read_bytes()) == normalize_baseline_bytes(
+        baseline.read_bytes()
+    ), (
+        f"Embeddings-lane re-run for {dataset.value} drifted from its "
+        "committed baseline; regenerate deliberately if the change is intended."
+    )
+
+
+def test_run_l1_embeddings_fails_loudly_when_no_vectors_computed(
+    tmp_path: Path, graph_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Mirror of the L2 guard: a failed model fetch aborts the lane."""
+    from pretensor.intelligence.embeddings import (
+        LocalEmbeddingClient,
+        embeddings_extra_installed,
+    )
+
+    if not embeddings_extra_installed():
+        pytest.skip(
+            "requires the [embeddings] extra: without it the runner "
+            "resolves --embeddings to off and the guard never engages"
+        )
+
+    def _download_failed(
+        self: LocalEmbeddingClient, texts: list[str]
+    ) -> list[list[float]]:
+        raise RuntimeError("simulated HF Hub 429")
+
+    monkeypatch.setattr(LocalEmbeddingClient, "embed", _download_failed)
+
+    with pytest.raises(RuntimeError, match="no table vectors"):
+        run_l1(Dataset.PAGILA, tmp_path / "out.json", graph_dir, embeddings=True)

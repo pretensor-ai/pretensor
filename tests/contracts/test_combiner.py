@@ -1,7 +1,7 @@
 """Contract tests for ConfidenceCombiner extension point.
 
 ``CombinerContractTest`` verifies that any :class:`~pretensor.intelligence.combining.ConfidenceCombiner`
-implementation is a valid drop-in replacement for the OSS default.  Cloud
+implementation is a valid drop-in replacement for the OSS default.  Downstream
 implementations import this class and bind ``make_combiner`` to their own factory.
 """
 
@@ -48,11 +48,11 @@ class CombinerContractTest(abc.ABC):
 
     Subclass and implement :meth:`make_combiner` to verify any combiner.
 
-    Example (Cloud)::
+    Example (downstream)::
 
-        class TestMyCloudCombiner(CombinerContractTest):
+        class TestMyCombiner(CombinerContractTest):
             def make_combiner(self) -> ConfidenceCombiner:
-                return MyCloudCombiner()
+                return MyCombiner()
     """
 
     @abc.abstractmethod

@@ -14,7 +14,7 @@ def mcp_config_json(graph_dir: Path) -> str:
         "mcpServers": {
             "pretensor": {
                 "command": cmd,
-                "args": ["serve", "--graph-dir", graph_dir_resolved],
+                "args": ["serve", "--state-dir", graph_dir_resolved],
             }
         }
     }

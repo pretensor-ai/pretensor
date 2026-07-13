@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pretensor.config import EmbeddingsConfig, PretensorConfig
 from pretensor.connectors.models import SchemaSnapshot
 from pretensor.core.builder import GraphBuilder
 from pretensor.core.registry import GraphRegistry
@@ -28,8 +29,18 @@ __all__ = ["build_l2_graph_dir"]
 _DETERMINISTIC_INDEXED_AT = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
-def build_l2_graph_dir(snapshot: SchemaSnapshot, *, work_dir: Path) -> Path:
+def build_l2_graph_dir(
+    snapshot: SchemaSnapshot, *, work_dir: Path, embeddings: bool = False
+) -> Path:
     """Build a Kuzu graph + registry under ``work_dir`` and return the dir.
+
+    When ``embeddings`` is True, tables are indexed with
+    ``EmbeddingsConfig(index_tables=True)`` so the ``semantic_search`` /
+    hybrid-rerank legs measure real cosine retrieval instead of the
+    no-vectors fallback (which would peg semantic recall at 0.0 and make
+    the embeddings CI lane indistinguishable from the plain one).  The
+    embedding model revision is pinned, so vectors are deterministic
+    across runs.
 
     The returned path is suitable as the ``graph_dir`` argument to every
     MCP tool payload function. ``work_dir`` is created if it doesn't
@@ -63,7 +74,26 @@ def build_l2_graph_dir(snapshot: SchemaSnapshot, *, work_dir: Path) -> Path:
 
     store = KuzuStore(graph_path)
     try:
-        GraphBuilder().build(snapshot, store, run_relationship_discovery=False)
+        cfg = PretensorConfig(
+            embeddings=EmbeddingsConfig(index_tables=embeddings),
+        )
+        GraphBuilder().build(
+            snapshot, store, run_relationship_discovery=False, config=cfg
+        )
+        if embeddings and not store.has_any_table_embeddings():
+            # The production embed path tolerates per-run failures (a
+            # degraded index beats an aborted one), but a benchmark lane
+            # that silently measures the no-vectors fallback would report
+            # a bogus regression against the embeddings baseline. Fail
+            # loudly instead — the usual culprit is a failed model
+            # download (e.g. HF Hub rate-limiting in CI).
+            msg = (
+                "L2 was invoked with --embeddings but no table vectors were "
+                "computed; the embedding model is likely unavailable "
+                "(download failure / rate limit). Fix the model fetch or "
+                "re-run without --embeddings."
+            )
+            raise RuntimeError(msg)
         # See docstring: clusters introduce cross-environment nondeterminism
         # via FTS5's cluster_context column. L2 doesn't measure clustering
         # quality (L1 does), so strip them before the runner queries the graph.

@@ -1,11 +1,10 @@
-"""MCP markdown resources (databases, per-db overview, clusters, cross-db entities)."""
+"""MCP markdown resources (databases, per-db overview, clusters, metrics)."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from pretensor.core.store import KuzuStore
 from pretensor.intelligence.cluster_labeler import HEURISTIC_CLUSTER_DESCRIPTION
 from pretensor.mcp.payload_types import iso_format, stale_threshold_days, staleness_days
 from pretensor.mcp.service_context import (
@@ -17,6 +16,7 @@ from pretensor.mcp.service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
 from pretensor.mcp.tools.list import list_databases_payload
@@ -92,7 +92,7 @@ def clusters_resource_markdown(
         )
         return "\n".join(lines)
     finally:
-        store.close()
+        release_store(store)
 
 
 def databases_resource_markdown(
@@ -111,12 +111,16 @@ def databases_resource_markdown(
         lines.append(f"- **Tables:** {item['table_count']}")
         lines.append(f"- **Row count (sum):** {item['row_count']}")
         schemas = item.get("schemas") or []
+        lines.append("- **Schemas:** " + (", ".join(schemas) if schemas else "_none_"))
         lines.append(
-            "- **Schemas:** " + (", ".join(schemas) if schemas else "_none_")
+            f"- **dbt manifest:** {item.get('has_dbt_manifest', 'not_attempted')}"
         )
-        lines.append(f"- **dbt manifest:** {item.get('has_dbt_manifest', 'not_attempted')}")
-        lines.append(f"- **LLM enrichment:** {item.get('has_llm_enrichment', 'not_attempted')}")
-        lines.append(f"- **External consumers:** {item.get('has_external_consumers', 'not_attempted')}")
+        lines.append(
+            f"- **LLM enrichment:** {item.get('has_llm_enrichment', 'not_attempted')}"
+        )
+        lines.append(
+            f"- **External consumers:** {item.get('has_external_consumers', 'not_attempted')}"
+        )
         lines.append(f"- **Last indexed:** {item['last_indexed']}")
         lines.append(f"- **Stale (>7d):** {item['is_stale']}")
         lines.append(f"- **Graph:** `{item['graph_path']}`")
@@ -158,7 +162,7 @@ def db_overview_resource_markdown(
             if er:
                 entity_count = int(er[0][0])
         finally:
-            store.close()
+            release_store(store)
     days = staleness_days(entry.last_indexed_at)
     threshold = stale_threshold_days(get_effective_graph_config())
     stale = days > threshold
@@ -299,121 +303,11 @@ def metrics_resource_markdown(
         )
         return "\n".join(lines)
     finally:
-        store.close()
-
-
-def cross_db_entities_resource_markdown(
-    graph_dir: Path,
-    *,
-    visibility_filter: VisibilityFilter | None = None,
-) -> str:
-    """Markdown for ``pretensor://cross-db/entities`` (confirmed links only)."""
-    reg = load_registry(graph_dir)
-    entries = reg.list_entries()
-    lines = [
-        "# Cross-Database Entity Map",
-        "",
-        "Confirmed links are safe for automated `traverse` paths. "
-        "Suggested links require `pretensor confirm`.",
-        "",
-    ]
-    if not entries:
-        lines.append("_No indexed databases._")
-        return "\n".join(lines)
-
-    gp = reg.unified_graph_file()
-    if gp is None:
-        gp = graph_path_for_entry(entries[0])
-    if not gp.exists():
-        lines.append("_Graph file missing._")
-        return "\n".join(lines)
-
-    vf = visibility_filter or get_effective_visibility_filter()
-    store = KuzuStore(gp)
-    store.ensure_schema()
-    try:
-        suggested_n = store.count_same_entity_by_status("suggested")
-        rows = store.query_all_rows(
-            """
-            MATCH (e1:Entity)-[r:SAME_ENTITY]->(e2:Entity)
-            WHERE r.status = $st
-            MATCH (e1)-[:REPRESENTS]->(t1:SchemaTable)
-            MATCH (e2)-[:REPRESENTS]->(t2:SchemaTable)
-            RETURN r.edge_id, e1.name, t1.connection_name, t1.schema_name, t1.table_name,
-                   e2.name, t2.connection_name, t2.schema_name, t2.table_name,
-                   r.join_columns, r.score, r.confirmed_at
-            ORDER BY r.score DESC
-            """,
-            {"st": "confirmed"},
-        )
-        seen: set[str] = set()
-        groups: list[tuple[str, list[tuple[str, str, str]], float, str]] = []
-        for row in rows:
-            (
-                eid,
-                n1,
-                c1,
-                s1,
-                tbl1,
-                n2,
-                c2,
-                s2,
-                tbl2,
-                jcols,
-                score,
-                conf_at,
-            ) = row
-            key = str(eid) if eid is not None else ""
-            if key in seen:
-                continue
-            if vf is not None:
-                if not vf.is_table_visible(str(c1), str(s1), str(tbl1)):
-                    continue
-                if not vf.is_table_visible(str(c2), str(s2), str(tbl2)):
-                    continue
-            seen.add(key)
-            title = f"{n1} / {n2}"
-            join_hint = str(jcols) if jcols is not None else "—"
-            score_f = float(score) if score is not None else 0.0
-            conf_s = str(conf_at) if conf_at is not None else ""
-            rows_tbl = [
-                (str(c1), f"{s1}.{tbl1}", join_hint),
-                (str(c2), f"{s2}.{tbl2}", join_hint),
-            ]
-            groups.append((title, rows_tbl, score_f, conf_s))
-        groups.sort(key=lambda g: g[2], reverse=True)
-        groups = groups[:10]
-        if not groups:
-            lines.append("_No confirmed cross-database entity links yet._")
-        else:
-            for title, tbl_rows, score_f, conf_s in groups:
-                lines.append(f"## {title}")
-                lines.append("")
-                lines.append("| Connection | Table | Join hint |")
-                lines.append("|------------|-------|-----------|")
-                for conn, tbl, jh in tbl_rows:
-                    lines.append(f"| {conn} | {tbl} | {jh} |")
-                lines.append("")
-                tail = f"*Score: {score_f:.2f}*"
-                if conf_s:
-                    tail += f" · *Confirmed: {conf_s}*"
-                lines.append(tail)
-                lines.append("")
-        lines.append("---")
-        lines.append("")
-        lines.append(
-            f"*Suggested (unconfirmed) links: {suggested_n}. "
-            "Run `pretensor confirm` to review.*"
-        )
-    finally:
-        store.close()
-
-    return "\n".join(lines)
+        release_store(store)
 
 
 __all__ = [
     "clusters_resource_markdown",
-    "cross_db_entities_resource_markdown",
     "databases_resource_markdown",
     "db_overview_resource_markdown",
     "metrics_resource_markdown",

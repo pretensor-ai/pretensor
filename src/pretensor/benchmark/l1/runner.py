@@ -21,6 +21,7 @@ from pretensor.benchmark.l1.metrics import (
     role_f1,
 )
 from pretensor.benchmark.l1.pipeline import (
+    L1_EMBEDDING_JOIN_THRESHOLD,
     build_l1_artifacts,
     collect_declared_fks,
     discover_inferred_joins_blind,
@@ -82,11 +83,20 @@ def run_l1(
     notes: list[str] = []
     embeddings_enabled = _resolve_embeddings_flag(embeddings, notes)
 
+    if embeddings_enabled:
+        notes.append(
+            "inferred_join metrics include the embedding relationship "
+            f"scorer at cosine threshold {L1_EMBEDDING_JOIN_THRESHOLD} "
+            "(heuristic + embedding lane)."
+        )
+
     with tempfile.TemporaryDirectory() as tmp_root:
         tmp = Path(tmp_root)
         artifacts_a = build_l1_artifacts(snapshot, work_dir=tmp / "run-a")
         artifacts_b = build_l1_artifacts(snapshot, work_dir=tmp / "run-b")
-        inferred = discover_inferred_joins_blind(snapshot, work_dir=tmp / "blind")
+        inferred = discover_inferred_joins_blind(
+            snapshot, work_dir=tmp / "blind", embeddings=embeddings_enabled
+        )
 
     declared_fks = collect_declared_fks(snapshot)
     p, r = inferred_join_pr(inferred, declared_fks)

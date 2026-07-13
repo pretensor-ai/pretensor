@@ -1,7 +1,7 @@
 """Contract tests for BaseSearchIndex extension point.
 
 ``SearchIndexContractTest`` verifies that any :class:`~pretensor.search.base.BaseSearchIndex`
-implementation satisfies the interface.  Cloud implementations import this class
+implementation satisfies the interface.  Downstream implementations import this class
 and bind ``make_index`` to their own factory.
 
 The concrete test for :class:`~pretensor.search.index.KeywordSearchIndex` is at
@@ -87,7 +87,7 @@ class SearchIndexContractTest(abc.ABC):
 
     Subclass and implement :meth:`make_index` to verify any index.
 
-    Example (Cloud)::
+    Example (downstream)::
 
         class TestHybridSearchIndex(SearchIndexContractTest):
             def make_index(self, tmp_path: Path) -> BaseSearchIndex:

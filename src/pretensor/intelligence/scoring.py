@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import TypeAlias
 
 from pretensor.connectors.models import SchemaSnapshot
@@ -64,3 +64,13 @@ class ScorerRegistry:
             scorer = self._scorers_by_name[name]
             out.extend(scorer.score(snapshot, explicit_fk_keys))
         return out
+
+    def __iter__(self) -> Iterator[RelationshipScorer]:
+        """Iterate scorers in registration order (read-only).
+
+        Used by ``extend_with_embedding_scorer`` (and any future helper
+        that builds a derived registry) to copy scorers without poking at
+        the private ``_scorers_by_name`` / ``_order`` state.
+        """
+        for name in self._order:
+            yield self._scorers_by_name[name]

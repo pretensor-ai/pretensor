@@ -70,6 +70,7 @@ CREATE NODE TABLE IF NOT EXISTS SchemaTable(
     test_count INT64,
     staleness_status STRING,
     staleness_as_of STRING,
+    embedding FLOAT[384],
     PRIMARY KEY (node_id)
 )
 """
@@ -318,12 +319,27 @@ CREATE REL TABLE IF NOT EXISTS RULE_APPLIES_TO(
 # without bloating the wire payload.
 
 CATALOG_NODE_LABELS: tuple[tuple[str, str], ...] = (
-    ("SchemaTable", "physical table; key fields: schema_name, table_name, row_count, table_type, role"),
-    ("SchemaColumn", "physical column; key fields: column_name, data_type, nullable, is_primary_key, is_foreign_key"),
+    (
+        "SchemaTable",
+        "physical table; key fields: schema_name, table_name, row_count, table_type, role",
+    ),
+    (
+        "SchemaColumn",
+        "physical column; key fields: column_name, data_type, nullable, is_primary_key, is_foreign_key",
+    ),
     ("Entity", "business entity grouping one or more tables (name, description)"),
-    ("Cluster", "Leiden community of related tables (label, table_count, cohesion_score)"),
-    ("JoinPath", "precomputed join path between two tables (depth, confidence, steps_json)"),
-    ("MetricTemplate", "validated SQL metric pattern (name, sql_template, validated, tables_used_json)"),
+    (
+        "Cluster",
+        "Leiden community of related tables (label, table_count, cohesion_score)",
+    ),
+    (
+        "JoinPath",
+        "precomputed join path between two tables (depth, confidence, steps_json)",
+    ),
+    (
+        "MetricTemplate",
+        "validated SQL metric pattern (name, sql_template, validated, tables_used_json)",
+    ),
     ("Metric", "semantic metric (extension point; empty by default)"),
     ("Dimension", "semantic dimension (extension point; empty by default)"),
     ("BusinessRule", "semantic business rule (extension point; empty by default)"),
@@ -331,17 +347,57 @@ CATALOG_NODE_LABELS: tuple[tuple[str, str], ...] = (
 
 CATALOG_EDGE_TYPES: tuple[tuple[str, str, str, str], ...] = (
     ("HAS_COLUMN", "SchemaTable", "SchemaColumn", "table → its columns"),
-    ("HAS_SUBCOLUMN", "SchemaColumn", "SchemaColumn", "nested column (e.g. BigQuery STRUCT field)"),
+    (
+        "HAS_SUBCOLUMN",
+        "SchemaColumn",
+        "SchemaColumn",
+        "nested column (e.g. BigQuery STRUCT field)",
+    ),
     ("REPRESENTS", "Entity", "SchemaTable", "entity → underlying physical tables"),
-    ("FK_REFERENCES", "SchemaTable", "SchemaTable", "declared foreign key (source_column, target_column)"),
-    ("INFERRED_JOIN", "SchemaTable", "SchemaTable", "implicit join (source, confidence, source_column, target_column)"),
-    ("LINEAGE", "SchemaTable", "SchemaTable", "view/trigger/task lineage (lineage_type, confidence)"),
-    ("SAME_ENTITY", "Entity", "Entity", "cross-database entity equivalence (status, score)"),
+    (
+        "FK_REFERENCES",
+        "SchemaTable",
+        "SchemaTable",
+        "declared foreign key (source_column, target_column)",
+    ),
+    (
+        "INFERRED_JOIN",
+        "SchemaTable",
+        "SchemaTable",
+        "implicit join (source, confidence, source_column, target_column)",
+    ),
+    (
+        "LINEAGE",
+        "SchemaTable",
+        "SchemaTable",
+        "view/trigger/task lineage (lineage_type, confidence)",
+    ),
+    (
+        "SAME_ENTITY",
+        "Entity",
+        "Entity",
+        "cross-database entity equivalence (extension point; empty by default)",
+    ),
     ("IN_CLUSTER", "SchemaTable", "Cluster", "table → cluster membership"),
-    ("METRIC_DEPENDS", "MetricTemplate", "SchemaTable", "metric template → tables it reads"),
+    (
+        "METRIC_DEPENDS",
+        "MetricTemplate",
+        "SchemaTable",
+        "metric template → tables it reads",
+    ),
     ("METRIC_DEPENDS_ON", "Metric", "SchemaTable", "metric → tables (extension point)"),
-    ("DIMENSION_LEVEL", "Dimension", "SchemaColumn", "dimension → columns (extension point)"),
-    ("RULE_APPLIES_TO", "BusinessRule", "SchemaTable", "rule → tables (extension point)"),
+    (
+        "DIMENSION_LEVEL",
+        "Dimension",
+        "SchemaColumn",
+        "dimension → columns (extension point)",
+    ),
+    (
+        "RULE_APPLIES_TO",
+        "BusinessRule",
+        "SchemaTable",
+        "rule → tables (extension point)",
+    ),
 )
 
 

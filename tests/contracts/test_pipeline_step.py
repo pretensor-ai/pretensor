@@ -2,7 +2,7 @@
 
 ``PipelineStepContractTest`` verifies that any object satisfying the
 :class:`~pretensor.intelligence.steps.PipelineStep` Protocol can be used by
-:class:`~pretensor.intelligence.steps.PipelineRunner`.  Cloud implementations
+:class:`~pretensor.intelligence.steps.PipelineRunner`.  Downstream implementations
 import this class and bind ``make_step`` to their own factory.
 
 Concrete tests for the five OSS steps (classify, cluster, label, join_paths,
@@ -46,11 +46,11 @@ class PipelineStepContractTest(abc.ABC):
 
     Subclass and implement :meth:`make_step` to verify any step.
 
-    Example (Cloud)::
+    Example (downstream)::
 
-        class TestMyCloudStep(PipelineStepContractTest):
+        class TestMyStep(PipelineStepContractTest):
             def make_step(self) -> object:
-                return MyCloudStep()
+                return MyStep()
     """
 
     @abc.abstractmethod
@@ -78,16 +78,16 @@ class PipelineStepContractTest(abc.ABC):
     def test_has_dependencies_attribute(self) -> None:
         """Step must expose a ``dependencies`` list attribute."""
         step = self.make_step()
-        assert hasattr(step, "dependencies"), "step must have a 'dependencies' attribute"
+        assert hasattr(step, "dependencies"), (
+            "step must have a 'dependencies' attribute"
+        )
         assert isinstance(step.dependencies, list)
 
     def test_dependencies_are_strings(self) -> None:
         """Every entry in ``dependencies`` must be a string."""
         step = self.make_step()
         for dep in step.dependencies:
-            assert isinstance(dep, str), (
-                f"dependency {dep!r} is not a string"
-            )
+            assert isinstance(dep, str), f"dependency {dep!r} is not a string"
 
     def test_has_execute_method(self) -> None:
         """Step must have an ``execute`` coroutine method."""
@@ -136,9 +136,11 @@ class TestClassifyStepContract(PipelineStepContractTest):
     def test_name_is_classify(self) -> None:
         assert self.make_step().name == "classify"
 
-    def test_has_no_dependencies(self) -> None:
+    def test_depends_on_embedding_index(self) -> None:
+        # The optional role vote reads vectors from the store; the
+        # dependency guarantees they were computed in this run.
         step = self.make_step()
-        assert step.dependencies == []
+        assert step.dependencies == ["embedding_index"]
 
 
 class TestClusterStepContract(PipelineStepContractTest):
@@ -210,19 +212,36 @@ class TestMinimalStepContract(PipelineStepContractTest):
 # ---------------------------------------------------------------------------
 
 
-def test_oss_pipeline_has_four_steps() -> None:
-    """build_oss_pipeline() must return exactly four named steps."""
+def test_oss_pipeline_has_five_steps() -> None:
+    """build_oss_pipeline() must return exactly five named steps."""
     runner = build_oss_pipeline()
     names = {s.name for s in runner._steps}  # type: ignore[attr-defined]
-    assert names == {"classify", "cluster", "label", "join_paths"}
+    assert names == {
+        "classify",
+        "cluster",
+        "embedding_index",
+        "label",
+        "join_paths",
+    }
 
 
 def test_oss_pipeline_step_dependency_chain() -> None:
-    """The OSS dependency chain must form classify→cluster→label→join_paths."""
+    """The OSS dependency chain must form
+    embedding_index→classify→cluster→label→join_paths.
+
+    ``embedding_index`` runs first (it reads only SchemaTable rows, which
+    exist before the pipeline starts) so the classify step's role vote and
+    the label step's centroid tiebreaker both consume vectors computed in
+    the same run.  ``label`` still declares ``embedding_index`` explicitly
+    so correctness never relies on insertion-order tie-breaking inside the
+    runner — fragile to a future scheduling change.
+    """
     runner = build_oss_pipeline()
     by_name = {s.name: s for s in runner._steps}  # type: ignore[attr-defined]
+    assert by_name["embedding_index"].dependencies == []
+    assert by_name["classify"].dependencies == ["embedding_index"]
     assert by_name["cluster"].dependencies == ["classify"]
-    assert by_name["label"].dependencies == ["cluster"]
+    assert by_name["label"].dependencies == ["cluster", "embedding_index"]
     assert by_name["join_paths"].dependencies == ["label"]
 
 

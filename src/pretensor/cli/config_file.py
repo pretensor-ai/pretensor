@@ -11,6 +11,7 @@ from click.core import ParameterSource
 from ruamel.yaml import YAML
 
 from pretensor.config import GraphConfig
+from pretensor.errors import PretensorError
 
 __all__ = [
     "DEFAULT_CONFIG_PATH",
@@ -22,6 +23,7 @@ __all__ = [
     "VisibilityDefaults",
     "get_cli_config",
     "load_cli_config",
+    "resolve_aliased_path_option",
     "resolve_optional_path_option",
     "resolve_optional_str_option",
     "resolve_path_option",
@@ -30,13 +32,13 @@ __all__ = [
 DEFAULT_CONFIG_PATH = Path(".pretensor") / "config.yaml"
 
 
-class CliConfigError(ValueError):
+class CliConfigError(PretensorError, ValueError):
     """Raised when the CLI config file is unreadable or invalid."""
 
 
 @dataclass(frozen=True, slots=True)
 class LlmDefaults:
-    """LLM defaults accepted by config for Cloud-compatible workflows."""
+    """LLM defaults accepted by config for compatibility with external workflows."""
 
     model: str | None = None
     budget_usd: float | None = None
@@ -71,6 +73,8 @@ _SOURCE_ALLOWED_KEYS = frozenset(
         "schema",
         "warehouse",
         "role",
+        "private_key_path",
+        "private_key_passphrase",
         # BigQuery
         "project",
         "dataset",
@@ -94,6 +98,8 @@ class SourceConfig:
     schema: str | None = None
     warehouse: str | None = None
     role: str | None = None
+    private_key_path: str | None = None
+    private_key_passphrase: str | None = None
     # BigQuery
     project: str | None = None
     dataset: str | None = None
@@ -210,6 +216,8 @@ def _source_config_from_mapping(
         "schema",
         "warehouse",
         "role",
+        "private_key_path",
+        "private_key_passphrase",
         "project",
         "dataset",
         "location",
@@ -379,6 +387,28 @@ def resolve_path_option(
     if _is_user_override(ctx, param_name):
         return cli_value
     return config_value or cli_value
+
+
+def resolve_aliased_path_option(
+    ctx: typer.Context | None,
+    *,
+    primary_param: str,
+    primary_value: Path,
+    alias_param: str,
+    alias_value: Path | None,
+    config_value: Path | None,
+) -> Path:
+    """Resolve a path option that has a hidden, deprecated alias flag.
+
+    Precedence: explicit ``primary_param`` > explicit ``alias_param`` > config
+    > ``primary_value`` default. If both flags are passed explicitly, the
+    primary (canonical) one wins.
+    """
+    if _is_user_override(ctx, primary_param):
+        return primary_value
+    if _is_user_override(ctx, alias_param) and alias_value is not None:
+        return alias_value
+    return config_value if config_value is not None else primary_value
 
 
 def resolve_optional_path_option(

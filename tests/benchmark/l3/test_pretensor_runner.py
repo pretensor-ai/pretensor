@@ -886,25 +886,18 @@ def test_runner_two_runs_with_same_seed_and_fakes_are_byte_identical(
 ) -> None:
     """AC #5 verified under deterministic LLM + MCP stand-ins.
 
-    Wall-clock latency (`per_item.latency_ms`, `mean_latency_ms_pretensor`)
-    is the only intentionally non-deterministic field. We pin
-    ``time.perf_counter`` to a step counter so two runs produce
-    identical timings — anything *else* that flips between runs would
-    surface as a real determinism bug.
+    Wall-clock latency (``per_item.latency_ms``, ``mean_latency_ms_pretensor``)
+    is the only intentionally non-deterministic field. We pin ``_now`` to a
+    constant so latency_ms is always 0 → byte-stable output. Anything else
+    that flips between runs surfaces as a real determinism bug.
     """
     fixture_questions = _load_pagila_questions()
     gold_map = {q["expected_sql"]: [(q["id"],)] for q in fixture_questions}
     _patch_environment(
         monkeypatch, gold_rows_by_sql=gold_map, agent_rows_by_sql=dict(gold_map)
     )
-
-    counter = {"t": 0.0}
-
-    def fake_perf_counter() -> float:
-        counter["t"] += 0.001
-        return counter["t"]
-
-    monkeypatch.setattr(runner_mod.time, "perf_counter", fake_perf_counter)
+    # Pin the clock so latency_ms is always 0 → byte-stable across runs.
+    monkeypatch.setattr(runner_mod, "_now", lambda: 0.0)
 
     graph_dir = _seed_indexed_graph_dir(tmp_path)
     a = tmp_path / "a.json"
@@ -918,7 +911,6 @@ def test_runner_two_runs_with_same_seed_and_fakes_are_byte_identical(
         llm_client=_gold_only_client(fixture_questions),
         mcp_client=_InMemoryMcpClient(tools=[]),
     )
-    counter["t"] = 0.0  # reset so run B sees the same step sequence as run A
     run_l3_pretensor(
         Dataset.PAGILA,
         b,

@@ -12,11 +12,16 @@ import typer
 from rich.console import Console
 
 from pretensor.cli import constants as cli_constants
+from pretensor.cli.commands._source_runner import (
+    check_source_exists,
+    resolve_embeddings_mode,
+    run_for_all_sources,
+)
 from pretensor.cli.config_file import (
     get_cli_config,
+    resolve_aliased_path_option,
     resolve_optional_path_option,
     resolve_optional_str_option,
-    resolve_path_option,
 )
 from pretensor.cli.dbt_enrichment import (
     apply_dbt_enrichment_cli,
@@ -28,6 +33,7 @@ from pretensor.cli.paths import (
     keystore_path,
     unified_graph_path,
 )
+from pretensor.config import EmbeddingsConfig, PretensorConfig
 from pretensor.connectors.inspect import inspect
 from pretensor.core.builder import GraphBuilder
 from pretensor.core.dsn_crypto import DSNEncryptor
@@ -38,7 +44,6 @@ from pretensor.introspection.models.dsn import (
     connection_config_from_url,
     dsn_from_source,
     registry_dialect_for,
-    validate_source_env_vars,
 )
 from pretensor.observability import log_timed_operation
 from pretensor.skills.generator import SkillGenerator
@@ -99,10 +104,28 @@ def register_index_command(app: typer.Typer, *, console: Console) -> None:
             writable=True,
             resolve_path=True,
         ),
+        graph_dir: Path | None = typer.Option(
+            None,
+            "--graph-dir",
+            hidden=True,
+            help="Deprecated alias for --state-dir.",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
         unified: bool = typer.Option(
             False,
             "--unified",
-            help="Merge into a single Kuzu file (graphs/unified.kuzu) for cross-DB linking.",
+            help="Merge all indexed databases into a single Kuzu file (graphs/unified.kuzu) queryable as one graph.",
+        ),
+        embeddings: bool | None = typer.Option(
+            None,
+            "--embeddings/--no-embeddings",
+            help=(
+                "Compute a 384-dim embedding for every SchemaTable during indexing. "
+                "Requires the [embeddings] extra (pip install 'pretensor[embeddings]'). "
+                "Default: auto — on when the extra is installed, off otherwise."
+            ),
         ),
         skills_target: str = typer.Option(
             "claude",
@@ -169,10 +192,21 @@ def register_index_command(app: typer.Typer, *, console: Console) -> None:
             )
             raise typer.Exit(1)
 
-        state_dir = resolve_path_option(
+        embeddings = resolve_embeddings_mode(
+            embeddings,
+            console,
+            auto_enable_message=(
+                "[dim]Embeddings: auto-enabled ([embeddings] extra detected). "
+                "Pass --no-embeddings to opt out.[/dim]"
+            ),
+        )
+
+        state_dir = resolve_aliased_path_option(
             ctx,
-            param_name="state_dir",
-            cli_value=state_dir,
+            primary_param="state_dir",
+            primary_value=state_dir,
+            alias_param="graph_dir",
+            alias_value=graph_dir,
             config_value=cli_config.state_dir,
         )
         visibility_file = resolve_optional_path_option(
@@ -190,72 +224,40 @@ def register_index_command(app: typer.Typer, *, console: Console) -> None:
 
         # --- --all: iterate all configured sources ----------------------------
         if all_sources:
-            if not cli_config.sources:
-                console.print(
-                    "[red]No sources defined in config.[/red] "
-                    "Add a `sources:` section to .pretensor/config.yaml."
-                )
-                raise typer.Exit(1)
-            results: list[tuple[str, bool, str]] = []
-            for src_name, src_cfg in cli_config.sources.items():
-                console.print(
-                    f"\n[bold]{'─' * 40}[/bold]\n"
-                    f"[bold blue]Source:[/bold blue] {src_name}\n"
-                )
-                missing_vars = validate_source_env_vars(src_cfg)
-                if missing_vars:
-                    msg = f"missing env vars: {', '.join(missing_vars)}"
-                    console.print(f"[yellow]Skipping {src_name}:[/yellow] {msg}")
-                    logger.warning("Skipping source %s: %s", src_name, msg)
-                    results.append((src_name, False, f"skipped ({msg})"))
-                    continue
-                try:
-                    src_config = connection_config_from_source(src_name, src_cfg)
-                    src_dsn = dsn_from_source(src_name, src_cfg)
-                    _run_index(
-                        console=console,
-                        cli_config=cli_config,
-                        dsn=src_dsn,
-                        connection_name=src_name,
-                        config=src_config,
-                        state_dir=state_dir,
-                        unified=unified,
-                        skills_target=skills_target,
-                        visibility_file=visibility_file,
-                        profile=profile,
-                        dbt_manifest=dbt_manifest,
-                        dbt_sources=dbt_sources,
-                    )
-                    results.append((src_name, True, "ok"))
-                except typer.Exit:
-                    logger.warning("Source %s exited with failure", src_name)
-                    results.append((src_name, False, "failed"))
-                except Exception as e:
-                    logger.exception("Error indexing source %s", src_name)
-                    console.print(f"[red]Error indexing {src_name}:[/red] {e}")
-                    results.append((src_name, False, str(e)))
 
-            console.print(f"\n[bold]{'─' * 40}[/bold]")
-            console.print("[bold]Summary:[/bold]")
-            failed = 0
-            for src_name, ok, msg in results:
-                status = "[green]✓[/green]" if ok else "[red]✗[/red]"
-                console.print(f"  {status} {src_name}: {msg}")
-                if not ok:
-                    failed += 1
-            if failed:
-                raise typer.Exit(1)
+            def _run_one(src_name: str) -> None:
+                src_cfg = cli_config.sources[src_name]
+                src_config = connection_config_from_source(src_name, src_cfg)
+                src_dsn = dsn_from_source(src_name, src_cfg)
+                _run_index(
+                    console=console,
+                    cli_config=cli_config,
+                    dsn=src_dsn,
+                    connection_name=src_name,
+                    config=src_config,
+                    state_dir=state_dir,
+                    unified=unified,
+                    embeddings=embeddings,
+                    skills_target=skills_target,
+                    visibility_file=visibility_file,
+                    profile=profile,
+                    dbt_manifest=dbt_manifest,
+                    dbt_sources=dbt_sources,
+                )
+
+            run_for_all_sources(
+                cli_config=cli_config,
+                console=console,
+                logger=logger,
+                source_banner="Source:",
+                action_verb="indexing",
+                run_one=_run_one,
+            )
             return
 
         # --- --source: single named source ------------------------------------
         if source is not None:
-            if source not in cli_config.sources:
-                available = ", ".join(cli_config.sources) or "(none)"
-                console.print(
-                    f"[red]Unknown source {source!r}.[/red] "
-                    f"Available: {available}"
-                )
-                raise typer.Exit(1)
+            check_source_exists(source, cli_config, console)
             src_cfg = cli_config.sources[source]
             try:
                 config = connection_config_from_source(source, src_cfg)
@@ -276,6 +278,7 @@ def register_index_command(app: typer.Typer, *, console: Console) -> None:
                 config=config,
                 state_dir=state_dir,
                 unified=unified,
+                embeddings=embeddings,
                 skills_target=skills_target,
                 visibility_file=visibility_file,
                 profile=profile,
@@ -318,6 +321,7 @@ def register_index_command(app: typer.Typer, *, console: Console) -> None:
             config=config,
             state_dir=state_dir,
             unified=unified,
+            embeddings=embeddings,
             skills_target=skills_target,
             visibility_file=visibility_file,
             profile=profile,
@@ -335,6 +339,7 @@ def _run_index(
     config: object,
     state_dir: Path,
     unified: bool,
+    embeddings: bool,
     skills_target: str,
     visibility_file: Path | None,
     profile: str | None,
@@ -342,16 +347,16 @@ def _run_index(
     dbt_sources: Path | None,
 ) -> None:
     """Core indexing logic shared by DSN, --source, and --all paths."""
+    from pretensor.cli.config_file import PretensorCliConfig
     from pretensor.introspection.models.config import ConnectionConfig as _CC
 
     assert isinstance(config, _CC)
+    assert isinstance(cli_config, PretensorCliConfig)
 
     total_started = time.perf_counter()
     sd = Path(state_dir)
     vis_path = (
-        Path(visibility_file)
-        if visibility_file is not None
-        else sd / "visibility.yml"
+        Path(visibility_file) if visibility_file is not None else sd / "visibility.yml"
     )
     try:
         vis_cfg = merge_profile_into_base(load_visibility_config(vis_path), profile)
@@ -452,11 +457,16 @@ def _run_index(
             connection_name=connection_name,
             replace_mode="connection" if unified else "full",
         ):
+            run_config = PretensorConfig(
+                graph=cli_config.graph,
+                embeddings=EmbeddingsConfig(index_tables=embeddings),
+            )
             GraphBuilder().build(
                 snapshot,
                 store,
                 replace_mode="connection" if unified else "full",
                 visibility_filter=visibility_filter,
+                config=run_config,
             )
         if _PROFILE_INDEX:
             console.print(
@@ -477,9 +487,7 @@ def _run_index(
             """,
             {"cn": connection_name},
         )
-        table_count = (
-            int(tc_rows[0][0]) if tc_rows and tc_rows[0][0] is not None else 0
-        )
+        table_count = int(tc_rows[0][0]) if tc_rows and tc_rows[0][0] is not None else 0
     finally:
         store.close()
 
@@ -492,10 +500,10 @@ def _run_index(
         )
         raise typer.Exit(1) from e
     indexed_at = datetime.now(timezone.utc)
-    enc: DSNEncryptor | None = None
-    encrypt = keystore_path(sd).exists()
-    if encrypt:
-        enc = DSNEncryptor(keystore_path(sd))
+    # Encrypt the DSN at rest by default. ``DSNEncryptor`` auto-creates the
+    # keystore (0o600) on first use, so a fresh state dir no longer stores the
+    # plaintext password in registry.json.
+    enc = DSNEncryptor(keystore_path(sd))
     reg.upsert(
         connection_name=connection_name,
         database=snapshot.database,
@@ -503,7 +511,7 @@ def _run_index(
         graph_path=graph_path,
         unified_graph_path=graph_path if unified else None,
         indexed_at=indexed_at,
-        encrypt_dsn=encrypt,
+        encrypt_dsn=True,
         encryptor=enc,
         dialect=registry_dialect_for(config.type),
         table_count=table_count,

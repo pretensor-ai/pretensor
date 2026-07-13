@@ -1,4 +1,4 @@
-"""LLM interface types and text utilities (Cloud LLM infrastructure removed)."""
+"""LLM interface types and text utilities (LLM infrastructure removed)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import json
 import re
 from dataclasses import dataclass
 from typing import Any, Literal
+
+from pretensor.errors import PretensorError
 
 __all__ = [
     "ChatMessage",
@@ -17,7 +19,7 @@ __all__ = [
 ]
 
 
-class LlmBudgetExceededError(Exception):
+class LlmBudgetExceededError(PretensorError):
     """Raised when estimated spend for an index run reaches the configured ceiling."""
 
 

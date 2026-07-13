@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from pretensor.mcp import server as server_module
+from pretensor.mcp.tools import context as context_tool_module
 
 
 def _get_context_tool(tmp_path: Path) -> Any:
@@ -36,7 +37,7 @@ def test_context_handler_passes_db_to_payload(
         captured.update(kwargs)
         return {"ok": True}
 
-    monkeypatch.setattr(server_module, "context_payload", _fake)
+    monkeypatch.setattr(context_tool_module, "context_payload", _fake)
     tool = _get_context_tool(tmp_path)
     out = _call(tool, {"table": "public.t", "db": "demo"})
     assert out == {"ok": True}

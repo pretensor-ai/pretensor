@@ -32,16 +32,28 @@ def test_serve_config_only_outputs_valid_json(tmp_path: Path) -> None:
 
 
 def test_serve_config_only_includes_graph_dir(tmp_path: Path) -> None:
-    """The ``--config-only`` JSON embeds the resolved graph-dir in the args list."""
+    """The ``--config-only`` JSON embeds the resolved state-dir in the args list."""
     result = CliRunner().invoke(
         app, ["serve", "--config-only", "--graph-dir", str(tmp_path)]
     )
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     args: list[Any] = data["mcpServers"]["pretensor"]["args"]
-    assert "--graph-dir" in args
-    graph_dir_idx = args.index("--graph-dir")
-    assert args[graph_dir_idx + 1] == str(tmp_path.resolve())
+    assert "--state-dir" in args
+    state_dir_idx = args.index("--state-dir")
+    assert args[state_dir_idx + 1] == str(tmp_path.resolve())
+
+
+def test_serve_config_only_via_state_dir(tmp_path: Path) -> None:
+    """``--state-dir`` (canonical) produces the same result as the ``--graph-dir`` alias."""
+    result = CliRunner().invoke(
+        app, ["serve", "--config-only", "--state-dir", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    args: list[Any] = data["mcpServers"]["pretensor"]["args"]
+    state_dir_idx = args.index("--state-dir")
+    assert args[state_dir_idx + 1] == str(tmp_path.resolve())
 
 
 def test_serve_help_shows_options() -> None:
@@ -49,7 +61,8 @@ def test_serve_help_shows_options() -> None:
     result = CliRunner().invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
     plain = _normalize(result.stdout)
-    assert "--graph-dir" in plain
+    assert "--state-dir" in plain
+    assert "--graph-dir" not in plain
     assert "--config-only" in plain
     assert "--visibility" in plain
     assert "--profile" in plain

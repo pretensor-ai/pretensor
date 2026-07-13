@@ -115,7 +115,7 @@ def inspect(config: ConnectionConfig) -> SchemaSnapshot:
                     flush=True,
                 )
         except Exception:
-            logger.warning("Deep catalog enrichment failed; continuing without it", exc_info=True)
+            logger.debug("Deep catalog enrichment failed; continuing without it")
             table_catalog_extra, column_catalog_extra = {}, {}
 
         schemas_seen: set[str] = set()
@@ -291,7 +291,7 @@ def inspect(config: ConnectionConfig) -> SchemaSnapshot:
         try:
             view_deps = connector.load_view_dependencies(config.schema_filter)
         except Exception:
-            logger.warning(
+            logger.debug(
                 "View/trigger lineage extraction failed; continuing without it"
             )
         if _PROFILE_INDEX:

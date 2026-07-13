@@ -73,3 +73,7 @@ class GraphNode(GraphModel):
         default=None,
         description="Number of dbt tests attached to this model (when known).",
     )
+    embedding: list[float] | None = Field(
+        default=None,
+        description="Dense vector embedding of table identity text (dim=384).",
+    )

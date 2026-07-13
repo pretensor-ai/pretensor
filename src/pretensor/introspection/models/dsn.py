@@ -28,6 +28,8 @@ def registry_dialect_for(db_type: DatabaseType) -> RegistryDialect:
         return "snowflake"
     if db_type == DatabaseType.BIGQUERY:
         return "bigquery"
+    if db_type == DatabaseType.MYSQL:
+        return "mysql"
     return "postgres"
 
 
@@ -39,15 +41,41 @@ __all__ = [
     "connection_config_from_url",
     "dsn_from_source",
     "infer_database_type_from_dsn",
+    "redact_dsn",
     "registry_dialect_for",
     "validate_source_env_vars",
 ]
+
+
+def redact_dsn(dsn: str) -> str:
+    """Mask the password in a DSN's userinfo for safe display/logging.
+
+    ``postgres://user:secret@host/db`` -> ``postgres://user:***@host/db``.
+    Falls back to a fully masked ``***`` if the string cannot be parsed, so a
+    malformed DSN never leaks its contents.
+    """
+    raw = dsn.strip()
+    scheme, sep, rest = raw.partition("://")
+    if not sep or "@" not in rest:
+        return raw
+    try:
+        # The last "@" separates userinfo from host; rpartition keeps the host
+        # intact even if the password happens to contain an "@".
+        userinfo, _, hostpart = rest.rpartition("@")
+        if ":" in userinfo:
+            user, _, _pw = userinfo.partition(":")
+            userinfo = f"{user}:***"
+        return f"{scheme}://{userinfo}@{hostpart}"
+    except Exception:
+        return "***"
+
 
 _DIALECT_ALIASES: dict[str, DatabaseType] = {
     "postgres": DatabaseType.POSTGRES,
     "postgresql": DatabaseType.POSTGRES,
     "snowflake": DatabaseType.SNOWFLAKE,
     "bigquery": DatabaseType.BIGQUERY,
+    "mysql": DatabaseType.MYSQL,
 }
 
 
@@ -65,9 +93,11 @@ def infer_database_type_from_dsn(dsn: str) -> DatabaseType:
         return DatabaseType.SNOWFLAKE
     if base_scheme == "bigquery":
         return DatabaseType.BIGQUERY
+    if base_scheme == "mysql":
+        return DatabaseType.MYSQL
     msg = (
         f"Unsupported DSN scheme {scheme_part!r}; use postgresql://, snowflake://, "
-        "or bigquery://"
+        "bigquery://, or mysql://"
     )
     raise ValueError(msg)
 
@@ -116,10 +146,10 @@ def connection_config_from_url(
     if conn_type == DatabaseType.BIGQUERY:
         scheme_part, _, remainder = raw.partition("://")
         base_scheme = scheme_part.lower().split("+", 1)[0]
-        parse_url = (
-            raw if base_scheme == "bigquery" else f"bigquery://{remainder}"
-        )
+        parse_url = raw if base_scheme == "bigquery" else f"bigquery://{remainder}"
         return _config_from_bigquery_url(parse_url, connection_name)
+    if conn_type == DatabaseType.MYSQL:
+        return _config_from_mysql_url(raw, connection_name)
     msg = f"No URL parser for database type: {conn_type}"
     raise ValueError(msg)
 
@@ -147,6 +177,10 @@ def connection_config_from_registry_dsn(
     if dialect == "bigquery":
         return connection_config_from_url(
             dsn, connection_name, dialect_override="bigquery"
+        )
+    if dialect == "mysql":
+        return connection_config_from_url(
+            dsn, connection_name, dialect_override="mysql"
         )
     return connection_config_from_url(dsn, connection_name)
 
@@ -202,6 +236,8 @@ def _config_from_snowflake_url(raw: str, connection_name: str) -> ConnectionConf
 
     warehouse: str | None = None
     role: str | None = None
+    private_key_path: str | None = None
+    private_key_passphrase: str | None = None
     if parsed.query:
         from urllib.parse import parse_qs
 
@@ -212,6 +248,12 @@ def _config_from_snowflake_url(raw: str, connection_name: str) -> ConnectionConf
         rl = qs.get("role", [None])[0]
         if rl:
             role = unquote(rl)
+        pkp = qs.get("private_key_path", [None])[0]
+        if pkp:
+            private_key_path = unquote(pkp)
+        pkpass = qs.get("private_key_passphrase", [None])[0]
+        if pkpass:
+            private_key_passphrase = unquote(pkpass)
 
     return ConnectionConfig(
         name=connection_name,
@@ -225,6 +267,8 @@ def _config_from_snowflake_url(raw: str, connection_name: str) -> ConnectionConf
             "snowflake_schema": snowflake_schema,
             "warehouse": warehouse,
             "role": role,
+            "private_key_path": private_key_path,
+            "private_key_passphrase": private_key_passphrase,
         },
     )
 
@@ -308,6 +352,8 @@ def connection_config_from_source(
                 "snowflake_schema": sf_schema,
                 "warehouse": source.warehouse,
                 "role": source.role,
+                "private_key_path": source.private_key_path,
+                "private_key_passphrase": source.private_key_passphrase,
             },
         )
 
@@ -325,6 +371,21 @@ def connection_config_from_source(
             database=f"{project}/{dataset}",
             metadata_extra={"bq_project": project, "bq_location": source.location},
             schema_filter=SchemaFilter(include=[dataset]),
+        )
+
+    if conn_type == DatabaseType.MYSQL:
+        if not source.host:
+            raise ValueError(f"Source `{name}` (mysql) requires `host`")
+        db = source.database
+        return ConnectionConfig(
+            name=name,
+            type=DatabaseType.MYSQL,
+            host=source.host,
+            port=source.port,
+            database=db,
+            user=source.user,
+            password=source.password,
+            schema_filter=SchemaFilter(include=[db] if db else []),
         )
 
     msg = f"No source builder for dialect: {source.dialect}"
@@ -357,7 +418,11 @@ def dsn_from_source(name: str, source: SourceConfig) -> str:
 
     if conn_type == DatabaseType.SNOWFLAKE:
         user = _enc(source.user) or ""
-        pw = f":{_enc(source.password)}" if source.password else ""
+        pw = (
+            f":{_enc(source.password)}"
+            if source.password and not source.private_key_path
+            else ""
+        )
         account = source.account or ""
         db = f"/{source.database}" if source.database else ""
         schema = f"/{source.schema}" if source.schema else ""
@@ -366,6 +431,12 @@ def dsn_from_source(name: str, source: SourceConfig) -> str:
             params.append(f"warehouse={_enc(source.warehouse)}")
         if source.role:
             params.append(f"role={_enc(source.role)}")
+        if source.private_key_path:
+            params.append(f"private_key_path={_enc(source.private_key_path)}")
+        if source.private_key_passphrase:
+            params.append(
+                f"private_key_passphrase={_enc(source.private_key_passphrase)}"
+            )
         qs = f"?{'&'.join(params)}" if params else ""
         cred = f"{user}{pw}@" if user else ""
         return f"snowflake://{cred}{account}{db}{schema}{qs}"
@@ -375,6 +446,14 @@ def dsn_from_source(name: str, source: SourceConfig) -> str:
         dataset = source.dataset or ""
         loc = f"?location={_enc(source.location)}" if source.location else ""
         return f"bigquery://{project}/{dataset}{loc}"
+
+    if conn_type == DatabaseType.MYSQL:
+        user = _enc(source.user) or "root"
+        pw = f":{_enc(source.password)}" if source.password else ""
+        host = source.host or "localhost"
+        port = f":{source.port}" if source.port else ""
+        db = f"/{source.database}" if source.database else ""
+        return f"mysql://{user}{pw}@{host}{port}{db}"
 
     msg = f"No DSN builder for dialect: {source.dialect}"
     raise ValueError(msg)
@@ -439,4 +518,33 @@ def _config_from_bigquery_url(raw: str, connection_name: str) -> ConnectionConfi
         database=f"{project}/{dataset}",
         metadata_extra=extra,
         schema_filter=SchemaFilter(include=[dataset]),
+    )
+
+
+def _config_from_mysql_url(raw: str, connection_name: str) -> ConnectionConfig:
+    """Parse ``mysql://user:pass@host:port/database`` (or ``mysql+pymysql://``) into config."""
+    scheme_part, _, remainder = raw.partition("://")
+    base_scheme = scheme_part.lower().split("+", 1)[0]
+    if base_scheme != "mysql":
+        msg = f"Expected a mysql DSN, got scheme {scheme_part!r}"
+        raise ValueError(msg)
+
+    parsed = urlparse(f"mysql://{remainder}")
+    if parsed.hostname is None or parsed.hostname == "":
+        msg = "MySQL DSN must include a host"
+        raise ValueError(msg)
+
+    database = parsed.path.lstrip("/") or None
+    user = unquote(parsed.username) if parsed.username else None
+    password = unquote(parsed.password) if parsed.password else None
+
+    return ConnectionConfig(
+        name=connection_name,
+        type=DatabaseType.MYSQL,
+        host=parsed.hostname,
+        port=parsed.port,
+        database=database,
+        user=user,
+        password=password,
+        schema_filter=SchemaFilter(include=[database] if database else []),
     )

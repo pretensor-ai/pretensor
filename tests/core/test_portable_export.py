@@ -73,3 +73,42 @@ def test_export_graph_payload_filters_to_connection_scope() -> None:
             "target_column": "id",
         }
     ]
+
+
+def test_export_node_query_only_binds_referenced_scope_param() -> None:
+    """Regression test for the export scope-param binding crash.
+
+    Node tables that carry only one of ``connection_name``/``database``/
+    ``database_key`` (or none of them, e.g. semantic-layer tables) must not
+    be queried with the *other* param still bound — Kuzu's prepared
+    statements reject params that aren't referenced in the query text.
+    """
+    store = MagicMock()
+    store.query_all_rows.side_effect = [
+        [("ClusterLike", "NODE"), ("MetricLike", "NODE"), ("Unscoped", "NODE")],
+        [("node_id", "STRING"), ("database_key", "STRING"), ("label", "STRING")],
+        [("c1", "dbkey1", "Cluster One")],
+        [("node_id", "STRING"), ("connection_name", "STRING"), ("name", "STRING")],
+        [("m1", "conn1", "Metric One")],
+        [("node_id", "STRING"), ("value", "STRING")],
+        [("u1", "hello")],
+    ]
+
+    export_graph_payload(
+        store,
+        connection_name="myconn",
+        database_name="mydb",
+        graph_path=Path("/tmp/graph.kuzu"),
+    )
+
+    node_query_calls = [
+        call
+        for call in store.query_all_rows.call_args_list
+        if "MATCH (n:" in call.args[0]
+    ]
+    assert len(node_query_calls) == 3
+
+    cluster_call, metric_call, unscoped_call = node_query_calls
+    assert cluster_call.args[1] == {"database_name": "mydb"}
+    assert metric_call.args[1] == {"connection_name": "myconn"}
+    assert unscoped_call.args[1] == {}

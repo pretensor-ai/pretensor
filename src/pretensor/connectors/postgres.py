@@ -11,7 +11,7 @@ import os
 import time
 from typing import Any
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import URL, create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -26,6 +26,7 @@ from pretensor.connectors.base import (
 from pretensor.connectors.lineage_sqlglot import dml_write_targets, table_refs_from_sql
 from pretensor.connectors.models import ViewDependency
 from pretensor.connectors.pg_array_parse import parse_pg_array_literal
+from pretensor.errors import ConnectorError
 from pretensor.introspection.models.config import ConnectionConfig, SchemaFilter
 
 logger = logging.getLogger(__name__)
@@ -61,10 +62,6 @@ def _pg_transitive_members(children: dict[str, set[str]], root: str) -> set[str]
     return out
 
 
-class ConnectorError(Exception):
-    """Raised when a connector operation fails."""
-
-
 def _map_pg_table_type(relkind: str | None, info_table_type: str) -> str:
     """Normalize to classifier-friendly labels used in the graph."""
     if relkind == "r":
@@ -95,14 +92,20 @@ class PostgresConnector(BaseConnector):
         self._indexed_columns: set[tuple[str, str, str]] = set()
         self._check_by_column: dict[tuple[str, str, str], list[str]] = {}
 
-    def _build_url(self) -> str:
+    def _build_url(self) -> URL:
+        # ``URL.create`` (not an f-string) so the password is redacted in the
+        # URL repr that SQLAlchemy embeds in driver exceptions, and so special
+        # characters in the password are escaped correctly rather than breaking
+        # URL parsing.
         cfg = self.config
-        user = cfg.user or "postgres"
-        password = cfg.password or ""
-        host = cfg.host or "localhost"
-        port = cfg.port or 5432
-        database = cfg.database or "postgres"
-        return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+        return URL.create(
+            "postgresql+psycopg2",
+            username=cfg.user or "postgres",
+            password=cfg.password or "",
+            host=cfg.host or "localhost",
+            port=int(cfg.port) if cfg.port else 5432,
+            database=cfg.database or "postgres",
+        )
 
     def connect(self) -> None:
         self._indexed_columns = set()
@@ -123,8 +126,18 @@ class PostgresConnector(BaseConnector):
                 self.config.database,
             )
         except Exception as exc:
+            # Keep the driver error (which may echo connection details) in the
+            # server log only; the raised message is host:port/db, no secret.
+            logger.warning(
+                "Postgres connection failed for %s:%s/%s: %s",
+                self.config.host,
+                self.config.port,
+                self.config.database,
+                exc,
+            )
             raise ConnectorError(
-                f"Failed to connect to Postgres at {self.config.host}:{self.config.port}: {exc}"
+                f"Failed to connect to Postgres at {self.config.host}:"
+                f"{self.config.port}/{self.config.database}"
             ) from exc
 
     def disconnect(self) -> None:
@@ -254,9 +267,7 @@ class PostgresConnector(BaseConnector):
             )
         return tables
 
-    def _count_view_rows(
-        self, schema_name: str, view_name: str
-    ) -> tuple[int, str]:
+    def _count_view_rows(self, schema_name: str, view_name: str) -> tuple[int, str]:
         """Run ``SELECT COUNT(*)`` on a view with a 2s statement timeout.
 
         Returns ``(count, "view_count")`` on success, ``(-1, "view_timeout")``
@@ -572,14 +583,18 @@ class PostgresConnector(BaseConnector):
         out.sort(key=lambda tg: (tg.schema_name, tg.table_name, tg.grantee))
         return out
 
-    def load_view_dependencies(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def load_view_dependencies(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         """Lineage from views, materialized views, and cross-table triggers."""
         out: list[ViewDependency] = []
         out.extend(self._load_pg_view_sql_lineage(schema_filter))
         out.extend(self._load_pg_trigger_lineage(schema_filter))
         return out
 
-    def _load_pg_view_sql_lineage(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def _load_pg_view_sql_lineage(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         deps: list[ViewDependency] = []
         views_sql = text("""\
             SELECT schemaname, viewname, definition
@@ -650,7 +665,9 @@ class PostgresConnector(BaseConnector):
                 )
         return deps
 
-    def _load_pg_trigger_lineage(self, schema_filter: SchemaFilter) -> list[ViewDependency]:
+    def _load_pg_trigger_lineage(
+        self, schema_filter: SchemaFilter
+    ) -> list[ViewDependency]:
         deps: list[ViewDependency] = []
         trig_sql = text("""\
             SELECT t.tgname AS trigger_name,

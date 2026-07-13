@@ -24,6 +24,7 @@ class Dataset(str, enum.Enum):
     ADVERSARIAL = "adversarial"
     SAAS_MULTITENANT = "saas_multitenant"
     ADVENTUREWORKS = "adventureworks"
+    MESSY_WAREHOUSE = "messy_warehouse"
 
 
 class RunnerKind(str, enum.Enum):

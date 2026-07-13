@@ -17,14 +17,14 @@ __all__ = ["SemanticLayer", "NullSemanticLayer"]
 class SemanticLayer(ABC):
     """Abstract interface for the Pretensor semantic layer.
 
-    Cloud implementations populate this with business-level knowledge
+    Downstream implementations populate this with business-level knowledge
     (metrics, dimensions, business rules). OSS callers always receive
     ``NullSemanticLayer``, which returns ``None`` or empty collections
     for every method.
 
     All methods are intentionally narrow: they accept identifiers (strings
     or simple primitives) and return plain Python types so callers never
-    depend on Cloud-specific model classes.
+    depend on implementation-specific model classes.
     """
 
     @abstractmethod
@@ -101,7 +101,7 @@ class NullSemanticLayer(SemanticLayer):
 
     Every method returns ``None`` or an empty collection. This lets the
     graph core and MCP tools reference a ``SemanticLayer`` without
-    requiring Cloud credentials or implementations.
+    requiring external credentials or implementations.
     """
 
     def get_entity(self, entity_id: str) -> dict[str, Any] | None:

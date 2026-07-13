@@ -94,7 +94,9 @@ def test_load_dataset_rejects_unknown_name() -> None:
         load_dataset("not_a_real_dataset")
 
 
-@pytest.mark.parametrize("name", ["adversarial", "analytics_dwh", "saas_multitenant"])
+@pytest.mark.parametrize(
+    "name", ["adversarial", "analytics_dwh", "saas_multitenant", "messy_warehouse"]
+)
 def test_datasets_without_ddl_or_questions_return_none(name: str) -> None:
     # ``schema_yaml_path.exists()`` would be trivially true here — ``load_dataset``
     # raises ``FileNotFoundError`` before returning when the YAML is absent — so

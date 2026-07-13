@@ -43,7 +43,7 @@ def test_index_bad_dsn_no_scheme(tmp_path: Path) -> None:
 def test_index_bad_dsn_unknown_scheme(tmp_path: Path) -> None:
     result = CliRunner().invoke(
         app,
-        ["index", "mysql://user@localhost/db", "--state-dir", str(tmp_path)],
+        ["index", "oracle://user@localhost/db", "--state-dir", str(tmp_path)],
     )
     assert result.exit_code == 1
     out = _normalize(result.output)

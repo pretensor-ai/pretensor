@@ -32,6 +32,7 @@ class DatabaseType(StrEnum):
     BIGQUERY = "bigquery"
     SNOWFLAKE = "snowflake"
     DUCKDB = "duckdb"
+    MYSQL = "mysql"
 
 
 class PrivacyMode(StrEnum):
