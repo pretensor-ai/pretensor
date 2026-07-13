@@ -17,6 +17,7 @@ from pretensor.intelligence.embeddings import (
     NullEmbeddingClient,
     cosine_similarity,
     format_entity_text,
+    resolve_embeddings_auto,
 )
 
 
@@ -248,3 +249,46 @@ def test_onnx_missing_raises_before_path_check(monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(ImportError) as exc:
         client.embed(["a"])
     assert "pretensor[embeddings]" in str(exc.value)
+
+
+def test_resolve_embeddings_auto_explicit_true_wins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An explicit True is returned verbatim, regardless of install state."""
+    monkeypatch.setattr(embeddings_mod, "embeddings_extra_installed", lambda: False)
+    assert resolve_embeddings_auto(True) is True
+
+
+def test_resolve_embeddings_auto_explicit_false_wins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An explicit False is returned verbatim, even with the extra installed."""
+    monkeypatch.setattr(embeddings_mod, "embeddings_extra_installed", lambda: True)
+    assert resolve_embeddings_auto(False) is False
+
+
+def test_resolve_embeddings_auto_none_on_when_extra_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AUTO (None) enables embeddings when the extra is importable."""
+    monkeypatch.setattr(embeddings_mod, "embeddings_extra_installed", lambda: True)
+    monkeypatch.delenv("PRETENSOR_EMBEDDINGS_DISABLED", raising=False)
+    assert resolve_embeddings_auto(None) is True
+
+
+def test_resolve_embeddings_auto_none_off_when_extra_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AUTO (None) stays off when the extra is not installed."""
+    monkeypatch.setattr(embeddings_mod, "embeddings_extra_installed", lambda: False)
+    monkeypatch.delenv("PRETENSOR_EMBEDDINGS_DISABLED", raising=False)
+    assert resolve_embeddings_auto(None) is False
+
+
+def test_resolve_embeddings_auto_none_off_when_kill_switch_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AUTO (None) defers to the kill switch even with the extra installed."""
+    monkeypatch.setattr(embeddings_mod, "embeddings_extra_installed", lambda: True)
+    monkeypatch.setenv("PRETENSOR_EMBEDDINGS_DISABLED", "1")
+    assert resolve_embeddings_auto(None) is False

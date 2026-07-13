@@ -65,7 +65,7 @@ def test_list_shows_connection_details(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["list", "--state-dir", str(tmp_path)])
     assert result.exit_code == 0
     plain = _normalize(result.stdout)
-    compact = result.stdout.replace("\n", "").replace(" ", "")
+    compact = _ANSI_ESCAPE_RE.sub("", result.stdout).replace("\n", "").replace(" ", "")
     assert "mydb" in plain
     assert "db=mydb" in plain
     assert "tables=42" in plain
@@ -134,8 +134,8 @@ def test_list_shows_unified_graph_path(tmp_path: Path) -> None:
     )
     result = CliRunner().invoke(app, ["list", "--state-dir", str(tmp_path)])
     assert result.exit_code == 0
-    # Rich may wrap long paths; collapse all whitespace to check the path fragments.
-    compact = result.stdout.replace("\n", "").replace(" ", "")
+    # Rich may wrap long paths; strip ANSI codes and collapse all whitespace.
+    compact = _ANSI_ESCAPE_RE.sub("", result.stdout).replace("\n", "").replace(" ", "")
     assert "unified.kuzu" in compact
 
 
@@ -143,4 +143,13 @@ def test_list_help_shows_state_dir_option() -> None:
     """``pretensor list --help`` documents the --state-dir option."""
     result = CliRunner().invoke(app, ["list", "--help"])
     assert result.exit_code == 0
-    assert "--state-dir" in _normalize(result.stdout)
+    plain = _normalize(result.stdout)
+    assert "--state-dir" in plain
+    assert "--graph-dir" not in plain
+
+
+def test_list_accepts_graph_dir_alias(tmp_path: Path) -> None:
+    """``--graph-dir`` (deprecated alias) behaves the same as ``--state-dir``."""
+    result = CliRunner().invoke(app, ["list", "--graph-dir", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "No registry found" in _normalize(result.stdout)

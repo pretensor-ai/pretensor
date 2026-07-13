@@ -11,6 +11,7 @@ This guide takes you from zero to a running MCP server connected to a real datab
 - [6. Visualize the graph](#6-visualize-the-graph)
 - [7. Visibility and profiles](#7-visibility-and-profiles)
 - [8. Reindex after schema changes](#8-reindex-after-schema-changes)
+- [9. Embeddings (optional)](#9-embeddings-optional)
 
 ---
 
@@ -36,22 +37,39 @@ pretensor quickstart --down
 
 If you already have a Postgres reachable at `postgresql://postgres:postgres@localhost:55432/pagila`, pass `--no-docker` to skip the compose step.
 
+> **Troubleshooting `permission denied` from `docker compose`.** Quickstart
+> copies its compose file and SQL fixtures into `./.pretensor/quickstart/`
+> before running `docker compose`, specifically so that snap-confined
+> Docker (the default `snap install docker` on Ubuntu) can read them —
+> that Docker can't read files under hidden directories in `$HOME`, which
+> broke quickstart under `pipx install` (venv under
+> `~/.local/pipx/venvs/...`). If you still see a permission error, check
+> whether your current working directory is itself under a hidden
+> directory.
+
 ---
 
 ## 1. Install
 
 ```bash
-pip install pretensor
+# This guide indexes Postgres, so install the postgres extra:
+pip install 'pretensor[postgres]'
 # or
-uv pip install pretensor
+uv pip install 'pretensor[postgres]'
 ```
 
 Once installed, the `pretensor` CLI is on `$PATH` and Sections 2–8 below assume you can call it directly. Pretensor is currently in alpha; `pip install pretensor` picks up the latest alpha automatically because no stable release exists yet (once `1.0.0` ships, you'll need `--pre` to keep installing alphas).
+
+> **The database driver is an extra.** A bare `pip install pretensor` installs no
+> DB driver, so `pretensor index postgresql://…` fails at connect time with a
+> hint to run `pip install 'pretensor[postgres]'`. This quickstart uses Postgres,
+> hence the `[postgres]` extra above.
 
 Optional features are exposed as extras:
 
 | Extra | Adds | Use when |
 |-------|------|----------|
+| `pretensor[postgres]` | `psycopg2-binary` | You're indexing PostgreSQL (this guide). **Required** for Postgres. |
 | `pretensor[snowflake]` | `snowflake-sqlalchemy` | You're indexing a Snowflake warehouse. |
 | `pretensor[bigquery]` | `google-cloud-bigquery` | You're indexing BigQuery. |
 | `pretensor[clustering]` | `leidenalg` | You want Leiden community detection during indexing. Without this, Pretensor falls back to igraph Louvain (works, but no resolution tuning). |
@@ -177,7 +195,7 @@ pretensor index ... --skills-target /tmp/my-graph-skill.md
 | `query` | BM25 full-text search over table and entity metadata; optional `db` filter |
 | `cypher` | Read-only Kuzu Cypher; mutating clauses are rejected |
 | `context` | Full context for one table: columns, classifier fields, joins, lineage, entity, cluster |
-| `traverse` | Join paths between two physical tables, including confirmed cross-database paths |
+| `traverse` | Join paths between two physical tables |
 | `impact` | Downstream tables reachable through FK and inferred-join edges |
 | `detect_changes` | Compare a live schema to the last indexed snapshot without mutating the graph |
 | `compile_metric` | Compile semantic-layer YAML into validated SQL for one indexed database |
@@ -188,7 +206,6 @@ pretensor index ... --skills-target /tmp/my-graph-skill.md
 | URI | Content |
 |-----|---------|
 | `pretensor://databases` | Registry overview (markdown) |
-| `pretensor://cross-db/entities` | Confirmed cross-database entity links |
 | `pretensor://db/{name}/overview` | Per-database stats |
 | `pretensor://db/{name}/clusters` | Cluster groupings |
 | `pretensor://db/{name}/metrics` | `MetricTemplate` nodes and dependent tables |
@@ -329,3 +346,83 @@ pretensor reindex postgresql://... --recompute-intelligence
 ```
 
 After reindex, stale `MetricTemplate` nodes remain marked stale until the next full intelligence recomputation.
+
+---
+
+## 9. Embeddings (optional)
+
+The `[embeddings]` extra ships a local ONNX embedding model
+(`Snowflake/snowflake-arctic-embed-xs`, 384-dim) — entirely on-device, no remote
+API calls. With it installed, three new behaviors become available:
+
+1. The `semantic_search` MCP tool ranks tables by cosine similarity to a
+   natural-language query.
+2. The existing `query` tool fuses BM25 results with a cosine pass via
+   Reciprocal Rank Fusion.
+3. The intelligence layer can opt into embedding-aware clustering, semantic
+   candidate joins, and an embedding role-classification vote.
+
+**Default behavior is unchanged when the extra is absent.** Every embedding-
+using path falls back cleanly to its heuristic counterpart.
+
+### Install + index
+
+```bash
+# From a source checkout
+uv sync --extra embeddings
+
+# Or as a package
+pip install "pretensor[embeddings]"
+
+# Indexing now computes embeddings automatically — installing the extra IS the opt-in
+pretensor index postgresql://USER:PASSWORD@HOST:5432/DBNAME
+```
+
+With the extra installed, both `pretensor index` and `pretensor quickstart`
+compute table embeddings by default. On `pretensor index`, opt out per-run
+with `--no-embeddings`. `pretensor quickstart` has no such flag, so opt out
+there (or anywhere process-wide) with `PRETENSOR_EMBEDDINGS_DISABLED=1`.
+Without the extra, indexing is unchanged — there is nothing to configure.
+
+The first index run downloads and caches the pinned model from the Hugging Face
+Hub (~88 MB). Subsequent runs reuse the local cache. The embedding pass itself
+adds roughly 1% to index time (one batched ONNX call for all tables).
+
+### Use semantic_search
+
+`semantic_search` is always present in the MCP tool list — it's registered
+unconditionally alongside `query`, `context`, and the others. What changes
+once tables carry vectors is its return shape: the tool runs
+cosine-similarity ranking against indexed table vectors. Before any tables
+have been embedded (extra absent, or indexed with `--no-embeddings`),
+`semantic_search` returns a structured `fallback_bm25` envelope pointing the
+caller at the `query` tool — it never errors, just degrades cleanly. From an
+agent:
+
+```jsonc
+{
+  "tool": "semantic_search",
+  "args": {
+    "query": "where do we record customer transactions?",
+    "k": 5
+  }
+}
+```
+
+When no tables carry vectors (e.g. you indexed with `--no-embeddings`), the
+tool returns a structured fallback envelope pointing the caller at `query`
+(BM25); it never raises.
+
+### Notes
+
+* Heuristic output without `[embeddings]` is byte-identical to prior releases —
+  the determinism contract is enforced by a parametric null-path parity test
+  that every embedding-related PR must keep green.
+* A `PRETENSOR_EMBEDDINGS_DISABLED=1` environment variable forces the null
+  path even when the extra is installed — useful for incident kill-switch
+  flips in production. A unit test (`test_env_kill_switch_forces_null_path`)
+  asserts the env var stops the embedding pipeline from invoking the
+  embedder; "extras present but disabled produces output identical to
+  extras absent" is enforced operationally by that contract, not by a
+  full extras-present CI lane (the dedicated L1+L2 null-path-parity CI
+  lane is a follow-up tracked alongside the benchmark harness).

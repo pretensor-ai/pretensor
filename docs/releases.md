@@ -134,20 +134,26 @@ dry-run needs to re-run, bump the suffix (`v0.0.0rc1`) and repeat.
 ## Cutting a release
 
 1. Land all release content on the mainline branch. Bump
-   `pyproject.toml` version per the versioning policy above.
-2. Create and push an annotated tag:
+   `pyproject.toml` version per the versioning policy above (and refresh
+   `uv.lock`, which records the project's own version).
+2. Cut the changelog: rename the `## [Unreleased]` section of
+   `CHANGELOG.md` to `## [<version>] - <YYYY-MM-DD>` and start a fresh
+   empty `## [Unreleased]` above it. Every release must ship with its
+   changelog section — do not tag with release content still under
+   `[Unreleased]`.
+3. Create and push an annotated tag:
 
    ```bash
    git tag -a v0.2.0 -m "v0.2.0"
    git push origin v0.2.0
    ```
 
-3. Workflow shape by tag kind:
+4. Workflow shape by tag kind:
    - Prerelease (`v0.2.0rc1`): `build` → `detect` → `test-pypi` →
      (approval) → `pypi`.
    - Stable (`v0.2.0`): `build` → `detect` → `test-pypi` skipped →
      (approval) → `pypi`.
-4. Approve the `pypi-release` deployment in the GitHub UI when ready.
+5. Approve the `pypi-release` deployment in the GitHub UI when ready.
 
 ## Re-pointing after an ownership change
 

@@ -45,9 +45,7 @@ def patched_index(tmp_path: Path) -> Any:
         patch(
             "pretensor.cli.commands.index.inspect", return_value=snapshot
         ) as mock_inspect,
-        patch(
-            "pretensor.cli.commands.index.KuzuStore", return_value=mock_store
-        ),
+        patch("pretensor.cli.commands.index.KuzuStore", return_value=mock_store),
         patch("pretensor.cli.commands.index.GraphBuilder") as MockBuilder,
         patch(
             "pretensor.cli.commands.index.SkillGenerator.write_for_index",
@@ -73,7 +71,20 @@ def test_index_help_shows_dsn_argument() -> None:
     plain = _normalize(result.stdout)
     assert "DSN" in plain or "dsn" in plain.lower()
     assert "--state-dir" in plain
+    assert "--graph-dir" not in plain
     assert "--name" in plain or "-n" in plain
+
+
+def test_index_accepts_graph_dir_alias(tmp_path: Path, patched_index: Any) -> None:
+    """``--graph-dir`` (deprecated alias) behaves the same as ``--state-dir``."""
+    result = CliRunner().invoke(
+        app,
+        ["index", "postgresql://u:p@localhost/testdb", "--graph-dir", str(tmp_path)],
+    )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    plain = _normalize(result.stdout)
+    assert "Graph written" in plain
+    assert "Registry updated" in plain
 
 
 def test_index_writes_graph_and_registry(tmp_path: Path, patched_index: Any) -> None:
@@ -143,9 +154,7 @@ def test_index_invalid_visibility_profile_exits_1(
     assert "nope" in _normalize(result.stdout)
 
 
-def test_index_missing_dbt_manifest_exits_1(
-    tmp_path: Path, patched_index: Any
-) -> None:
+def test_index_missing_dbt_manifest_exits_1(tmp_path: Path, patched_index: Any) -> None:
     """A ``--dbt-manifest`` pointing to a non-existent file exits 1."""
     result = CliRunner().invoke(
         app,
@@ -200,6 +209,8 @@ def test_index_json_logs_written_to_file(tmp_path: Path, patched_index: Any) -> 
     result = CliRunner().invoke(
         app,
         [
+            "--log-level",
+            "info",
             "--log-format",
             "json",
             "--log-file",
@@ -211,7 +222,9 @@ def test_index_json_logs_written_to_file(tmp_path: Path, patched_index: Any) -> 
         ],
     )
     assert result.exit_code == 0, _normalize(result.stdout)
-    lines = [ln for ln in log_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    lines = [
+        ln for ln in log_file.read_text(encoding="utf-8").splitlines() if ln.strip()
+    ]
     assert lines
     records = [json.loads(line) for line in lines]
     events = {str(r.get("event")) for r in records}
@@ -249,7 +262,15 @@ def test_index_source_unknown_name_exits_1(tmp_path: Path) -> None:
 def test_index_source_runs_named_source(tmp_path: Path, patched_index: Any) -> None:
     """``--source pg`` calls inspect with the correct config."""
     cfg = _cli_config_with_sources(
-        {"pg": SourceConfig(dialect="postgres", host="localhost", user="u", password="p", database="testdb")},
+        {
+            "pg": SourceConfig(
+                dialect="postgres",
+                host="localhost",
+                user="u",
+                password="p",
+                database="testdb",
+            )
+        },
         state_dir=tmp_path,
     )
     with patch("pretensor.cli.commands.index.get_cli_config", return_value=cfg):
@@ -271,8 +292,12 @@ def test_index_all_iterates_sources(tmp_path: Path, patched_index: Any) -> None:
     """``--all`` indexes every configured source and prints a summary."""
     cfg = _cli_config_with_sources(
         {
-            "pg1": SourceConfig(dialect="postgres", host="h1", user="u", password="p", database="db1"),
-            "pg2": SourceConfig(dialect="postgres", host="h2", user="u", password="p", database="db2"),
+            "pg1": SourceConfig(
+                dialect="postgres", host="h1", user="u", password="p", database="db1"
+            ),
+            "pg2": SourceConfig(
+                dialect="postgres", host="h2", user="u", password="p", database="db2"
+            ),
         },
         state_dir=tmp_path,
     )
@@ -292,8 +317,12 @@ def test_index_all_skips_missing_env_vars(
     monkeypatch.delenv("MISSING_PW", raising=False)
     cfg = _cli_config_with_sources(
         {
-            "good": SourceConfig(dialect="postgres", host="h1", user="u", password="p", database="db1"),
-            "bad": SourceConfig(dialect="snowflake", account="xy", password="${MISSING_PW}"),
+            "good": SourceConfig(
+                dialect="postgres", host="h1", user="u", password="p", database="db1"
+            ),
+            "bad": SourceConfig(
+                dialect="snowflake", account="xy", password="${MISSING_PW}"
+            ),
         },
         state_dir=tmp_path,
     )
@@ -318,3 +347,161 @@ def test_index_dsn_and_source_mutual_exclusion(tmp_path: Path) -> None:
         )
     assert result.exit_code == 1
     assert "mutually exclusive" in _normalize(result.stdout).lower()
+
+
+# ---------------------------------------------------------------------------
+# --embeddings flag
+# ---------------------------------------------------------------------------
+
+
+def test_index_help_shows_embeddings_flag() -> None:
+    """``pretensor index --help`` documents the ``--embeddings`` flag."""
+    result = CliRunner().invoke(app, ["index", "--help"])
+    assert result.exit_code == 0
+    plain = _normalize(result.stdout)
+    assert "--embeddings" in plain
+
+
+def test_index_default_auto_off_when_extra_absent(
+    tmp_path: Path, patched_index: Any
+) -> None:
+    """No flag + extra not installed → AUTO resolves to index_tables=False."""
+    with patch(
+        "pretensor.intelligence.embeddings.embeddings_extra_installed",
+        return_value=False,
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    build_call = patched_index["mock_builder"].return_value.build
+    build_call.assert_called_once()
+    passed_config = build_call.call_args.kwargs["config"]
+    assert passed_config.embeddings.index_tables is False
+
+
+def test_index_default_auto_on_when_extra_installed(
+    tmp_path: Path, patched_index: Any
+) -> None:
+    """No flag + extra installed → AUTO resolves to index_tables=True."""
+    with patch(
+        "pretensor.intelligence.embeddings.embeddings_extra_installed",
+        return_value=True,
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    build_call = patched_index["mock_builder"].return_value.build
+    build_call.assert_called_once()
+    passed_config = build_call.call_args.kwargs["config"]
+    assert passed_config.embeddings.index_tables is True
+
+
+def test_index_auto_respects_kill_switch(
+    tmp_path: Path, patched_index: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No flag + extra installed + kill switch set → AUTO resolves to False."""
+    monkeypatch.setenv("PRETENSOR_EMBEDDINGS_DISABLED", "1")
+    with patch(
+        "pretensor.intelligence.embeddings.embeddings_extra_installed",
+        return_value=True,
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    build_call = patched_index["mock_builder"].return_value.build
+    build_call.assert_called_once()
+    passed_config = build_call.call_args.kwargs["config"]
+    assert passed_config.embeddings.index_tables is False
+
+
+def test_index_no_embeddings_flag_overrides_auto(
+    tmp_path: Path, patched_index: Any
+) -> None:
+    """Explicit --no-embeddings wins even when the extra is installed."""
+    with patch(
+        "pretensor.intelligence.embeddings.embeddings_extra_installed",
+        return_value=True,
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+                "--no-embeddings",
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    build_call = patched_index["mock_builder"].return_value.build
+    build_call.assert_called_once()
+    passed_config = build_call.call_args.kwargs["config"]
+    assert passed_config.embeddings.index_tables is False
+
+
+def test_index_embeddings_plumbs_config(tmp_path: Path, patched_index: Any) -> None:
+    """``--embeddings`` passes a config with index_tables=True into GraphBuilder."""
+    with patch(
+        "pretensor.intelligence.embeddings._require_embeddings_imports",
+        return_value=(MagicMock(), MagicMock(), MagicMock(), MagicMock()),
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+                "--embeddings",
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    build_call = patched_index["mock_builder"].return_value.build
+    build_call.assert_called_once()
+    passed_config = build_call.call_args.kwargs["config"]
+    assert passed_config.embeddings.index_tables is True
+
+
+def test_index_embeddings_missing_extra_exits_1(tmp_path: Path) -> None:
+    """``--embeddings`` without the ``[embeddings]`` extra exits 1 with an install hint."""
+    with patch(
+        "pretensor.intelligence.embeddings._require_embeddings_imports",
+        side_effect=ImportError(
+            "Install embedding dependencies with: pip install 'pretensor[embeddings]' "
+            "(requires onnxruntime, huggingface_hub, numpy, transformers)."
+        ),
+    ):
+        result = CliRunner().invoke(
+            app,
+            [
+                "index",
+                "postgresql://u:p@localhost/testdb",
+                "--state-dir",
+                str(tmp_path),
+                "--embeddings",
+            ],
+        )
+    assert result.exit_code == 1
+    plain = _normalize(result.stdout)
+    assert "pretensor[embeddings]" in plain

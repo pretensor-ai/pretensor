@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from pretensor.intelligence.shadow_alias import get_shadow_alias_node_ids
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.visibility.filter import VisibilityFilter
 
 from ..payload_types import ImpactItemPayload
@@ -16,6 +17,7 @@ from ..service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
 from .context import qualified_from_node_id, resolve_table_node_id
@@ -55,7 +57,9 @@ def impact_payload(
             except json.JSONDecodeError:
                 return {"error": err}
         if start_id is None:
-            return {"error": "Could not resolve starting table; check the table name and database."}
+            return {
+                "error": "Could not resolve starting table; check the table name and database."
+            }
 
         fk_rows = store.query_all_rows(
             """
@@ -159,7 +163,73 @@ def impact_payload(
             "total_affected": total,
         }
     finally:
-        store.close()
+        release_store(store)
 
 
-__all__ = ["impact_payload"]
+__all__ = ["create_tool", "impact_payload"]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        tbl = str(args.get("table", "")).strip()
+        db_t = str(args.get("database", "")).strip()
+        if not tbl:
+            return {"error": "Missing `table`"}
+        if not db_t:
+            return {"error": "Missing `database`"}
+        col = args.get("column")
+        col_s = str(col).strip() if col is not None else None
+        if col_s == "":
+            col_s = None
+        max_depth = int(args.get("max_depth", 3))
+        with timed_tool(
+            "impact",
+            graph_dir,
+            table=tbl,
+            database=db_t,
+            column=col_s,
+            max_depth=max_depth,
+        ):
+            return impact_payload(
+                graph_dir,
+                table=tbl,
+                database=db_t,
+                column=col_s,
+                max_depth=max_depth,
+            )
+
+    return McpTool(
+        name="impact",
+        description=(
+            "Downstream tables reachable via FK and inferred join edges from a table, "
+            "grouped by hop depth."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "description": "Table name or schema.table",
+                },
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database",
+                },
+                "column": {
+                    "type": ["string", "null"],
+                    "description": "If set, only follow outgoing edges whose source column matches",
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "default": 3,
+                    "minimum": 1,
+                    "maximum": 8,
+                },
+            },
+            "required": ["table", "database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

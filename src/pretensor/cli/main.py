@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 import typer
@@ -22,14 +24,36 @@ from pretensor.cli.config_file import CliConfigError, load_cli_config
 from pretensor.cli.plugin import discover_cli_plugins
 from pretensor.observability import LogFormat, LogLevel, configure_logging
 
-app = typer.Typer(no_args_is_help=True, add_completion=False)
+app = typer.Typer(
+    no_args_is_help=True,
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+
+
+def _version_callback(value: bool) -> None:
+    if not value:
+        return
+    try:
+        ver = _pkg_version("pretensor")
+    except PackageNotFoundError:
+        ver = "unknown"
+    typer.echo(f"pretensor {ver}")
+    raise typer.Exit()
 
 
 @app.callback()
 def configure_root_logging(
     ctx: typer.Context,
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show the pretensor version and exit.",
+    ),
     log_level: LogLevel = typer.Option(
-        "info",
+        "warning",
         "--log-level",
         help="Logging level: debug, info, warning, error.",
     ),

@@ -17,7 +17,9 @@ from pretensor.core.store import KuzuStore
 from pretensor.graph_models.edge import GraphEdge, LineageEdge
 from pretensor.graph_models.node import GraphNode
 from pretensor.intelligence.discovery import RelationshipDiscovery
+from pretensor.intelligence.embeddings import embeddings_disabled_via_env
 from pretensor.intelligence.pipeline import run_intelligence_layer_sync
+from pretensor.intelligence.steps_embedding import compute_table_embeddings
 from pretensor.visibility.filter import VisibilityFilter
 
 __all__ = ["GraphBuilder", "table_node_id", "fk_edge_id"]
@@ -80,6 +82,13 @@ class GraphBuilder:
                 its ``graph`` field is forwarded to the intelligence pipeline.
         """
         store.ensure_schema()
+        effective_embeddings = (config or PretensorConfig()).embeddings
+        if not effective_embeddings.index_tables and store.has_any_table_embeddings():
+            logger.warning(
+                "Rebuilding without --embeddings: previously computed table "
+                "embeddings will be dropped with the old graph rows. Re-run "
+                "with --embeddings to recompute them."
+            )
         if replace_mode == "connection":
             store.clear_connection_subgraph(snapshot.connection_name)
         else:
@@ -205,7 +214,8 @@ class GraphBuilder:
                 pending = next_pass
 
         known = {
-            table_node_id(snap.connection_name, t.schema_name, t.name) for t in snap.tables
+            table_node_id(snap.connection_name, t.schema_name, t.name)
+            for t in snap.tables
         }
 
         for table in snap.tables:
@@ -255,14 +265,43 @@ class GraphBuilder:
             store.upsert_lineage_edge(ledge)
 
         effective_config = config or PretensorConfig()
-        effective_graph_cfg = effective_config.graph if config else (graph_config or GraphConfig())
+        effective_graph_cfg = (
+            effective_config.graph if config else (graph_config or GraphConfig())
+        )
+
+        # Compute embeddings right after schema rows land and BEFORE
+        # relationship discovery, so the embedding relationship scorer, the
+        # clustering blend, and the classify role vote all read vectors
+        # from THIS run instead of lagging one index cycle behind.
+        embeddings_precomputed = False
+        if (
+            effective_config.embeddings.index_tables
+            and not embeddings_disabled_via_env()
+        ):
+            compute_table_embeddings(store, snap.database)
+            embeddings_precomputed = True
 
         if run_relationship_discovery:
+            from pretensor.intelligence.semantic import (
+                extend_with_embedding_scorer,
+            )
+
+            scorers = extend_with_embedding_scorer(
+                effective_config.scorer_registry,
+                store=store,
+                database_key=snap.database,
+                threshold=effective_config.embeddings.join_threshold,
+            )
             RelationshipDiscovery(
                 store,
-                scorers=effective_config.scorer_registry,
+                scorers=scorers,
                 combiner=effective_config.combiner,
                 graph_config=effective_graph_cfg,
             ).discover(snap)
 
-        run_intelligence_layer_sync(store, snap.database, config=effective_graph_cfg)
+        run_intelligence_layer_sync(
+            store,
+            snap.database,
+            config=effective_config,
+            embeddings_precomputed=embeddings_precomputed,
+        )

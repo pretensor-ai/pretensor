@@ -1,0 +1,839 @@
+{
+  "dataset": "messy_warehouse",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:1816655a19364264878f60126067e8a365cc599b81a30005a556b08057117e2f",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.12037037037037036
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 0.8125
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": 0.49721706864564014
+    }
+  },
+  "notes": [],
+  "per_item": [
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.int_id\u2194intermediate.int_user_orders.int_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.order_id\u2194intermediate.int_user_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.order_id\u2194junk.tmp_order_backfill.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.order_id\u2194mart.order_audit_log.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.order_id\u2194mart.orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "intermediate.int_order_items.order_id\u2194staging.stg_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.product_id\u2194mart.orders.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.product_id\u2194mart.products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.product_id\u2194raw.raw_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "intermediate.int_order_items.product_id\u2194staging.stg_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_order_items.unit_price\u2194mart.products.unit_price",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_date\u2194mart.orders.order_date",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_id\u2194junk.tmp_order_backfill.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_id\u2194mart.order_audit_log.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_id\u2194mart.orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "intermediate.int_user_orders.order_id\u2194staging.stg_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_status\u2194mart.orders.order_status",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_status\u2194staging.stg_orders.order_status",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.order_total\u2194staging.stg_orders.order_total",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194mart.login_log.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194mart.user_audit_log.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194mart.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194mart.users_snapshot.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "intermediate.int_user_orders.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "intermediate.int_user_orders.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk._legacy_customers.email\u2194mart.users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk._legacy_customers.email\u2194mart.users_snapshot.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk._legacy_customers.email\u2194raw.raw_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk._legacy_customers.email\u2194staging.stg_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk.tmp_order_backfill.order_id\u2194mart.order_audit_log.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk.tmp_order_backfill.order_id\u2194mart.orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "junk.tmp_order_backfill.order_id\u2194staging.stg_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.log_id\u2194mart.order_audit_log.log_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.log_id\u2194mart.schema_change_log.log_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.log_id\u2194mart.user_audit_log.log_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194mart.orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194mart.user_audit_log.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.login_log.user_id\u2194mart.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194mart.users_snapshot.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.login_log.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.action\u2194mart.schema_change_log.action",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.action\u2194mart.user_audit_log.action",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.changed_at\u2194mart.schema_change_log.changed_at",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.changed_by\u2194mart.schema_change_log.changed_by",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.log_id\u2194mart.orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.new_values\u2194mart.user_audit_log.new_values",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.old_values\u2194mart.user_audit_log.old_values",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.order_audit_log.order_id\u2194mart.orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.order_audit_log.order_id\u2194staging.stg_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.order_id\u2194staging.stg_orders.order_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.order_status\u2194staging.stg_orders.order_status",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.orders.product_id\u2194mart.products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.product_id\u2194raw.raw_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.product_id\u2194staging.stg_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194mart.user_audit_log.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.orders.user_id\u2194mart.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194mart.users_snapshot.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.orders.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.products.product_id\u2194raw.raw_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.products.product_id\u2194staging.stg_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.products.product_name\u2194staging.stg_products.product_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.schema_change_log.action\u2194mart.user_audit_log.action",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.schema_change_log.changed_at\u2194mart.user_audit_log.changed_at",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.schema_change_log.changed_by\u2194mart.user_audit_log.changed_by",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_accounts.account_id\u2194mart.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.user_audit_log.user_id\u2194mart.users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_audit_log.user_id\u2194mart.users_snapshot.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_audit_log.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_audit_log.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_audit_log.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.user_audit_log.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.email\u2194mart.users_snapshot.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.email\u2194raw.raw_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.email\u2194staging.stg_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.first_name\u2194mart.users_snapshot.first_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.first_name\u2194staging.stg_users.first_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.last_name\u2194mart.users_snapshot.last_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.last_name\u2194staging.stg_users.last_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.users.user_id\u2194mart.users_snapshot.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "mart.users.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.email\u2194raw.raw_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.email\u2194staging.stg_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.first_name\u2194staging.stg_users.first_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.last_name\u2194staging.stg_users.last_name",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.user_id\u2194raw.raw_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.user_id\u2194staging.stg_events.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "mart.users_snapshot.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_events.event_id\u2194staging.stg_events.event_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_events.event_type\u2194staging.stg_events.event_type",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_events.occurred_at\u2194staging.stg_events.occurred_at",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_events.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_events.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_orders.created_ts\u2194raw.raw_users.created_ts",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "raw.raw_orders.userId\u2194raw.raw_users.id",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_products.product_id\u2194staging.stg_products.product_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "raw.raw_products.product_id\u2194staging.stg_products.source_product_id",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "raw.raw_users.email\u2194staging.stg_users.email",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "raw.raw_users.id\u2194staging.stg_users.source_id",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "staging.stg_events.user_id\u2194staging.stg_orders.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "staging.stg_events.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "staging.stg_orders.user_id\u2194staging.stg_users.user_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": "unknown",
+      "id": "role:_legacy_customers",
+      "kind": "role_classification",
+      "predicted": "dimension"
+    },
+    {
+      "expected": "unknown",
+      "id": "role:_legacy_order_items",
+      "kind": "role_classification",
+      "predicted": "entity_candidate"
+    },
+    {
+      "expected": "entity_candidate",
+      "id": "role:customer_master",
+      "kind": "role_classification",
+      "predicted": "entity_candidate"
+    },
+    {
+      "expected": "staging",
+      "id": "role:int_order_items",
+      "kind": "role_classification",
+      "predicted": "aggregate"
+    },
+    {
+      "expected": "staging",
+      "id": "role:int_user_orders",
+      "kind": "role_classification",
+      "predicted": "aggregate"
+    },
+    {
+      "expected": "audit",
+      "id": "role:login_log",
+      "kind": "role_classification",
+      "predicted": "audit"
+    },
+    {
+      "expected": "audit",
+      "id": "role:order_audit_log",
+      "kind": "role_classification",
+      "predicted": "audit"
+    },
+    {
+      "expected": "fact",
+      "id": "role:orders",
+      "kind": "role_classification",
+      "predicted": "aggregate"
+    },
+    {
+      "expected": "dimension",
+      "id": "role:products",
+      "kind": "role_classification",
+      "predicted": "entity_candidate"
+    },
+    {
+      "expected": "staging",
+      "id": "role:raw_events",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:raw_orders",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:raw_products",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:raw_users",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "audit",
+      "id": "role:schema_change_log",
+      "kind": "role_classification",
+      "predicted": "audit"
+    },
+    {
+      "expected": "staging",
+      "id": "role:stg_events",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:stg_orders",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:stg_products",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:stg_users",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:tmp_order_backfill",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "staging",
+      "id": "role:tmp_user_import",
+      "kind": "role_classification",
+      "predicted": "staging"
+    },
+    {
+      "expected": "entity_candidate",
+      "id": "role:user_accounts",
+      "kind": "role_classification",
+      "predicted": "entity_candidate"
+    },
+    {
+      "expected": "audit",
+      "id": "role:user_audit_log",
+      "kind": "role_classification",
+      "predicted": "audit"
+    },
+    {
+      "expected": "entity_candidate",
+      "id": "role:users",
+      "kind": "role_classification",
+      "predicted": "dimension"
+    },
+    {
+      "expected": "snapshot_scd",
+      "id": "role:users_snapshot",
+      "kind": "role_classification",
+      "predicted": "snapshot_scd"
+    }
+  ],
+  "pretensor_version": "0.1.0a3",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

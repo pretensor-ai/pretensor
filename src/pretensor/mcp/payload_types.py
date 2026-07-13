@@ -57,16 +57,26 @@ class QueryHit(TypedDict, total=False):
     score: float
 
 
+class SemanticHit(TypedDict, total=False):
+    """One search hit for the ``semantic_search`` tool (cosine over ``SchemaTable.embedding``)."""
+
+    node_type: str
+    name: str
+    database_name: str
+    connection_name: str
+    description: str
+    snippet: str
+    score: float
+    cluster_id: str | None
+
+
 class ColumnInfo(TypedDict, total=False):
     """Column metadata for ``context`` (from ``SchemaColumn`` nodes when present).
 
-    ``column_name`` is the canonical field.  ``name`` is kept for backward
-    compatibility and always carries the same value — it will be removed in a
-    future version once callers have migrated to ``column_name``.
+    ``column_name`` is the canonical field.
     """
 
     column_name: str
-    name: str  # Deprecated: use column_name instead
     data_type: str
     nullable: bool
     is_primary_key: bool
@@ -121,6 +131,15 @@ class ClusterInfo(TypedDict, total=False):
     stale_warning: str
 
 
+class SimilarTable(TypedDict, total=False):
+    """One cross-cluster nearest neighbor in ``context.similar_tables``."""
+
+    table_id: str
+    qualified_name: str
+    score: float
+    cluster_id: str | None
+
+
 class ContextPayload(TypedDict, total=False):
     """Structured ``context`` tool response."""
 
@@ -159,6 +178,8 @@ class ContextPayload(TypedDict, total=False):
     partition: dict[str, object]
     grants: list[dict[str, str]]
     access_patterns: dict[str, object]
+    similar_tables: list[SimilarTable]
+    similar_reason: str
 
 
 class TraverseStepPayload(TypedDict, total=False):
@@ -236,6 +257,8 @@ __all__ = [
     "LineageRef",
     "QueryHit",
     "RelationshipInfo",
+    "SemanticHit",
+    "SimilarTable",
     "TraversePathPayload",
     "TraverseStepPayload",
     "DB_TYPE_POSTGRES",

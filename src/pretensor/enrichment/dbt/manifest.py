@@ -8,12 +8,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
+from pretensor.errors import PretensorError
+
 logger = logging.getLogger(__name__)
 
 _SUPPORTED_SCHEMA_MARKERS = ("manifest/v9", "manifest/v10", "/v9.json", "/v10.json")
 
 
-class DbtManifestError(Exception):
+class DbtManifestError(PretensorError):
     """Raised when a dbt manifest file is missing or cannot be parsed."""
 
 

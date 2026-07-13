@@ -8,16 +8,59 @@ from typing import Any
 
 from pretensor.core.schema import CATALOG_EDGE_TYPES, CATALOG_NODE_LABELS
 from pretensor.core.store import KuzuStore
+from pretensor.mcp.tool_registry import McpTool
 
 from ..service_registry import (
     graph_path_for_entry,
     load_registry,
+    open_store_for_path,
+    release_store,
     resolve_registry_entry,
 )
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["schema_payload"]
+__all__ = ["create_tool", "schema_payload"]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        db_t = str(args.get("database", "")).strip()
+        if not db_t:
+            return {"error": "Missing `database`"}
+        label_raw = args.get("label")
+        label_s = str(label_raw).strip() if label_raw is not None else None
+        if label_s == "":
+            label_s = None
+        with timed_tool("schema", graph_dir, database=db_t, label=label_s):
+            return schema_payload(graph_dir, database=db_t, label=label_s)
+
+    return McpTool(
+        name="schema",
+        description=(
+            "Discover node labels, edge types, and properties in the graph. "
+            "Call before writing Cypher."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database",
+                },
+                "label": {
+                    "type": ["string", "null"],
+                    "description": "Optional node label or edge type to filter",
+                },
+            },
+            "required": ["database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )
+
 
 _NODE_LABEL_DESC = {label: desc for label, desc in CATALOG_NODE_LABELS}
 _EDGE_INFO = {name: (src, dst, desc) for name, src, dst, desc in CATALOG_EDGE_TYPES}
@@ -91,9 +134,8 @@ def schema_payload(
     if not graph_path.exists():
         return {"error": f"Graph file not found for database: {db!r}"}
 
-    store = KuzuStore(graph_path)
+    store = open_store_for_path(graph_path)
     try:
-        store.ensure_schema()
         catalog = _list_catalog_tables(store)
         nodes: list[dict[str, Any]] = []
         edges: list[dict[str, Any]] = []
@@ -121,7 +163,7 @@ def schema_payload(
                     }
                 )
     finally:
-        store.close()
+        release_store(store)
 
     if label and not nodes and not edges:
         return {"error": f"Unknown label: {label!r}"}

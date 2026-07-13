@@ -50,7 +50,9 @@ def test_plugin_register_called_with_app() -> None:
     register_fn = MagicMock()
     ep = _make_ep("my-plugin", register_fn)
 
-    with patch("pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]):
+    with patch(
+        "pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]
+    ):
         discover_cli_plugins(app)
 
     register_fn.assert_called_once_with(app)
@@ -65,9 +67,11 @@ def test_plugin_adds_command() -> None:
         def _cmd() -> None:
             """Plugin command."""
 
-    ep = _make_ep("cloud-plugin", register)
+    ep = _make_ep("sample-plugin", register)
 
-    with patch("pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]):
+    with patch(
+        "pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]
+    ):
         discover_cli_plugins(app)
 
     result = _runner.invoke(app, ["--help"])
@@ -80,7 +84,9 @@ def test_broken_load_is_skipped(caplog: Any) -> None:
     app = typer.Typer()
     ep = _make_failing_ep("broken-plugin")
 
-    with patch("pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]):
+    with patch(
+        "pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]
+    ):
         discover_cli_plugins(app)
 
     assert any("broken-plugin" in r.message for r in caplog.records)
@@ -96,7 +102,9 @@ def test_broken_register_is_skipped(caplog: Any) -> None:
 
     ep = _make_ep("bad-register-plugin", bad_register)
 
-    with patch("pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]):
+    with patch(
+        "pretensor.cli.plugin.importlib.metadata.entry_points", return_value=[ep]
+    ):
         discover_cli_plugins(app)
 
     assert any("bad-register-plugin" in r.message for r in caplog.records)
@@ -117,7 +125,9 @@ def test_multiple_plugins_all_registered() -> None:
 
     eps = [_make_ep(f"plugin-{i}", make_register(f"plugin-{i}")) for i in range(3)]
 
-    with patch("pretensor.cli.plugin.importlib.metadata.entry_points", return_value=eps):
+    with patch(
+        "pretensor.cli.plugin.importlib.metadata.entry_points", return_value=eps
+    ):
         discover_cli_plugins(app)
 
     assert calls == ["plugin-0", "plugin-1", "plugin-2"]

@@ -1,0 +1,19 @@
+services:
+  pagila:
+    image: postgres:16-alpine
+    container_name: pagila
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pagila
+    ports:
+      # Host port 5433 avoids clashing with a Postgres already on 5432.
+      - "5433:5432"
+    volumes:
+      - ./pagila-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./pagila-data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pagila"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

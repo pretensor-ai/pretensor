@@ -84,13 +84,17 @@ def _type_family(data_type: str) -> str | None:
     return _TYPE_FAMILY.get(base)
 
 
-def _types_compatible(src: Column | None, dst: Column | None) -> bool:
+def types_compatible(src: Column | None, dst: Column | None) -> bool:
     """Reject cross-family inferred joins (e.g. numeric id vs. varchar email).
 
     Unknown types pass through — vetoing on missing info would drop valid
     candidates for exotic dialects. Applied to every heuristic kind, not just
     same_name, so ``productid (int) → emailaddress (varchar)``-style fan-outs
     never reach the graph.
+
+    Public so the embedding-driven scorer in
+    :mod:`pretensor.intelligence.semantic` can apply the same gate without
+    crossing into a private symbol.
     """
     if src is None or dst is None:
         return True
@@ -331,7 +335,7 @@ def _apply_catalog_signals(
         and kind == "heuristic_same_name"
     ):
         return None
-    if not _types_compatible(src_c, dst_c):
+    if not types_compatible(src_c, dst_c):
         return None
 
     conf = base_confidence

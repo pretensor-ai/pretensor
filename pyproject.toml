@@ -1,13 +1,13 @@
 [project]
 name = "pretensor"
-version = "0.1.0a3"
+version = "0.1.0a4"
 description = "Pretensor database knowledge graph — Kuzu-backed schema graph from precomputed DB introspection"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{name = "Carlos", email = "275843998+tensorcarlos@users.noreply.github.com"}]
 readme = "README.md"
-keywords = ["database", "knowledge-graph", "kuzu", "mcp", "schema", "llm", "postgres", "snowflake", "bigquery", "graph", "data-catalog"]
+keywords = ["database", "knowledge-graph", "kuzu", "mcp", "schema", "llm", "postgres", "snowflake", "bigquery", "mysql", "graph", "data-catalog"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -33,7 +33,6 @@ dependencies = [
     "rich>=13.0",
     "ruamel.yaml>=0.18",
     "sqlalchemy>=2.0",
-    "psycopg2-binary>=2.9",
     "rapidfuzz>=3.0",
 ]
 
@@ -60,15 +59,23 @@ dev = [
     # metric falls back to igraph's unseeded Louvain and drifts in CI.
     "leidenalg>=0.10",
 ]
+postgres = [
+    "psycopg2-binary>=2.9",
+]
 snowflake = [
     "snowflake-sqlalchemy>=1.5",
 ]
 bigquery = [
     "google-cloud-bigquery>=3.25",
 ]
+mysql = [
+    "PyMySQL>=1.1",
+]
 all-connectors = [
+    "psycopg2-binary>=2.9",
     "snowflake-sqlalchemy>=1.5",
     "google-cloud-bigquery>=3.25",
+    "PyMySQL>=1.1",
 ]
 clustering = [
     "leidenalg>=0.10",
@@ -81,6 +88,16 @@ embeddings = [
 ]
 e2e = [
     "testcontainers[postgres]>=4.0",
+    "testcontainers[mysql]>=4.0",
+]
+langchain = [
+    "langchain-core>=0.2",
+]
+llama-index = [
+    "llama-index-core>=0.10",
+]
+google-adk = [
+    "google-adk>=0.1",
 ]
 
 [tool.uv]
@@ -108,7 +125,11 @@ packages = ["src/pretensor"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-markers = ["e2e: requires Docker and PRETENSOR_E2E=1"]
+markers = [
+    "e2e: requires Docker and PRETENSOR_E2E=1",
+    "slow: opt-in slow tests (real model downloads, large fixtures); excluded from default run",
+]
+addopts = "-m 'not slow'"
 
 [tool.ruff]
 line-length = 88

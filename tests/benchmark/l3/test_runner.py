@@ -438,7 +438,12 @@ def test_runner_records_a_seed_when_omitted(
 def test_runner_two_runs_with_same_seed_and_fake_client_are_byte_identical(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC #5 verified under deterministic LLM stand-in."""
+    """AC #5 verified under deterministic LLM stand-in.
+
+    Wall-clock latency_ms would make the output non-deterministic, so we
+    pin _now to a constant.  All other non-determinism (ran_at, seed, hashes)
+    is already handled by the runner itself.
+    """
     fixture_questions = _load_pagila_questions()
     gold_map = {q["expected_sql"]: [(q["id"],)] for q in fixture_questions}
     fake_responses = {q["question"]: q["expected_sql"] for q in fixture_questions}
@@ -446,6 +451,8 @@ def test_runner_two_runs_with_same_seed_and_fake_client_are_byte_identical(
     _patch_environment(
         monkeypatch, gold_rows_by_sql=gold_map, agent_rows_by_sql=dict(gold_map)
     )
+    # Pin the clock so latency_ms is always 0 → byte-stable across runs.
+    monkeypatch.setattr(runner_mod, "_now", lambda: 0.0)
 
     a = tmp_path / "a.json"
     b = tmp_path / "b.json"

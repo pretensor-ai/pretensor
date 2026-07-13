@@ -1,0 +1,953 @@
+{
+  "dataset": "adventureworks",
+  "embeddings_enabled": true,
+  "fixture_sha": "sha256:8c0024ad1742ab69ac1b6fbb0ab402ff3ca866cb7cecfd33faf7bb431e237a95",
+  "level": "l2",
+  "metrics": {
+    "compile_metric_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "query_recall_at_5": {
+      "direction": "higher_is_better",
+      "value": 0.8409090909090909
+    },
+    "semantic_search_recall_at_5": {
+      "direction": "higher_is_better",
+      "value": 0.8636363636363636
+    },
+    "traverse_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    }
+  },
+  "notes": [],
+  "per_item": [
+    {
+      "error": null,
+      "id": "total_employees",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_sales_orders",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_sales_revenue",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "average_order_value",
+      "kind": "query_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderheader",
+        "salesorderdetail",
+        "salesorderheader",
+        "salesorderheadersalesreason",
+        "shoppingcartitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderdetail"
+      ],
+      "id": "avg_discount_on_orders_with_discount",
+      "kind": "query_recall",
+      "matched": [
+        "salesorderdetail"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderdetail",
+        "salesorderdetail",
+        "shoppingcartitem",
+        "specialoffer",
+        "specialofferproduct"
+      ]
+    },
+    {
+      "gold_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "id": "avg_vacation_hours_by_department",
+      "kind": "query_recall",
+      "matched": [
+        "department",
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "salesorderheader"
+      ],
+      "id": "customers_never_ordered",
+      "kind": "query_recall",
+      "matched": [
+        "customer"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "customer",
+        "salesorderdetail",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "employee_count",
+      "kind": "query_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "vendor",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee",
+        "person"
+      ],
+      "id": "employee_names_with_titles",
+      "kind": "query_recall",
+      "matched": [
+        "employee",
+        "person"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "jobcandidate",
+        "person",
+        "vjobcandidate",
+        "vstorewithcontacts",
+        "vvendorwithcontacts"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "employees_hired_per_year",
+      "kind": "query_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "culture",
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "productlistpricehistory",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "department",
+        "employeedepartmenthistory"
+      ],
+      "id": "employees_per_department",
+      "kind": "query_recall",
+      "matched": [
+        "department",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "id": "employees_without_current_department",
+      "kind": "query_recall",
+      "matched": [
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product"
+      ],
+      "id": "most_expensive_products",
+      "kind": "query_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "product",
+        "productcosthistory",
+        "productlistpricehistory",
+        "productvendor",
+        "shoppingcartitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "online_vs_offline_orders",
+      "kind": "query_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "customer",
+        "salesorderheader",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "orders_over_threshold",
+      "kind": "query_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "salesorderdetail",
+        "salesorderheader",
+        "shoppingcartitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "salesorderheader"
+      ],
+      "id": "orders_per_customer_top10",
+      "kind": "query_recall",
+      "matched": [
+        "customer"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "customer",
+        "productreview",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "productcategory",
+        "productsubcategory"
+      ],
+      "id": "products_by_category",
+      "kind": "query_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "product",
+        "productcosthistory",
+        "productlistpricehistory",
+        "specialoffer",
+        "transactionhistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product"
+      ],
+      "id": "products_without_subcategory",
+      "kind": "query_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "product",
+        "productcategory",
+        "productmodel",
+        "productreview",
+        "productsubcategory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "purchaseorderdetail"
+      ],
+      "id": "purchase_order_line_items_per_product",
+      "kind": "query_recall",
+      "matched": [
+        "purchaseorderdetail"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "transactionhistory",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "productcategory",
+        "productsubcategory"
+      ],
+      "id": "rank_products_within_category",
+      "kind": "query_recall",
+      "matched": [
+        "product",
+        "productcategory"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "product",
+        "productcategory",
+        "productlistpricehistory",
+        "specialoffer",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "salaried_employees",
+      "kind": "query_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "person",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "salesorderdetail"
+      ],
+      "id": "top_selling_products",
+      "kind": "query_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "product",
+        "productinventory",
+        "productvendor",
+        "shoppingcartitem",
+        "transactionhistoryarchive"
+      ]
+    },
+    {
+      "gold_tables": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "id": "total_purchase_spend_by_vendor",
+      "kind": "query_recall",
+      "matched": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "shoppingcartitem",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader",
+        "salesterritory"
+      ],
+      "id": "total_sales_by_territory",
+      "kind": "query_recall",
+      "matched": [
+        "salesterritory"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "customer",
+        "salesterritory",
+        "salesterritoryhistory",
+        "shoppingcartitem",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "id": "vendors_with_purchase_orders",
+      "kind": "query_recall",
+      "matched": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "transactionhistory",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "average_order_value",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderheader",
+        "salesorderdetail",
+        "salesorderheader",
+        "specialoffer",
+        "vsalespersonsalesbyfiscalyearsdata"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderdetail"
+      ],
+      "id": "avg_discount_on_orders_with_discount",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderdetail"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "salesorderdetail",
+        "specialoffer",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "id": "avg_vacation_hours_by_department",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "department",
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "salesorderheader"
+      ],
+      "id": "customers_never_ordered",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "salesorderheader",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "employee_count",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "productreview",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee",
+        "person"
+      ],
+      "id": "employee_names_with_titles",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "employee",
+        "person"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "person",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "employees_hired_per_year",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "vemployeedepartmenthistory",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "department",
+        "employeedepartmenthistory"
+      ],
+      "id": "employees_per_department",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "department",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "id": "employees_without_current_department",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "employee",
+        "employeedepartmenthistory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "department",
+        "employee",
+        "employeedepartmenthistory",
+        "vemployeedepartment",
+        "vemployeedepartmenthistory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product"
+      ],
+      "id": "most_expensive_products",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "product",
+        "productlistpricehistory",
+        "productreview",
+        "productvendor",
+        "shoppingcartitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "online_vs_offline_orders",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "salesorderheader",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store",
+        "vstorewithdemographics"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader"
+      ],
+      "id": "orders_over_threshold",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderheader",
+        "salesorderdetail",
+        "salesorderheader",
+        "shoppingcartitem",
+        "specialoffer"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "salesorderheader"
+      ],
+      "id": "orders_per_customer_top10",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "salesorderdetail",
+        "salesorderheader",
+        "salesorderheadersalesreason",
+        "shoppingcartitem",
+        "store"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "productcategory",
+        "productsubcategory"
+      ],
+      "id": "products_by_category",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "product",
+        "productsubcategory"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "product",
+        "productcosthistory",
+        "productreview",
+        "productsubcategory",
+        "shoppingcartitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product"
+      ],
+      "id": "products_without_subcategory",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "product",
+        "productcategory",
+        "productcosthistory",
+        "productreview",
+        "productsubcategory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "purchaseorderdetail"
+      ],
+      "id": "purchase_order_line_items_per_product",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "purchaseorderdetail"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "shoppingcartitem",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "productcategory",
+        "productsubcategory"
+      ],
+      "id": "rank_products_within_category",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "product",
+        "productreview",
+        "productvendor",
+        "specialoffer",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "employee"
+      ],
+      "id": "salaried_employees",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "employee"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "employee",
+        "employeedepartmenthistory",
+        "employeepayhistory",
+        "jobcandidate",
+        "person"
+      ]
+    },
+    {
+      "gold_tables": [
+        "product",
+        "salesorderdetail"
+      ],
+      "id": "top_selling_products",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "product"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "product",
+        "productinventory",
+        "shoppingcartitem",
+        "transactionhistory",
+        "transactionhistoryarchive"
+      ]
+    },
+    {
+      "gold_tables": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "id": "total_purchase_spend_by_vendor",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "productvendor",
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "shoppingcartitem",
+        "vendor"
+      ]
+    },
+    {
+      "gold_tables": [
+        "salesorderheader",
+        "salesterritory"
+      ],
+      "id": "total_sales_by_territory",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "salesorderheader",
+        "salesterritory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "countryregioncurrency",
+        "customer",
+        "salesorderheader",
+        "salesperson",
+        "salesterritory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "id": "vendors_with_purchase_orders",
+      "kind": "semantic_search_recall",
+      "matched": [
+        "purchaseorderheader",
+        "vendor"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "purchaseorderdetail",
+        "purchaseorderheader",
+        "vendor",
+        "vstorewithdemographics",
+        "vvendorwithcontacts"
+      ]
+    },
+    {
+      "correct": true,
+      "from_table": "humanresources.employee",
+      "gold_path": [
+        [
+          "humanresources.employee",
+          "person.person"
+        ]
+      ],
+      "id": "employee_names_with_titles",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "humanresources.employee",
+            "person.person"
+          ]
+        ]
+      ],
+      "to_table": "person.person"
+    },
+    {
+      "correct": true,
+      "from_table": "sales.salesorderheader",
+      "gold_path": [
+        [
+          "sales.salesorderheader",
+          "sales.customer"
+        ]
+      ],
+      "id": "orders_per_customer_top10",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "sales.salesorderheader",
+            "sales.customer"
+          ]
+        ]
+      ],
+      "to_table": "sales.customer"
+    },
+    {
+      "correct": true,
+      "from_table": "sales.salesorderheader",
+      "gold_path": [
+        [
+          "sales.salesorderheader",
+          "sales.salesterritory"
+        ]
+      ],
+      "id": "total_sales_by_territory",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "sales.salesorderheader",
+            "sales.salesterritory"
+          ]
+        ]
+      ],
+      "to_table": "sales.salesterritory"
+    }
+  ],
+  "pretensor_version": "0.1.0a3",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

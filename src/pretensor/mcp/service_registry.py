@@ -10,6 +10,7 @@ from typing import Literal, NamedTuple
 from pretensor.core.dsn_crypto import DSNEncryptor
 from pretensor.core.registry import GraphRegistry, RegistryEntry
 from pretensor.core.store import KuzuStore
+from pretensor.mcp.service_context import get_server_context
 from pretensor.visibility.filter import VisibilityFilter
 
 CapabilityState = Literal["not_attempted", "empty", "present"]
@@ -25,6 +26,7 @@ class GraphCounts(NamedTuple):
     has_dbt_manifest: CapabilityState
     has_llm_enrichment: CapabilityState
     has_external_consumers: CapabilityState
+
 
 logger = logging.getLogger(__name__)
 
@@ -79,17 +81,59 @@ def graph_path_for_entry(entry: RegistryEntry) -> Path:
     return Path(entry.unified_graph_path or entry.graph_path)
 
 
+def _active_store_cache():
+    try:
+        return get_server_context().store_cache
+    except RuntimeError:
+        return None
+
+
+def _open_uncaught(graph_path: Path) -> KuzuStore:
+    """Open (or fetch from the active cache) a store, letting any error propagate raw.
+
+    The public ``open_store_*`` helpers wrap the raw error in a ``RuntimeError``
+    with a caller-appropriate message (path-based vs connection-based).
+    """
+    cache = _active_store_cache()
+    if cache is not None:
+        return cache.get(graph_path)
+    store = KuzuStore(graph_path)
+    store.ensure_schema()
+    return store
+
+
+def open_store_for_path(graph_path: Path) -> KuzuStore:
+    """Return a cached store for this path when a server context is active, else a fresh one."""
+    try:
+        return _open_uncaught(graph_path)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Cannot open graph file ({graph_path}): {exc}. "
+            f"The file may be corrupt — re-run `pretensor index`."
+        ) from exc
+
+
 def open_store_for_entry(entry: RegistryEntry) -> KuzuStore:
     gp = graph_path_for_entry(entry)
     try:
-        store = KuzuStore(gp)
-        store.ensure_schema()
-        return store
+        return _open_uncaught(gp)
     except Exception as exc:
+        # Reference the connection by name only — the on-disk graph path and the
+        # underlying engine error are kept off the message so they cannot leak
+        # to a semi-trusted MCP client. The original exception is preserved via
+        # ``from exc`` for server-side logs.
         raise RuntimeError(
-            f"Cannot open graph file for connection {entry.connection_name!r} "
-            f"({gp}): {exc}. The file may be corrupt — re-run `pretensor index`."
+            f"Cannot open graph file for connection {entry.connection_name!r}. "
+            "The graph may be missing or corrupt — re-run indexing."
         ) from exc
+
+
+def release_store(store: KuzuStore) -> None:
+    """Close a store unless it is owned by the active server-context cache (pooled)."""
+    cache = _active_store_cache()
+    if cache is not None and cache.owns(store):
+        return
+    store.close()
 
 
 def _column_count_for_connection(
@@ -99,9 +143,7 @@ def _column_count_for_connection(
 ) -> int:
     """Return the number of ``SchemaColumn`` nodes, optionally scoped to a connection."""
     if connection_name is None:
-        r = store.query_all_rows(
-            "MATCH (c:SchemaColumn) RETURN count(*)"
-        )
+        r = store.query_all_rows("MATCH (c:SchemaColumn) RETURN count(*)")
     else:
         r = store.query_all_rows(
             "MATCH (c:SchemaColumn) WHERE c.connection_name = $cn RETURN count(*)",
@@ -209,12 +251,20 @@ def counts_for_graph(
     if not dbt_attempted and entry is not None:
         has_dbt: CapabilityState = "not_attempted"
     else:
-        has_dbt = "present" if dbt_present else ("empty" if dbt_attempted else "not_attempted")
+        has_dbt = (
+            "present"
+            if dbt_present
+            else ("empty" if dbt_attempted else "not_attempted")
+        )
     llm_attempted = entry is not None and entry.llm_enrichment_ran
     if entry is None:
         has_llm: CapabilityState = "present" if llm_present else "empty"
     else:
-        has_llm = "present" if llm_present else ("empty" if llm_attempted else "not_attempted")
+        has_llm = (
+            "present"
+            if llm_present
+            else ("empty" if llm_attempted else "not_attempted")
+        )
     # External-consumer scanner is not shipped yet; unify the "never checked"
     # default with the dbt/LLM flags so callers don't have to special-case it.
     has_ext: CapabilityState = "present" if has_external else "not_attempted"
@@ -238,5 +288,7 @@ __all__ = [
     "keystore_path",
     "load_registry",
     "open_store_for_entry",
+    "open_store_for_path",
+    "release_store",
     "resolve_registry_entry",
 ]

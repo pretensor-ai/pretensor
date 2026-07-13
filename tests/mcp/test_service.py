@@ -476,7 +476,9 @@ def test_query_payload_emits_timing_log(
     with caplog.at_level("INFO"):
         out = query_payload(tmp_path, q="orders", limit=5)
     assert out["results"]
-    matched = [r for r in caplog.records if getattr(r, "event", "") == "mcp.query_payload"]
+    matched = [
+        r for r in caplog.records if getattr(r, "event", "") == "mcp.query_payload"
+    ]
     assert matched
     rec = matched[-1]
     assert getattr(rec, "status", None) == "ok"
@@ -534,7 +536,6 @@ def test_context_film_pagila_shape(tmp_path: Path) -> None:
     assert len(ctx["columns"]) == 1
     col0 = ctx["columns"][0]
     assert col0["column_name"] == "film_id"
-    assert col0["name"] == "film_id"
     assert "nullable" in col0
     assert "is_primary_key" in col0
     assert "is_foreign_key" in col0

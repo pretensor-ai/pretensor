@@ -14,7 +14,87 @@ if TYPE_CHECKING:
     from pretensor.semantic.base import SemanticLayer
     from pretensor.semantic.yaml_layer import YamlSemanticLayer
 
-__all__ = ["GraphConfig", "PretensorConfig", "load_semantic_layer"]
+__all__ = [
+    "EmbeddingsConfig",
+    "GraphConfig",
+    "PretensorConfig",
+    "load_semantic_layer",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class EmbeddingsConfig:
+    """Opt-in toggles for the ``[embeddings]`` extra."""
+
+    index_tables: bool = False
+    """When True and ``[embeddings]`` is installed, ``_EmbeddingIndexStep``
+    computes one embedding per :class:`SchemaTable` during intelligence
+    indexing.  Default ``False`` keeps the null path byte-identical to the
+    pre-embedding pipeline output."""
+
+    cluster_blend: float = 0.0
+    """Weight (in [0.0, 1.0]) for blending embedding cosine similarity into
+    existing FK / INFERRED_JOIN edge weights before community detection.
+
+    For each existing structural edge ``(a, b)`` where both endpoints
+    carry an embedding, the edge weight is incremented by
+    ``cluster_blend * cosine(emb_a, emb_b)``.  No new edges are introduced
+    from cosine alone — the blend only nudges already-structurally-adjacent
+    pairs.  Default ``0.0`` keeps cluster membership byte-identical to the
+    pre-embedding pipeline output (Invariant #6).  A small positive value
+    (~0.25) lets domain-related tables with weak lexical overlap drift
+    into the same cluster.
+    """
+
+    join_threshold: float | None = None
+    """Cosine threshold for proposing ``INFERRED_JOIN`` candidates from
+    embedding similarity.  ``None`` (default) disables the
+    embedding scorer entirely → null-path identical.  When set (typical
+    value ~0.85), an ``EmbeddingRelationshipScorer`` is registered after
+    the heuristic scorer; pairs whose cosine ≥ threshold are emitted as
+    ``status="suggested"`` candidates with ``source="embedding"``.  The
+    scorer applies a type-family compatibility gate per column pair
+    (reusing the heuristic's check) so high-cosine pairs with
+    incompatible types are dropped.
+    """
+
+    role_weight: float = 0.0
+    """Weight for the embedding-based role-classification vote.
+    ``0.0`` (default) skips the embedding signal entirely → null-path
+    identical.  When > 0, ``classify_database_tables_async`` embeds each
+    table and adds ``role_weight * cosine(table, role_centroid)`` to
+    every role's heuristic score; the heuristic remains the primary
+    signal.  Centroids are computed once per process from a small curated
+    exemplar set in ``pretensor.intelligence.role_exemplars``.
+    """
+
+    def __post_init__(self) -> None:
+        # Validate the float knobs at construction time so misuse surfaces
+        # close to its source rather than mid-pipeline. All three numeric
+        # toggles are checked here for one consistent contract on the
+        # dataclass; ``EmbeddingRelationshipScorer.__init__`` keeps its own
+        # belt-and-braces check for callers that construct the scorer
+        # directly with an out-of-band threshold.
+        if not 0.0 <= self.cluster_blend <= 1.0:
+            msg = (
+                f"EmbeddingsConfig.cluster_blend must be in [0.0, 1.0]; "
+                f"got {self.cluster_blend!r}"
+            )
+            raise ValueError(msg)
+        if not 0.0 <= self.role_weight <= 1.0:
+            msg = (
+                f"EmbeddingsConfig.role_weight must be in [0.0, 1.0]; "
+                f"got {self.role_weight!r}"
+            )
+            raise ValueError(msg)
+        if self.join_threshold is not None and not (
+            0.0 <= self.join_threshold <= 1.0
+        ):
+            msg = (
+                f"EmbeddingsConfig.join_threshold must be in [0.0, 1.0] "
+                f"or None; got {self.join_threshold!r}"
+            )
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,8 +153,8 @@ def _default_semantic_layer() -> SemanticLayer:
 class PretensorConfig:
     """Central pluggable configuration for the Pretensor graph system.
 
-    Bundles all tunable and swappable components so that Cloud can ship a
-    ``CloudConfig(PretensorConfig)`` subclass with its own implementations
+    Bundles all tunable and swappable components so that downstream packages can ship a
+    ``PretensorConfig`` subclass with its own implementations
     without patching individual files.
 
     All fields default to the OSS implementations, so constructing
@@ -82,6 +162,8 @@ class PretensorConfig:
 
     Attributes:
         graph: Graph intelligence tuning parameters (clustering, join paths).
+        embeddings: Opt-in toggles for the ``[embeddings]`` extra.
+            Default: ``EmbeddingsConfig()`` (all toggles off).
         scorer_registry: Ordered registry of relationship scorers used by discovery.
             Default: ``ScorerRegistry([HeuristicScorer()])``.
         combiner: Strategy for merging scored relationship candidates.
@@ -93,9 +175,8 @@ class PretensorConfig:
     """
 
     graph: GraphConfig = field(default_factory=GraphConfig)
-    scorer_registry: ScorerRegistry = field(
-        default_factory=_default_scorer_registry
-    )
+    embeddings: EmbeddingsConfig = field(default_factory=EmbeddingsConfig)
+    scorer_registry: ScorerRegistry = field(default_factory=_default_scorer_registry)
     combiner: ConfidenceCombiner = field(default_factory=_default_combiner)
     search_index_cls: type[BaseSearchIndex] = field(
         default_factory=_default_search_index_cls

@@ -22,6 +22,7 @@ schema changes.
 | `analytics_dwh`     | synthetic                                       | —              | 12 KB | no (hand-crafted for clustering tests)      | no                                                             |
 | `saas_multitenant`  | synthetic                                       | —              | 12 KB | no (hand-crafted for tenancy tests)         | no                                                             |
 | `adversarial`       | synthetic                                       | —              | 7 KB  | no (edge cases for entity resolution)       | no                                                             |
+| `messy_warehouse`   | `raw`, `staging`, `intermediate`, `mart`, `junk` | 24           | 80 KB | no (e2e DDL at `tests/e2e/fixtures/sql/`)   | no                                                             |
 
 ## Provenance + license per dataset
 
@@ -103,6 +104,23 @@ Synthetic, hand-crafted snapshots used by specific test suites (clustering,
 tenancy, entity-resolution). Not part of the benchmark dataset bundle; they
 have no DDL dump and no NL-to-SQL question set. Their checked-in YAMLs are
 the source of truth.
+
+### `messy_warehouse`
+
+Synthetic, hand-crafted fixture that exercises real-world warehouse warts the
+textbook schemas don't expose: mixed camelCase/snake_case naming, a 4-layer
+dbt-style hierarchy (`raw_*` → `stg_*` → `int_*` → mart bare names), a
+near-duplicate entity cluster (`users` / `user_accounts` / `customer_master`),
+four audit/log tables with shared FK shape, an SCD2 snapshot table
+(`users_snapshot` with `valid_from` / `valid_to`), a cross-schema FK
+(`raw.raw_events` → `mart.users`), and a junk schema with `tmp_*` /
+`_legacy_*` noise tables for role-classification stress testing.
+
+A companion `messy_warehouse_roles.yaml` supplies gold role labels for the L1
+role-F1 metric. A matching Postgres DDL lives at
+`tests/e2e/fixtures/sql/messy_warehouse_ddl.sql` for live-container e2e runs.
+The checked-in YAML is the source of truth; there is no `scripts/data/` bundle
+entry and no NL-to-SQL question set.
 
 ## How to add a new dataset
 

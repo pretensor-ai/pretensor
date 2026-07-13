@@ -14,6 +14,7 @@ from pretensor.connectors.base import (
     ForeignKeyInfo,
     TableInfo,
 )
+from pretensor.errors import ConnectorError as _ConnectorError
 from pretensor.introspection.models.config import ConnectionConfig, SchemaFilter
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ _BIGQUERY_EXTRA_HINT = (
 )
 
 
-class BigQueryConnectorError(Exception):
+class BigQueryConnectorError(_ConnectorError):
     """Raised when BigQuery connector operations fail."""
 
 
@@ -36,7 +37,9 @@ def _ensure_bigquery() -> Any:
     try:
         return importlib.import_module("google.cloud.bigquery")
     except ImportError as exc:
-        msg = f"BigQuery connector requires google-cloud-bigquery. {_BIGQUERY_EXTRA_HINT}"
+        msg = (
+            f"BigQuery connector requires google-cloud-bigquery. {_BIGQUERY_EXTRA_HINT}"
+        )
         raise ImportError(msg) from exc
 
 
@@ -185,7 +188,9 @@ class BigQueryConnector(BaseConnector):
                 self.dataset_id,
             )
         except Exception as exc:
-            raise BigQueryConnectorError(f"Failed to connect to BigQuery: {exc}") from exc
+            raise BigQueryConnectorError(
+                f"Failed to connect to BigQuery: {exc}"
+            ) from exc
 
     def disconnect(self) -> None:
         self._client = None

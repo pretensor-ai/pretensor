@@ -12,6 +12,17 @@ on:
       - 'docs/**'
       - '**.md'
       - '.github/ISSUE_TEMPLATE/**'
+  schedule:
+    # Nightly slow lane (real-model embedding smoke + future heavy fixtures).
+    # Daily at 03:17 UTC.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      run_slow:
+        description: 'Run the slow opt-in test lane (real model downloads).'
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -32,9 +43,24 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.12"
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
       - name: Ruff check
         run: uv run ruff check src tests
+
+  lockfile:
+    name: Lockfile up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.12"
+      - name: Verify uv.lock matches pyproject.toml
+        # Fails if the committed lock would be re-resolved — keeps the reviewed
+        # pins identical to what every other job installs with `uv sync --locked`.
+        run: uv lock --check
 
   typecheck:
     name: Typecheck (pyright)
@@ -47,7 +73,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.11"
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
       - name: Pyright
         run: uv run pyright
 
@@ -66,7 +92,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
       - name: Pytest
         env:
           PYTHONPATH: src
@@ -133,3 +159,40 @@ jobs:
             exit 1
           fi
           uvx --from "${wheels[0]}" pretensor --help > /dev/null
+
+  slow-tests:
+    name: Slow tests (opt-in real model)
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_slow)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.12"
+      - name: Install dependencies (with embeddings extra)
+        run: uv sync --locked --extra dev --extra embeddings
+      - name: Cache HuggingFace embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-arctic-embed-xs-${{ hashFiles('src/pretensor/intelligence/embeddings.py') }}
+      - name: Pre-warm embedding model (retry on Hub rate limits)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if uv run python -c "from pretensor.intelligence.embeddings import get_default_embedding_client; get_default_embedding_client().embed(['warm'])"; then
+              echo "model ready (attempt $attempt)"
+              exit 0
+            fi
+            sleep $((30 + attempt * 15 + RANDOM % 30))
+          done
+          echo "::error::embedding model download kept failing (HF Hub rate limit?). Add an HF_TOKEN repo secret or retry the run."
+          exit 1
+      - name: Pytest -m slow
+        env:
+          PYTHONPATH: src
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: uv run pytest -m slow tests/

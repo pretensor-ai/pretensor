@@ -98,12 +98,36 @@ _DATE_TOKEN = re.compile(
 class TableClassifier:
     """Classify a table using weighted heuristics (no graph-wide context)."""
 
-    def classify(self, table: TableClassifierInput) -> TableClassification:
-        """Return the highest-scoring role with confidence and contributing signals."""
+    def classify(
+        self,
+        table: TableClassifierInput,
+        *,
+        embedding_vote: dict[str, float] | None = None,
+        role_weight: float = 0.0,
+    ) -> TableClassification:
+        """Return the highest-scoring role with confidence and contributing signals.
+
+        Args:
+            table: Per-table input (name, columns, structural counts).
+            embedding_vote: Optional per-role cosine score from
+                :func:`pretensor.intelligence.role_exemplars.embedding_role_vote`.
+                When provided AND ``role_weight > 0``, each role's heuristic
+                score is incremented by ``role_weight * vote[role]`` before
+                the ``max()`` pick.  Default ``None`` is byte-identical to
+                pre-embedding behavior.
+            role_weight: Blend weight for the embedding vote.  ``0.0`` (default)
+                discards the vote entirely → null path.  Heuristic scores
+                typically range 0.5–2.5; ``role_weight=0.25`` keeps the
+                embedding contribution as a tiebreaker.
+        """
         name = table.name.strip()
         lower = name.lower()
         cols = table.columns
         weights = self._score_all(table, name, lower, cols)
+        if embedding_vote is not None and role_weight > 0.0:
+            for role, vote in embedding_vote.items():
+                if role in weights:
+                    weights[role] += role_weight * float(vote)
         best_role, raw = max(weights.items(), key=lambda kv: kv[1])
         second = sorted(weights.values(), reverse=True)
         runner = second[1] if len(second) > 1 else 0.0

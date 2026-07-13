@@ -106,7 +106,9 @@ def run_l2(
 
     with tempfile.TemporaryDirectory() as tmp_root:
         tmp_dir = Path(tmp_root) / "graph"
-        gdir = build_l2_graph_dir(snapshot, work_dir=tmp_dir)
+        gdir = build_l2_graph_dir(
+            snapshot, work_dir=tmp_dir, embeddings=embeddings_enabled
+        )
 
         # query Recall@K --------------------------------------------------
         query_observations = _collect_query_observations(
@@ -278,7 +280,10 @@ def _collect_semantic_observations(
     fetch_limit = max(_RECALL_K * 4, 20)
     for entry in gold:
         payload = semantic_search_payload(
-            graph_dir, q=entry.question, db=database, limit=fetch_limit
+            graph_dir,
+            query=entry.question,
+            database=database,
+            k=fetch_limit,
         )
         ranked = _ranked_hits_from_query(payload)
         out.append((entry, ranked))

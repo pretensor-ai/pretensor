@@ -365,23 +365,149 @@ _TS = "2024-01-01"  # created_on placeholder
 
 TPCH_FOREIGN_KEYS_TUPLES: list[tuple] = [
     # FK_CUSTOMER_NATION
-    (_TS, _DB, "TPCH_SF1", "NATION", "N_NATIONKEY", _DB, "TPCH_SF1", "CUSTOMER", "C_NATIONKEY", 1, "NO ACTION", "NO ACTION", "FK_CUSTOMER_NATION"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "NATION",
+        "N_NATIONKEY",
+        _DB,
+        "TPCH_SF1",
+        "CUSTOMER",
+        "C_NATIONKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_CUSTOMER_NATION",
+    ),
     # FK_LINEITEM_ORDERS
-    (_TS, _DB, "TPCH_SF1", "ORDERS", "O_ORDERKEY", _DB, "TPCH_SF1", "LINEITEM", "L_ORDERKEY", 1, "NO ACTION", "NO ACTION", "FK_LINEITEM_ORDERS"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "ORDERS",
+        "O_ORDERKEY",
+        _DB,
+        "TPCH_SF1",
+        "LINEITEM",
+        "L_ORDERKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_LINEITEM_ORDERS",
+    ),
     # FK_LINEITEM_PART
-    (_TS, _DB, "TPCH_SF1", "PART", "P_PARTKEY", _DB, "TPCH_SF1", "LINEITEM", "L_PARTKEY", 1, "NO ACTION", "NO ACTION", "FK_LINEITEM_PART"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "PART",
+        "P_PARTKEY",
+        _DB,
+        "TPCH_SF1",
+        "LINEITEM",
+        "L_PARTKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_LINEITEM_PART",
+    ),
     # FK_LINEITEM_SUPPLIER
-    (_TS, _DB, "TPCH_SF1", "SUPPLIER", "S_SUPPKEY", _DB, "TPCH_SF1", "LINEITEM", "L_SUPPKEY", 1, "NO ACTION", "NO ACTION", "FK_LINEITEM_SUPPLIER"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "SUPPLIER",
+        "S_SUPPKEY",
+        _DB,
+        "TPCH_SF1",
+        "LINEITEM",
+        "L_SUPPKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_LINEITEM_SUPPLIER",
+    ),
     # FK_NATION_REGION
-    (_TS, _DB, "TPCH_SF1", "REGION", "R_REGIONKEY", _DB, "TPCH_SF1", "NATION", "N_REGIONKEY", 1, "NO ACTION", "NO ACTION", "FK_NATION_REGION"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "REGION",
+        "R_REGIONKEY",
+        _DB,
+        "TPCH_SF1",
+        "NATION",
+        "N_REGIONKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_NATION_REGION",
+    ),
     # FK_ORDERS_CUSTOMER
-    (_TS, _DB, "TPCH_SF1", "CUSTOMER", "C_CUSTKEY", _DB, "TPCH_SF1", "ORDERS", "O_CUSTKEY", 1, "NO ACTION", "NO ACTION", "FK_ORDERS_CUSTOMER"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "CUSTOMER",
+        "C_CUSTKEY",
+        _DB,
+        "TPCH_SF1",
+        "ORDERS",
+        "O_CUSTKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_ORDERS_CUSTOMER",
+    ),
     # FK_PARTSUPP_PART
-    (_TS, _DB, "TPCH_SF1", "PART", "P_PARTKEY", _DB, "TPCH_SF1", "PARTSUPP", "PS_PARTKEY", 1, "NO ACTION", "NO ACTION", "FK_PARTSUPP_PART"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "PART",
+        "P_PARTKEY",
+        _DB,
+        "TPCH_SF1",
+        "PARTSUPP",
+        "PS_PARTKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_PARTSUPP_PART",
+    ),
     # FK_PARTSUPP_SUPPLIER
-    (_TS, _DB, "TPCH_SF1", "SUPPLIER", "S_SUPPKEY", _DB, "TPCH_SF1", "PARTSUPP", "PS_SUPPKEY", 1, "NO ACTION", "NO ACTION", "FK_PARTSUPP_SUPPLIER"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "SUPPLIER",
+        "S_SUPPKEY",
+        _DB,
+        "TPCH_SF1",
+        "PARTSUPP",
+        "PS_SUPPKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_PARTSUPP_SUPPLIER",
+    ),
     # FK_SUPPLIER_NATION
-    (_TS, _DB, "TPCH_SF1", "NATION", "N_NATIONKEY", _DB, "TPCH_SF1", "SUPPLIER", "S_NATIONKEY", 1, "NO ACTION", "NO ACTION", "FK_SUPPLIER_NATION"),
+    (
+        _TS,
+        _DB,
+        "TPCH_SF1",
+        "NATION",
+        "N_NATIONKEY",
+        _DB,
+        "TPCH_SF1",
+        "SUPPLIER",
+        "S_NATIONKEY",
+        1,
+        "NO ACTION",
+        "NO ACTION",
+        "FK_SUPPLIER_NATION",
+    ),
 ]
 
 
@@ -554,7 +680,15 @@ def _setup_get_columns(
     # SHOW PRIMARY KEYS IN SCHEMA returns tuples:
     # (created_on, db, schema, table, column, key_seq, constraint_name)
     pk_tuples = [
-        ("2024-01-01", "SNOWFLAKE_SAMPLE_DATA", schema_name, table_name, col, i + 1, "PK")
+        (
+            "2024-01-01",
+            "SNOWFLAKE_SAMPLE_DATA",
+            schema_name,
+            table_name,
+            col,
+            i + 1,
+            "PK",
+        )
         for i, col in enumerate(pk_cols)
     ]
     conn.exec_driver_sql.return_value = _tuple_rows(pk_tuples)
@@ -786,17 +920,45 @@ class TestGetForeignKeys:
         # Simulate a composite FK: LINEITEM(L_PARTKEY, L_SUPPKEY) → PARTSUPP(PS_PARTKEY, PS_SUPPKEY)
         # Deliberately return key_sequence=2 before key_sequence=1 to test sorting.
         composite_rows = [
-            (_TS, _DB, "TPCH_SF1", "PARTSUPP", "PS_SUPPKEY", _DB, "TPCH_SF1", "LINEITEM", "L_SUPPKEY", 2, "NO ACTION", "NO ACTION", "FK_LINEITEM_PARTSUPP"),
-            (_TS, _DB, "TPCH_SF1", "PARTSUPP", "PS_PARTKEY", _DB, "TPCH_SF1", "LINEITEM", "L_PARTKEY", 1, "NO ACTION", "NO ACTION", "FK_LINEITEM_PARTSUPP"),
+            (
+                _TS,
+                _DB,
+                "TPCH_SF1",
+                "PARTSUPP",
+                "PS_SUPPKEY",
+                _DB,
+                "TPCH_SF1",
+                "LINEITEM",
+                "L_SUPPKEY",
+                2,
+                "NO ACTION",
+                "NO ACTION",
+                "FK_LINEITEM_PARTSUPP",
+            ),
+            (
+                _TS,
+                _DB,
+                "TPCH_SF1",
+                "PARTSUPP",
+                "PS_PARTKEY",
+                _DB,
+                "TPCH_SF1",
+                "LINEITEM",
+                "L_PARTKEY",
+                1,
+                "NO ACTION",
+                "NO ACTION",
+                "FK_LINEITEM_PARTSUPP",
+            ),
         ]
         conn.exec_driver_sql.return_value = _tuple_rows(composite_rows)
 
         fks = connector.get_foreign_keys()
         assert len(fks) == 2
         assert fks[0].constraint_name == "FK_LINEITEM_PARTSUPP"
-        assert fks[0].source_column == "L_PARTKEY"   # key_sequence=1 first
+        assert fks[0].source_column == "L_PARTKEY"  # key_sequence=1 first
         assert fks[0].target_column == "PS_PARTKEY"
-        assert fks[1].source_column == "L_SUPPKEY"   # key_sequence=2 second
+        assert fks[1].source_column == "L_SUPPKEY"  # key_sequence=2 second
         assert fks[1].target_column == "PS_SUPPKEY"
 
     def test_show_imported_keys_failure_falls_back_to_information_schema(self) -> None:
@@ -1013,7 +1175,15 @@ class TestPrimaryKeyCache:
         connector = _make_connector()
         conn = _mock_conn(connector)
         pk_rows = [
-            ("2024-01-01", "SNOWFLAKE_SAMPLE_DATA", "TPCH_SF1", "ORDERS", "O_ORDERKEY", 1, "PK_ORDERS"),
+            (
+                "2024-01-01",
+                "SNOWFLAKE_SAMPLE_DATA",
+                "TPCH_SF1",
+                "ORDERS",
+                "O_ORDERKEY",
+                1,
+                "PK_ORDERS",
+            ),
         ]
         conn.exec_driver_sql.return_value = _tuple_rows(pk_rows)
 
@@ -1029,8 +1199,24 @@ class TestPrimaryKeyCache:
         connector = _make_connector()
         conn = _mock_conn(connector)
         pk_rows = [
-            ("2024-01-01", "SNOWFLAKE_SAMPLE_DATA", "TPCH_SF1", "ORDERS", "O_ORDERKEY", 1, "PK_ORDERS"),
-            ("2024-01-01", "SNOWFLAKE_SAMPLE_DATA", "TPCH_SF1", "NATION", "N_NATIONKEY", 1, "PK_NATION"),
+            (
+                "2024-01-01",
+                "SNOWFLAKE_SAMPLE_DATA",
+                "TPCH_SF1",
+                "ORDERS",
+                "O_ORDERKEY",
+                1,
+                "PK_ORDERS",
+            ),
+            (
+                "2024-01-01",
+                "SNOWFLAKE_SAMPLE_DATA",
+                "TPCH_SF1",
+                "NATION",
+                "N_NATIONKEY",
+                1,
+                "PK_NATION",
+            ),
         ]
         conn.exec_driver_sql.return_value = _tuple_rows(pk_rows)
 
@@ -1055,3 +1241,154 @@ class TestPrimaryKeyCache:
         connector = _make_connector()
         result = connector._load_check_constraints_for_table("TPCH_SF1", "ORDERS")
         assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# Private-key authentication tests
+# ---------------------------------------------------------------------------
+
+
+def _cfg_with_private_key(
+    key_path: str, passphrase: str | None = None
+) -> ConnectionConfig:
+    return ConnectionConfig(
+        name="sf-pk",
+        type=DatabaseType.SNOWFLAKE,
+        host="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        metadata_extra={
+            "snowflake_schema": None,
+            "warehouse": "WH",
+            "role": None,
+            "private_key_path": key_path,
+            "private_key_passphrase": passphrase,
+        },
+    )
+
+
+class TestSnowflakePrivateKeyAuth:
+    def test_snowflake_url_omits_password_when_private_key_set(self) -> None:
+        cfg = _cfg_with_private_key("/home/bob/key.p8")
+        connector = SnowflakeConnector(cfg)
+        url = connector._snowflake_url()
+        assert "bob@xy12345" in url
+        assert ":@" not in url
+        assert "password" not in url.lower()
+
+    def test_snowflake_url_includes_password_when_no_private_key(self) -> None:
+        cfg = ConnectionConfig(
+            name="sf",
+            type=DatabaseType.SNOWFLAKE,
+            host="xy12345.us-east-1.aws",
+            user="bob",
+            password="s3cr3t",
+            database="MYDB",
+            metadata_extra={
+                "snowflake_schema": None,
+                "warehouse": None,
+                "role": None,
+                "private_key_path": None,
+                "private_key_passphrase": None,
+            },
+        )
+        connector = SnowflakeConnector(cfg)
+        url = connector._snowflake_url()
+        assert "bob:s3cr3t@" in url
+
+    def test_connect_with_private_key_passes_connect_args(self, tmp_path: Any) -> None:
+        from unittest.mock import patch
+
+        from pretensor.connectors.snowflake import SnowflakeConnector
+
+        cfg = _cfg_with_private_key("/fake/key.p8")
+        connector = SnowflakeConnector(cfg)
+
+        fake_der = b"FAKE_DER_KEY_BYTES"
+        mock_engine = MagicMock()
+        mock_conn_ctx = MagicMock()
+        mock_conn_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        mock_conn_ctx.__exit__ = MagicMock(return_value=False)
+        mock_engine.connect.return_value = mock_conn_ctx
+
+        with (
+            patch(
+                "pretensor.connectors.snowflake._load_private_key_bytes",
+                return_value=fake_der,
+            ) as mock_load,
+            patch(
+                "pretensor.connectors.snowflake.create_engine",
+                return_value=mock_engine,
+            ) as mock_create,
+        ):
+            connector.connect()
+
+        mock_load.assert_called_once_with("/fake/key.p8", None)
+        _, kwargs = mock_create.call_args
+        assert kwargs.get("connect_args") == {"private_key": fake_der}
+
+    def test_connect_without_private_key_no_connect_args(self) -> None:
+        from unittest.mock import patch
+
+        cfg = _cfg_with_private_key("")  # empty path → password auth path
+        cfg.metadata_extra["private_key_path"] = None
+        cfg.metadata_extra["password"] = "pw"
+        object.__setattr__(cfg, "password", "pw")
+        connector = SnowflakeConnector(cfg)
+
+        mock_engine = MagicMock()
+        mock_conn_ctx = MagicMock()
+        mock_conn_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        mock_conn_ctx.__exit__ = MagicMock(return_value=False)
+        mock_engine.connect.return_value = mock_conn_ctx
+
+        with patch(
+            "pretensor.connectors.snowflake.create_engine",
+            return_value=mock_engine,
+        ) as mock_create:
+            connector.connect()
+
+        _, kwargs = mock_create.call_args
+        assert "connect_args" not in kwargs
+
+    def test_connect_private_key_file_not_found_raises(self) -> None:
+        from unittest.mock import patch
+
+        from pretensor.connectors.snowflake import (
+            SnowflakeConnector,
+            SnowflakeConnectorError,
+        )
+
+        cfg = _cfg_with_private_key("/nonexistent/key.p8")
+        connector = SnowflakeConnector(cfg)
+
+        with (
+            patch(
+                "pretensor.connectors.snowflake._load_private_key_bytes",
+                side_effect=SnowflakeConnectorError(
+                    "Private key file not found: /nonexistent/key.p8"
+                ),
+            ),
+            pytest.raises(SnowflakeConnectorError, match="Private key file not found"),
+        ):
+            connector.connect()
+
+    def test_load_private_key_bytes_file_not_found(self, tmp_path: Any) -> None:
+        from pretensor.connectors.snowflake import (
+            SnowflakeConnectorError,
+            _load_private_key_bytes,
+        )
+
+        with pytest.raises(SnowflakeConnectorError, match="not found"):
+            _load_private_key_bytes(str(tmp_path / "missing.p8"), None)
+
+    def test_load_private_key_bytes_invalid_content(self, tmp_path: Any) -> None:
+        from pretensor.connectors.snowflake import (
+            SnowflakeConnectorError,
+            _load_private_key_bytes,
+        )
+
+        bad_key = tmp_path / "bad.p8"
+        bad_key.write_bytes(b"this is not a valid pem key")
+        with pytest.raises(SnowflakeConnectorError, match="Invalid private key"):
+            _load_private_key_bytes(str(bad_key), None)

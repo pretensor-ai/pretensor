@@ -54,13 +54,52 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.11"
       - name: Install dependencies
-        run: uv sync ${{ matrix.extras_args }}
+        run: uv sync --locked ${{ matrix.extras_args }}
+      - name: Cache HuggingFace embedding model
+        if: matrix.extras == 'dev-embeddings'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-arctic-embed-xs-${{ hashFiles('src/pretensor/intelligence/embeddings.py') }}
+      - name: Pre-warm embedding model (retry on Hub rate limits)
+        if: matrix.extras == 'dev-embeddings'
+        env:
+          # Optional repo secret; anonymous Hub downloads from shared
+          # runner IPs are frequently 429-rate-limited. huggingface_hub
+          # picks the token up from the environment automatically; an
+          # empty value is a no-op.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if uv run python -c "from pretensor.intelligence.embeddings import get_default_embedding_client; get_default_embedding_client().embed(['warm'])"; then
+              echo "model ready (attempt $attempt)"
+              exit 0
+            fi
+            sleep $((30 + attempt * 15 + RANDOM % 30))
+          done
+          echo "::error::embedding model download kept failing (HF Hub rate limit?). Add an HF_TOKEN repo secret or retry the run."
+          exit 1
       - name: Run benchmark
-        run: uv run pretensor benchmark ${{ matrix.level }} --dataset ${{ matrix.dataset }} --out current.json
+        # The embeddings lane passes --embeddings and compares against
+        # lane-specific baselines: L2 measures real cosine retrieval for
+        # semantic_search + the hybrid rerank; L1 measures blind join
+        # discovery with the embedding relationship scorer registered at
+        # its documented typical threshold (see L1_EMBEDDING_JOIN_THRESHOLD).
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          BENCH_FLAG=""
+          SUFFIX=""
+          if [ "${{ matrix.extras }}" = "dev-embeddings" ]; then
+            BENCH_FLAG="--embeddings"
+            SUFFIX="-embeddings"
+          fi
+          echo "BASELINE_SUFFIX=$SUFFIX" >> "$GITHUB_ENV"
+          uv run pretensor benchmark ${{ matrix.level }} --dataset ${{ matrix.dataset }} $BENCH_FLAG --out current.json
       - name: Compare against baseline
         run: |
           uv run pretensor benchmark compare \
-            --baseline tests/benchmark/baselines/${{ matrix.dataset }}-${{ matrix.level }}.json \
+            --baseline tests/benchmark/baselines/${{ matrix.dataset }}-${{ matrix.level }}${BASELINE_SUFFIX}.json \
             --current current.json
       - name: Upload current result on failure
         if: failure()
@@ -97,7 +136,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.11"
       - name: Install dependencies
-        run: uv sync --extra dev --extra embeddings
+        run: uv sync --locked --extra dev --extra embeddings
       - name: Run L3
         run: |
           model="${{ inputs.l3_model || 'claude-haiku-4-5' }}"

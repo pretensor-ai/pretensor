@@ -142,17 +142,24 @@ def _export_node_type(
     order_clause = (
         f" ORDER BY n.{_quote_identifier('node_id')}" if "node_id" in columns else ""
     )
-    scope_predicate = _scope_predicate(columns, "n")
-    where_clause = f" WHERE {scope_predicate}" if scope_predicate else ""
+    scope = _scope_predicate(columns, "n")
+    if scope is None:
+        where_clause = ""
+        query_params: dict[str, str] = {}
+    else:
+        scope_predicate, param_name = scope
+        where_clause = f" WHERE {scope_predicate}"
+        query_params = {
+            param_name: connection_name
+            if param_name == "connection_name"
+            else database_name
+        }
     cypher = (
         f"MATCH (n:{_quote_identifier(table_name)})"
         f"{where_clause} "
         f"RETURN {projections}{order_clause}"
     )
-    rows = store.query_all_rows(
-        cypher,
-        {"connection_name": connection_name, "database_name": database_name},
-    )
+    rows = store.query_all_rows(cypher, query_params)
     materialized_rows = [_materialize_row(columns, row) for row in rows]
     node_ids = {
         str(row_map["node_id"])
@@ -206,13 +213,28 @@ def _export_edge_type(
     }
 
 
-def _scope_predicate(columns: list[str], alias: str) -> str | None:
+def _scope_predicate(columns: list[str], alias: str) -> tuple[str, str] | None:
+    """Return (predicate, query param name) for the first matching scope column.
+
+    Only one of ``connection_name``/``database_name`` is ever bound per query,
+    so the predicate text and the params dict built from it must stay in sync
+    (Kuzu prepared statements reject params the query text never references).
+    """
     if "connection_name" in columns:
-        return f"{alias}.{_quote_identifier('connection_name')} = $connection_name"
+        return (
+            f"{alias}.{_quote_identifier('connection_name')} = $connection_name",
+            "connection_name",
+        )
     if "database" in columns:
-        return f"{alias}.{_quote_identifier('database')} = $database_name"
+        return (
+            f"{alias}.{_quote_identifier('database')} = $database_name",
+            "database_name",
+        )
     if "database_key" in columns:
-        return f"{alias}.{_quote_identifier('database_key')} = $database_name"
+        return (
+            f"{alias}.{_quote_identifier('database_key')} = $database_name",
+            "database_name",
+        )
     return None
 
 
@@ -220,7 +242,8 @@ def _materialize_row(
     field_names: list[str], row: tuple[object, ...]
 ) -> dict[str, JsonValue]:
     return {
-        field_names[idx]: _to_json_value(value) for idx, value in enumerate(row[: len(field_names)])
+        field_names[idx]: _to_json_value(value)
+        for idx, value in enumerate(row[: len(field_names)])
     }
 
 

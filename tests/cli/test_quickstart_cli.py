@@ -75,6 +75,102 @@ def test_quickstart_down_invokes_compose_down(tmp_path: Path) -> None:
     cmd = mock_sub.call_args_list[0].args[0]
     assert cmd[:3] == ["docker", "compose", "-f"]
     assert cmd[-2:] == ["down", "-v"]
+    # Regression guard: compose must run against the staged copy under the
+    # state dir, never the (possibly hidden-path) package install location —
+    # snap-confined Docker can't read the latter.
+    compose_arg = Path(cmd[3])
+    assert compose_arg == tmp_path / "quickstart" / "docker-compose.yml"
+    assert compose_arg.is_file()
+
+
+def test_quickstart_up_stages_compose_assets_under_state_dir(tmp_path: Path) -> None:
+    """``docker compose up`` runs against a copy staged next to the state dir,
+    not the package's site-packages location, so snap-confined Docker can
+    read it even when the package is installed under a hidden directory."""
+
+    def _fake_run(args: list[str], **_: Any) -> MagicMock:
+        m = MagicMock()
+        m.returncode = 0
+        m.stdout = ""
+        m.stderr = ""
+        return m
+
+    with (
+        patch(
+            "pretensor.cli.commands.quickstart.subprocess.run",
+            side_effect=_fake_run,
+        ) as mock_sub,
+        patch(
+            "pretensor.cli.commands.quickstart.shutil.which",
+            return_value="/usr/bin/docker",
+        ),
+        patch("pretensor.cli.commands.quickstart._wait_healthy"),
+        patch("pretensor.cli.commands.quickstart._run_index"),
+        patch("pretensor.cli.commands.quickstart.print_mcp_config"),
+    ):
+        result = CliRunner().invoke(
+            app, ["quickstart", "--state-dir", str(tmp_path)]
+        )
+
+    assert result.exit_code == 0, result.stdout
+    up_cmd = mock_sub.call_args_list[0].args[0]
+    assert up_cmd[:3] == ["docker", "compose", "-f"]
+    assert up_cmd[-2:] == ["up", "-d"]
+
+    staged_compose = Path(up_cmd[3])
+    staged_dir = tmp_path / "quickstart"
+    assert staged_compose == staged_dir / "docker-compose.yml"
+    from pretensor.cli.commands.quickstart import _compose_path
+
+    assert staged_compose != _compose_path()
+
+    # The SQL fixtures the compose file mounts must be staged alongside it.
+    assert (staged_dir / "pagila_ddl.sql").is_file()
+    assert (staged_dir / "pagila_data.sql").is_file()
+
+
+def test_stage_compose_assets_copies_packaged_contents(tmp_path: Path) -> None:
+    from pretensor.cli.commands.quickstart import _compose_path, _stage_compose_assets
+
+    staged = _stage_compose_assets(tmp_path)
+
+    assert staged == tmp_path / "quickstart" / "docker-compose.yml"
+    assert staged.read_bytes() == _compose_path().read_bytes()
+
+
+def test_quickstart_compose_up_permission_denied_prints_hint(tmp_path: Path) -> None:
+    """A `permission denied` compose failure prints a snap Docker hint."""
+
+    def _fake_run(args: list[str], **_: Any) -> MagicMock:
+        m = MagicMock()
+        m.returncode = 1
+        m.stdout = ""
+        m.stderr = (
+            "open /home/user/.local/pipx/venvs/pretensor/lib/.../"
+            "docker-compose.yml: permission denied"
+        )
+        return m
+
+    with (
+        patch(
+            "pretensor.cli.commands.quickstart.subprocess.run",
+            side_effect=_fake_run,
+        ),
+        patch(
+            "pretensor.cli.commands.quickstart.shutil.which",
+            return_value="/usr/bin/docker",
+        ),
+        patch("pretensor.cli.commands.quickstart._run_index"),
+    ):
+        result = CliRunner().invoke(
+            app, ["quickstart", "--state-dir", str(tmp_path)]
+        )
+
+    assert result.exit_code == 1
+    plain = _normalize(result.stdout).lower()
+    assert "permission denied" in plain
+    assert "snap" in plain
+    assert "hidden" in plain
 
 
 def test_quickstart_errors_when_docker_missing(tmp_path: Path) -> None:

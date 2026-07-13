@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Literal
 
 from pretensor.config import GraphConfig
 from pretensor.core.store import KuzuStore
 from pretensor.intelligence.cluster_labeler import HEURISTIC_CLUSTER_DESCRIPTION
+from pretensor.intelligence.embeddings import embeddings_disabled_via_env
 from pretensor.intelligence.shadow_alias import get_shadow_alias_node_ids
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.visibility.filter import VisibilityFilter
 
 from ..payload_types import (
@@ -18,6 +21,7 @@ from ..payload_types import (
     ContextPayload,
     LineageRef,
     RelationshipInfo,
+    SimilarTable,
     snippet,
     stale_threshold_days,
     staleness_days,
@@ -30,8 +34,15 @@ from ..service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
+from ._rank import CosineHit, score_embedding_rows
+
+logger = logging.getLogger(__name__)
+
+_SIMILAR_K_MIN = 1
+_SIMILAR_K_MAX = 50
 
 _SCHEMA_PATTERN_LABELS: dict[str, str] = {
     "star": "Star schema",
@@ -231,7 +242,6 @@ def columns_for_table_node_id(
         cmt_s = str(cmt).strip() if cmt else ""
         item: ColumnInfo = {
             "column_name": cname,
-            "name": cname,
             "data_type": str(dtype or ""),
             "nullable": bool(nullable) if nullable is not None else True,
             "is_primary_key": bool(is_pk) if is_pk is not None else False,
@@ -588,6 +598,113 @@ def entity_for_table(store: KuzuStore, node_id: str) -> tuple[str | None, str | 
     return (str(name) if name is not None else None, str(desc) if desc else None)
 
 
+def similar_tables_for_table(
+    store: KuzuStore,
+    *,
+    table_node_id: str,
+    database_key: str,
+    k: int,
+    visibility_filter: VisibilityFilter | None = None,
+) -> tuple[list[SimilarTable], str | None]:
+    """Return ``(hits, reason)`` — top-``k`` cross-cluster nearest neighbors.
+
+    "Cross-cluster" means the candidate shares no cluster membership with
+    the target: the target's full cluster set is subtracted from every
+    candidate's cluster set, and any candidate whose sets intersect is
+    dropped. This handles tables that belong to multiple clusters (e.g.
+    both a heuristic graph-connectivity cluster and a labeled cluster).
+
+    The scan is scoped to ``database_key`` (clusters are per-database).
+    When the target has no ``embedding``, returns ``([], "no_embedding")``
+    — the hint is surfaced on the payload; ``query`` is where text
+    fallback lives.
+
+    **Unclustered target.** If the target table itself has no
+    ``IN_CLUSTER`` membership, the cross-cluster filter degenerates: there
+    are no clusters to subtract.  In that case the function returns the
+    raw top-K cosine neighbors (all visible embedded tables in the
+    database, sorted by score).  This is an honest "best effort" — the
+    user asked for similar tables and the cluster signal isn't available
+    to refine — rather than empty.  The hint is the same envelope shape
+    as the happy path; callers can detect this case by checking that
+    the target's cluster set on the response (not exposed today) was
+    empty.
+    """
+    rows = store.query_all_rows(
+        "MATCH (t:SchemaTable {node_id: $tid}) RETURN t.embedding",
+        {"tid": table_node_id},
+    )
+    if not rows:
+        return [], "no_embedding"
+    raw = rows[0][0]
+    if raw is None:
+        return [], "no_embedding"
+    # Kill switch: suppress even stored-vector reads.  Checked after the
+    # target-vector fetch so the no-vectors lane keeps the exact
+    # "no_embedding" reason regardless of the env var (parity), while a
+    # store that does carry vectors reports the honest reason.
+    if embeddings_disabled_via_env():
+        return [], "disabled"
+    qvec = [float(x) for x in raw]
+
+    target_cluster_rows = store.query_all_rows(
+        """
+        MATCH (t:SchemaTable {node_id: $tid})-[:IN_CLUSTER]->(c:Cluster)
+        RETURN c.node_id
+        """,
+        {"tid": table_node_id},
+    )
+    target_clusters: set[str] = {
+        str(r[0]) for r in target_cluster_rows if r[0] is not None
+    }
+
+    # Pre-fetch every (table → {cluster, ...}) membership in one Cypher
+    # query so the cross-cluster filter sees the full membership set for
+    # multi-cluster tables. ``score_embedding_rows`` dedupes its output
+    # to one row per node_id (preventing RRF double-counting upstream),
+    # so we can't piggyback the membership info on the scored rows —
+    # only the first-seen cluster would survive there.
+    membership_rows = store.query_all_rows(
+        """
+        MATCH (t:SchemaTable {database: $db})-[:IN_CLUSTER]->(c:Cluster)
+        RETURN t.node_id, c.node_id
+        """,
+        {"db": database_key},
+    )
+    clusters_by_node: dict[str, set[str]] = {}
+    for row in membership_rows:
+        nid = str(row[0])
+        cid = row[1]
+        if cid is None:
+            continue
+        clusters_by_node.setdefault(nid, set()).add(str(cid))
+
+    scored, _had_vector = score_embedding_rows(
+        store.iter_table_embeddings(database=database_key),
+        qvec,
+        visibility_filter=visibility_filter,
+    )
+
+    kept: list[CosineHit] = []
+    for hit in scored:
+        if hit.node_id == table_node_id:
+            continue
+        candidate_clusters = clusters_by_node.get(hit.node_id, set())
+        if target_clusters and candidate_clusters & target_clusters:
+            continue
+        kept.append(hit)
+    kept.sort(key=lambda h: h.score, reverse=True)
+    return [
+        SimilarTable(
+            table_id=hit.node_id,
+            qualified_name=f"{hit.schema_name}.{hit.table_name}",
+            score=hit.score,
+            cluster_id=hit.cluster_id,
+        )
+        for hit in kept[:k]
+    ], None
+
+
 def context_payload(
     graph_dir: Path,
     *,
@@ -596,6 +713,8 @@ def context_payload(
     detail: Literal["summary", "standard", "full"] = "standard",
     config: GraphConfig | None = None,
     visibility_filter: VisibilityFilter | None = None,
+    include_similar: bool = False,
+    similar_k: int = 5,
 ) -> dict[str, Any]:
     """360° view for one physical table."""
     reg = load_registry(graph_dir)
@@ -680,12 +799,12 @@ def context_payload(
         staleness_as_of = (
             str(staleness_as_of_raw).strip() if staleness_as_of_raw else ""
         )
-        description = (
-            table_description if table_description else str(comment or "")
-        )
+        description = table_description if table_description else str(comment or "")
         shadow_ids = get_shadow_alias_node_ids(store, str(database))
         rels = relationships_for_table(
-            store, str(node_id), visibility_filter=vf,
+            store,
+            str(node_id),
+            visibility_filter=vf,
             shadow_alias_ids=shadow_ids,
         )
         lineage_in, lineage_out = lineage_for_table(
@@ -855,6 +974,26 @@ def context_payload(
         if access_blob and detail != "summary":
             base["access_patterns"] = access_blob
 
+        if include_similar and detail != "summary":
+            k_clamped = max(_SIMILAR_K_MIN, min(_SIMILAR_K_MAX, int(similar_k)))
+            try:
+                similar_hits, similar_reason = similar_tables_for_table(
+                    store,
+                    table_node_id=str(node_id),
+                    database_key=str(database),
+                    k=k_clamped,
+                    visibility_filter=vf,
+                )
+            except Exception as exc:  # noqa: BLE001 — context must never raise
+                logger.warning("context: similar_tables computation failed (%s)", exc)
+                similar_hits, similar_reason = [], "error"
+            # Always emit the block when the caller asked for it, so the
+            # response shape is stable: callers branch on the reason, not
+            # on key presence.
+            base["similar_tables"] = similar_hits
+            if similar_reason is not None:
+                base["similar_reason"] = similar_reason
+
         if detail == "summary":
             sum_blob: dict[str, object] = {
                 "qualified_name": base["qualified_name"],
@@ -875,13 +1014,14 @@ def context_payload(
             }
         return dict(base)
     finally:
-        store.close()
+        release_store(store)
 
 
 __all__ = [
     "cluster_for_table_node_id",
     "columns_for_table_node_id",
     "context_payload",
+    "create_tool",
     "entity_for_table",
     "find_table_rows",
     "lineage_for_table",
@@ -890,5 +1030,92 @@ __all__ = [
     "resolve_table_node_id",
     "shadow_aliases_for_base",
     "shadow_of_for_view",
+    "similar_tables_for_table",
     "suggest_table_candidates",
 ]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        table = str(args.get("table", "")).strip()
+        if not table:
+            return {"error": "Missing `table`"}
+        db = args.get("db")
+        db_s = str(db) if db is not None else None
+        detail = str(args.get("detail", "standard"))
+        if detail not in ("summary", "standard", "full"):
+            detail = "standard"
+        include_similar = bool(args.get("include_similar", False))
+        similar_k_raw = args.get("similar_k", 5)
+        try:
+            similar_k = int(similar_k_raw)
+        except (TypeError, ValueError):
+            similar_k = 5
+        with timed_tool(
+            "context",
+            graph_dir,
+            table=table,
+            db=db_s,
+            detail=detail,
+            include_similar=include_similar,
+        ):
+            return context_payload(
+                graph_dir,
+                table=table,
+                db=db_s,
+                detail=detail,  # type: ignore[arg-type]
+                include_similar=include_similar,
+                similar_k=similar_k,
+            )
+
+    return McpTool(
+        name="context",
+        description=(
+            "Full context for one physical table: description (dbt-aware), columns (SchemaColumn), "
+            "relationships (FK + inferred), LINEAGE in/out, optional deprecation signal, "
+            "linked entity (if any), cluster when present."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "description": "Table name or schema.table",
+                },
+                "db": {
+                    "type": ["string", "null"],
+                    "description": "Connection name or logical database when multiple graphs exist",
+                },
+                "detail": {
+                    "type": "string",
+                    "enum": ["summary", "standard", "full"],
+                    "default": "standard",
+                    "description": "summary | standard (default) | full",
+                },
+                "include_similar": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": (
+                        "When true, include a `similar_tables` block of "
+                        "cross-cluster nearest neighbors by cosine over "
+                        "`SchemaTable.embedding`. Default off."
+                    ),
+                },
+                "similar_k": {
+                    "type": "integer",
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": 50,
+                    "description": (
+                        "Max number of similar tables to return when "
+                        "`include_similar` is true."
+                    ),
+                },
+            },
+            "required": ["table"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

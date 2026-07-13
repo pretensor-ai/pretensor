@@ -23,6 +23,7 @@ from pretensor.benchmark.l3.agent import (
     AgentTool,
     AgentToolCall,
 )
+from pretensor.errors import PretensorError
 
 __all__ = [
     "AnthropicHttpClient",
@@ -57,7 +58,7 @@ class LlmResponse:
     latency_ms: int
 
 
-class LlmCallError(RuntimeError):
+class LlmCallError(PretensorError, RuntimeError):
     """Raised on transport failure, non-2xx response, or unparseable body."""
 
 

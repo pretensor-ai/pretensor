@@ -12,6 +12,9 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from pretensor.cli.main import app
+from pretensor.connectors.models import Column, ForeignKey, SchemaSnapshot, Table
+from pretensor.core.builder import GraphBuilder
+from pretensor.core.store import KuzuStore
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[\ -/]*[@-~])")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -36,6 +39,26 @@ def test_export_help_shows_required_options() -> None:
     assert "--database" in plain
     assert "--output" in plain
     assert "--state-dir" in plain
+    assert "--graph-dir" not in plain
+
+
+def test_export_accepts_graph_dir_alias(tmp_path: Path) -> None:
+    """``--graph-dir`` (deprecated alias) behaves the same as ``--state-dir``."""
+    out_file = tmp_path / "graph.json"
+    result = CliRunner().invoke(
+        app,
+        [
+            "export",
+            "--database",
+            "mydb",
+            "--output",
+            str(out_file),
+            "--graph-dir",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "No registry found" in _normalize(result.stdout)
 
 
 def test_export_no_registry_exits_1(tmp_path: Path) -> None:
@@ -71,7 +94,9 @@ def test_export_unknown_connection_exits_1(tmp_path: Path) -> None:
                 "dsn": "postgresql://u:p@localhost/mydb",
                 "graph_path": str(graph_path),
                 "unified_graph_path": None,
-                "last_indexed_at": datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat(),
+                "last_indexed_at": datetime(
+                    2024, 6, 1, tzinfo=timezone.utc
+                ).isoformat(),
                 "dialect": "postgres",
                 "table_count": 2,
             }
@@ -107,7 +132,9 @@ def test_export_missing_graph_file_exits_1(tmp_path: Path) -> None:
                 "dsn": "postgresql://u:p@localhost/mydb",
                 "graph_path": str(graph_path),
                 "unified_graph_path": None,
-                "last_indexed_at": datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat(),
+                "last_indexed_at": datetime(
+                    2024, 6, 1, tzinfo=timezone.utc
+                ).isoformat(),
                 "dialect": "postgres",
                 "table_count": 2,
             }
@@ -143,7 +170,9 @@ def test_export_writes_pretty_json_file(tmp_path: Path) -> None:
                 "dsn": "postgresql://u:p@localhost/mydb",
                 "graph_path": str(graph_path),
                 "unified_graph_path": None,
-                "last_indexed_at": datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat(),
+                "last_indexed_at": datetime(
+                    2024, 6, 1, tzinfo=timezone.utc
+                ).isoformat(),
                 "dialect": "postgres",
                 "table_count": 2,
             }
@@ -203,8 +232,99 @@ def test_export_writes_pretty_json_file(tmp_path: Path) -> None:
     assert result.exit_code == 0, _normalize(result.stdout)
     raw = output_path.read_text(encoding="utf-8")
     assert raw.endswith("\n")
-    assert "\n  \"" in raw
+    assert '\n  "' in raw
     assert json.loads(raw) == payload
     plain = _normalize(result.stdout)
     assert "Graph exported" in plain
     assert "node_types=1" in plain
+
+
+def test_export_end_to_end_against_freshly_indexed_graph(tmp_path: Path) -> None:
+    """Regression test: export must not crash against a real graph.
+
+    Runs the export command against a real (unmocked) Kuzu graph built the
+    same way ``pretensor index`` builds one. ``ensure_schema()`` always
+    creates the semantic-layer/Cluster/JoinPath node tables, which lack a
+    ``connection_name``+``database`` pair — the scope filter must not bind
+    an unreferenced query parameter for those tables (or any other).
+    """
+    graph_path = tmp_path / "graphs" / "mydb.kuzu"
+    graph_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot = SchemaSnapshot(
+        connection_name="mydb",
+        database="mydb",
+        schemas=["public"],
+        tables=[
+            Table(
+                name="orders",
+                schema_name="public",
+                columns=[
+                    Column(name="id", data_type="int", is_primary_key=True),
+                    Column(name="user_id", data_type="int", is_foreign_key=True),
+                ],
+                foreign_keys=[
+                    ForeignKey(
+                        source_schema="public",
+                        source_table="orders",
+                        source_column="user_id",
+                        target_schema="public",
+                        target_table="users",
+                        target_column="id",
+                    )
+                ],
+            ),
+            Table(
+                name="users",
+                schema_name="public",
+                columns=[Column(name="id", data_type="int", is_primary_key=True)],
+                foreign_keys=[],
+            ),
+        ],
+        introspected_at=datetime(2026, 4, 13, tzinfo=timezone.utc),
+    )
+    store = KuzuStore(graph_path)
+    try:
+        GraphBuilder().build(snapshot, store)
+    finally:
+        store.close()
+
+    _write_registry(
+        tmp_path,
+        {
+            "mydb": {
+                "connection_name": "mydb",
+                "database": "mydb",
+                "dsn": "postgresql://u:p@localhost/mydb",
+                "graph_path": str(graph_path),
+                "unified_graph_path": None,
+                "last_indexed_at": datetime(
+                    2024, 6, 1, tzinfo=timezone.utc
+                ).isoformat(),
+                "dialect": "postgres",
+                "table_count": 2,
+            }
+        },
+    )
+    output_path = tmp_path / "exports" / "graph.json"
+    result = CliRunner().invoke(
+        app,
+        [
+            "export",
+            "--database",
+            "mydb",
+            "--output",
+            str(output_path),
+            "--state-dir",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, _normalize(result.stdout)
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    node_types = {nt["type"]: nt for nt in payload["node_types"]}
+    assert node_types["SchemaTable"]["rows"], "expected SchemaTable rows"
+    assert node_types["SchemaColumn"]["rows"], "expected SchemaColumn rows"
+    # Semantic-layer tables are created empty by ``ensure_schema()`` and lack
+    # a connection_name/database pair — this is where export used to crash.
+    for empty_type in ("Metric", "Dimension", "BusinessRule"):
+        assert node_types[empty_type]["rows"] == []

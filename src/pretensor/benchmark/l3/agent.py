@@ -17,6 +17,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal, Protocol
 
+from pretensor.errors import PretensorError
+
 __all__ = [
     "AgentLlmClient",
     "AgentLoopError",
@@ -147,7 +149,7 @@ class AgentLlmClient(Protocol):
     ) -> AgentStep: ...
 
 
-class AgentLoopError(RuntimeError):
+class AgentLoopError(PretensorError, RuntimeError):
     """Raised when the loop cannot make further progress.
 
     Specifically: the iteration cap was hit without the LLM returning

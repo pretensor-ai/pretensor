@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import igraph as ig
 
 from pretensor.core.store import KuzuStore
+from pretensor.intelligence.embeddings import cosine_similarity
 from pretensor.intelligence.shadow_alias import get_shadow_alias_node_ids
 
 if TYPE_CHECKING:
     from pretensor.config import GraphConfig
 
 __all__ = ["GraphExporter"]
+
+logger = logging.getLogger(__name__)
 
 _FK_WEIGHT = 1.0
 
@@ -28,6 +32,7 @@ class GraphExporter:
         database_key: str,
         *,
         config: GraphConfig | None = None,
+        cluster_blend: float = 0.0,
     ) -> ig.Graph:
         """Load tables and FK / inferred edges for ``database_key`` into igraph.
 
@@ -41,13 +46,17 @@ class GraphExporter:
         Args:
             database_key: Value of ``SchemaTable.database`` (logical DB name).
             config: Graph config; controls shadow-alias collapsing.
+            cluster_blend: Weight for blending embedding cosine similarity
+                into existing edge weights.  When > 0, every edge whose
+                endpoints both carry a non-null ``SchemaTable.embedding`` has
+                ``cluster_blend * cosine(emb_a, emb_b)`` added to its weight.
+                No new edges are introduced from cosine alone.  Default 0.0
+                preserves null-path byte-identical behavior (Invariant #6).
 
         Returns:
             Possibly empty graph (no vertices if no tables match).
         """
-        shadow_ids = get_shadow_alias_node_ids(
-            self._store, database_key, config=config
-        )
+        shadow_ids = get_shadow_alias_node_ids(self._store, database_key, config=config)
 
         rows = self._store.query_all_rows(
             """
@@ -63,9 +72,7 @@ class GraphExporter:
 
         # Filter out shadow aliases from the vertex set
         filtered = [
-            (str(r[0]), f"{r[1]}.{r[2]}")
-            for r in rows
-            if str(r[0]) not in shadow_ids
+            (str(r[0]), f"{r[1]}.{r[2]}") for r in rows if str(r[0]) not in shadow_ids
         ]
         if not filtered:
             return ig.Graph()
@@ -111,7 +118,61 @@ class GraphExporter:
         if edges:
             g.add_edges(edges)
             g.es["weight"] = weights
+
+        if cluster_blend > 0.0 and edges:
+            self._apply_embedding_edge_blend(g, database_key, cluster_blend)
+
         return g
+
+    def _apply_embedding_edge_blend(
+        self, g: ig.Graph, database_key: str, blend: float
+    ) -> None:
+        """Add ``blend * cosine(emb_a, emb_b)`` to each edge weight when both
+        endpoints have an embedding.
+
+        Mutates ``g.es["weight"]`` in place.  Edges where either endpoint has
+        a null embedding are left untouched, so the blend is purely additive
+        on the embedded subgraph; clustering on the unembedded subset is
+        unchanged.
+        """
+        rows = self._store.query_all_rows(
+            """
+            MATCH (t:SchemaTable {database: $db})
+            WHERE t.embedding IS NOT NULL
+            RETURN t.node_id, t.embedding
+            """,
+            {"db": database_key},
+        )
+        if not rows:
+            logger.debug(
+                "embedding edge blend: no embedded tables for %s; skipping",
+                database_key,
+            )
+            return
+
+        embeddings: dict[str, list[float]] = {}
+        for nid, vec in rows:
+            if vec is None:
+                continue
+            embeddings[str(nid)] = [float(x) for x in vec]
+        if not embeddings:
+            return
+
+        node_ids = g.vs["node_id"]
+        for edge in g.es:
+            u_nid = node_ids[edge.source]
+            v_nid = node_ids[edge.target]
+            emb_u = embeddings.get(u_nid)
+            emb_v = embeddings.get(v_nid)
+            if emb_u is None or emb_v is None:
+                continue
+            try:
+                cos = cosine_similarity(emb_u, emb_v)
+            except ValueError:
+                # Length mismatch: shouldn't happen with a single fixed model
+                # revision, but guard against historical data.
+                continue
+            edge["weight"] = float(edge["weight"]) + blend * cos
 
     def _accumulate_edges(
         self,

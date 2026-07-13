@@ -11,6 +11,7 @@ from pretensor.config import GraphConfig
 from pretensor.connectors.inspect import inspect
 from pretensor.connectors.snapshot import ChangeTarget, SchemaChange, diff_snapshots
 from pretensor.introspection.models.dsn import connection_config_from_registry_dsn
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.staleness.impact_analyzer import ImpactAnalyzer
 from pretensor.staleness.snapshot_store import SnapshotStore
 from pretensor.visibility.filter import VisibilityFilter
@@ -25,6 +26,7 @@ from ..service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
     resolve_registry_entry,
 )
 
@@ -57,10 +59,7 @@ def _remediation_hint(dialect: str | None) -> str:
             "Postgres connection failed. Verify with "
             "`pretensor connect --dry-run <dsn>` and confirm the host is reachable."
         )
-    return (
-        "Connection failed; verify the DSN with "
-        "`pretensor connect --dry-run <dsn>`."
-    )
+    return "Connection failed; verify the DSN with `pretensor connect --dry-run <dsn>`."
 
 
 def _connection_unavailable_envelope(
@@ -178,9 +177,7 @@ def detect_changes_payload(
         changes = [
             c
             for c in changes
-            if _change_visible(
-                c, connection_name=entry.connection_name, vf=vf
-            )
+            if _change_visible(c, connection_name=entry.connection_name, vf=vf)
         ]
     gp = graph_path_for_entry(entry)
     if not gp.exists():
@@ -198,7 +195,7 @@ def detect_changes_payload(
             database_key=str(entry.database),
         )
     finally:
-        store.close()
+        release_store(store)
 
     base: dict[str, Any] = {
         "database": entry.connection_name,
@@ -223,4 +220,35 @@ def detect_changes_payload(
     return base
 
 
-__all__ = ["detect_changes_payload", "schema_change_to_dict"]
+__all__ = ["create_tool", "detect_changes_payload", "schema_change_to_dict"]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        db_t = str(args.get("database", "")).strip()
+        if not db_t:
+            return {"error": "Missing `database`"}
+        with timed_tool("detect_changes", graph_dir, database=db_t):
+            return detect_changes_payload(graph_dir, database=db_t)
+
+    return McpTool(
+        name="detect_changes",
+        description=(
+            "Compare live database schema to the last indexed snapshot. Read-only; "
+            "does not apply changes — use pretensor reindex to update the graph."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "database": {
+                    "type": "string",
+                    "description": "Connection name or logical database name",
+                },
+            },
+            "required": ["database"],
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

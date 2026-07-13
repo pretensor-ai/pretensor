@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
-from pretensor.cli.config_file import CliConfigError, load_cli_config
+from pretensor.cli.config_file import (
+    CliConfigError,
+    load_cli_config,
+    resolve_aliased_path_option,
+)
 from pretensor.cli.main import app
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[\ -/]*[@-~])")
 
 
 def _write_minimal_registry(state_dir: Path) -> None:
@@ -82,7 +90,7 @@ def test_main_errors_for_invalid_graph_key_in_config(tmp_path: Path) -> None:
     )
     result = CliRunner().invoke(app, ["--config", str(config_path), "list"])
     assert result.exit_code == 1
-    assert "Unknown `graph` config key" in result.stdout
+    assert "Unknown `graph` config key" in _ANSI_ESCAPE_RE.sub("", result.stdout)
 
 
 def test_index_uses_connection_defaults_from_config(tmp_path: Path) -> None:
@@ -609,4 +617,141 @@ def test_serve_uses_visibility_defaults_from_config(tmp_path: Path) -> None:
     assert captured["visibility_path"] == vis_path
     assert captured["profile"] == "analyst"
     assert captured["config"] is not None
+
+
+# ── private_key_path source config tests ─────────────────────────────────
+
+
+def test_source_private_key_path_accepted(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  sf:",
+                "    dialect: snowflake",
+                "    account: xy12345.us-east-1.aws",
+                "    user: bob",
+                "    database: MYDB",
+                "    private_key_path: /home/bob/.snowflake/rsa_key.p8",
+                "    private_key_passphrase: hunter2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(config_path)
+    sf = cfg.sources["sf"]
+    assert sf.private_key_path == "/home/bob/.snowflake/rsa_key.p8"
+    assert sf.private_key_passphrase == "hunter2"
+    assert sf.password is None
+
+
+def test_source_private_key_path_via_secrets_overlay(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  sf:",
+                "    dialect: snowflake",
+                "    account: xy12345.us-east-1.aws",
+                "    user: bob",
+                "    database: MYDB",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (cfg_dir / "sources.secrets.yaml").write_text(
+        "\n".join(
+            [
+                "sf:",
+                "  private_key_path: /run/secrets/snowflake_key.p8",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(cfg_dir / "config.yaml")
+    assert cfg.sources["sf"].private_key_path == "/run/secrets/snowflake_key.p8"
+
+
+def test_source_private_key_path_wrong_name_rejected(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  sf:",
+                "    dialect: snowflake",
+                "    account: xy12345",
+                "    private_key_file: /should/fail",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="Unknown key"):
+        load_cli_config(config_path)
+
+
+# ── resolve_aliased_path_option ──────────────────────────────────────────
+
+
+_alias_app = typer.Typer()
+
+
+@_alias_app.command("resolve")
+def _resolve_alias_command(
+    primary: Path = typer.Option(Path("/default"), "--primary"),
+    alias: Path | None = typer.Option(None, "--alias"),
+    config: Path | None = typer.Option(None, "--config-value"),
+    ctx: typer.Context = typer.Option(None, hidden=True),
+) -> None:
+    resolved = resolve_aliased_path_option(
+        ctx,
+        primary_param="primary",
+        primary_value=primary,
+        alias_param="alias",
+        alias_value=alias,
+        config_value=config,
+    )
+    typer.echo(str(resolved))
+
+
+def test_resolve_aliased_path_option_defaults_when_nothing_passed() -> None:
+    result = CliRunner().invoke(_alias_app, [])
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "/default"
+
+
+def test_resolve_aliased_path_option_alias_wins_when_only_alias_passed() -> None:
+    result = CliRunner().invoke(_alias_app, ["--alias", "/from-alias"])
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "/from-alias"
+
+
+def test_resolve_aliased_path_option_primary_wins_when_only_primary_passed() -> None:
+    result = CliRunner().invoke(_alias_app, ["--primary", "/from-primary"])
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "/from-primary"
+
+
+def test_resolve_aliased_path_option_primary_wins_when_both_passed() -> None:
+    """When both the canonical flag and its alias are passed, the canonical one wins."""
+    result = CliRunner().invoke(
+        _alias_app,
+        ["--primary", "/from-primary", "--alias", "/from-alias"],
+    )
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "/from-primary"
+
+
+def test_resolve_aliased_path_option_config_wins_over_default() -> None:
+    """When neither flag is passed, the config value wins over the default."""
+    result = CliRunner().invoke(_alias_app, ["--config-value", "/from-config"])
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "/from-config"
 

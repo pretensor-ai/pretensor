@@ -32,6 +32,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from pretensor.benchmark.runner import Dataset
+from pretensor.errors import PretensorError
 
 __all__ = [
     "DEFAULT_STATEMENT_TIMEOUT_MS",
@@ -60,7 +61,7 @@ on them raises a clear error.
 """
 
 
-class QueryExecutionError(RuntimeError):
+class QueryExecutionError(PretensorError, RuntimeError):
     """Raised when a SQL statement fails to execute (parse error, missing
     object, runtime fault, statement timeout, etc.)."""
 

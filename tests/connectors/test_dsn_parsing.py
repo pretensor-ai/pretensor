@@ -224,7 +224,7 @@ def test_source_bigquery_missing_project() -> None:
 
 
 def test_source_unknown_dialect() -> None:
-    src = SourceConfig(dialect="mysql")
+    src = SourceConfig(dialect="oracle")
     with pytest.raises(ValueError, match="Unknown dialect"):
         connection_config_from_source("bad", src)
 
@@ -283,6 +283,163 @@ def test_dsn_from_source_bigquery() -> None:
     cfg = connection_config_from_url(dsn, "bq1")
     assert cfg.type == DatabaseType.BIGQUERY
     assert cfg.database == "my-project/analytics"
+
+
+# ── MySQL DSN tests ───────────────────────────────────────────────────────
+
+
+def test_infer_mysql() -> None:
+    assert infer_database_type_from_dsn("mysql://u@h/db") == DatabaseType.MYSQL
+
+
+def test_infer_mysql_plus_pymysql() -> None:
+    assert infer_database_type_from_dsn("mysql+pymysql://u:p@host:3306/db") == DatabaseType.MYSQL
+
+
+def test_mysql_config_from_url() -> None:
+    cfg = connection_config_from_url("mysql://alice:sec@db.example:3306/sakila", "m1")
+    assert cfg.type == DatabaseType.MYSQL
+    assert cfg.host == "db.example"
+    assert cfg.port == 3306
+    assert cfg.database == "sakila"
+    assert cfg.user == "alice"
+    assert cfg.password == "sec"
+    assert "sakila" in cfg.schema_filter.include
+
+
+def test_mysql_config_from_url_no_port() -> None:
+    cfg = connection_config_from_url("mysql://root@localhost/mydb", "m2")
+    assert cfg.type == DatabaseType.MYSQL
+    assert cfg.host == "localhost"
+    assert cfg.port is None
+    assert cfg.database == "mydb"
+
+
+def test_registry_dialect_mapping_includes_mysql() -> None:
+    assert registry_dialect_for(DatabaseType.MYSQL) == "mysql"
+
+
+def test_source_mysql_config() -> None:
+    src = SourceConfig(
+        dialect="mysql",
+        host="db.example",
+        port=3306,
+        user="alice",
+        password="sec",
+        database="sakila",
+    )
+    cfg = connection_config_from_source("m1", src)
+    assert cfg.type == DatabaseType.MYSQL
+    assert cfg.name == "m1"
+    assert cfg.host == "db.example"
+    assert cfg.port == 3306
+    assert cfg.database == "sakila"
+    assert cfg.user == "alice"
+    assert cfg.password == "sec"
+
+
+def test_source_mysql_missing_host() -> None:
+    src = SourceConfig(dialect="mysql", database="sakila")
+    with pytest.raises(ValueError, match="requires `host`"):
+        connection_config_from_source("bad", src)
+
+
+def test_dsn_from_source_mysql() -> None:
+    src = SourceConfig(
+        dialect="mysql",
+        host="db.example",
+        port=3306,
+        user="alice",
+        password="s3c!",
+        database="sakila",
+    )
+    dsn = dsn_from_source("m1", src)
+    assert dsn.startswith("mysql://")
+    assert "db.example" in dsn
+    assert "3306" in dsn
+    assert "sakila" in dsn
+    # Round-trip
+    cfg = connection_config_from_url(dsn, "m1")
+    assert cfg.host == "db.example"
+    assert cfg.port == 3306
+    assert cfg.database == "sakila"
+    assert cfg.user == "alice"
+
+
+# ── private_key_path tests ────────────────────────────────────────────
+
+
+def test_source_snowflake_private_key_path_in_metadata() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        private_key_path="/home/bob/.snowflake/key.p8",
+    )
+    cfg = connection_config_from_source("sf1", src)
+    assert cfg.metadata_extra["private_key_path"] == "/home/bob/.snowflake/key.p8"
+    assert cfg.metadata_extra["private_key_passphrase"] is None
+    assert cfg.password is None
+
+
+def test_source_snowflake_private_key_passphrase_in_metadata() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        private_key_path="/home/bob/.snowflake/key.p8",
+        private_key_passphrase="s3cr3t",
+    )
+    cfg = connection_config_from_source("sf1", src)
+    assert cfg.metadata_extra["private_key_path"] == "/home/bob/.snowflake/key.p8"
+    assert cfg.metadata_extra["private_key_passphrase"] == "s3cr3t"
+
+
+def test_dsn_from_source_snowflake_private_key_path() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        private_key_path="/home/bob/.snowflake/key.p8",
+    )
+    dsn = dsn_from_source("sf1", src)
+    assert "private_key_path=" in dsn
+    assert "key.p8" in dsn
+    # password must not appear when private_key_path is set
+    assert ":@" not in dsn
+
+
+def test_dsn_from_source_snowflake_private_key_round_trip() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        warehouse="WH",
+        private_key_path="/home/bob/.snowflake/key.p8",
+        private_key_passphrase="s3cr3t",
+    )
+    dsn = dsn_from_source("sf1", src)
+    cfg = connection_config_from_url(dsn, "sf1")
+    assert cfg.metadata_extra["private_key_path"] == "/home/bob/.snowflake/key.p8"
+    assert cfg.metadata_extra["private_key_passphrase"] == "s3cr3t"
+    assert cfg.metadata_extra["warehouse"] == "WH"
+
+
+def test_dsn_from_source_snowflake_private_key_path_url_encodes_special_chars() -> None:
+    src = SourceConfig(
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        database="MYDB",
+        private_key_path="/home/bob/keys/my key.p8",
+    )
+    dsn = dsn_from_source("sf1", src)
+    cfg = connection_config_from_url(dsn, "sf1")
+    assert cfg.metadata_extra["private_key_path"] == "/home/bob/keys/my key.p8"
 
 
 def test_port_coercion_after_env_var_resolution(

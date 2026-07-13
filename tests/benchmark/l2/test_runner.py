@@ -122,3 +122,30 @@ def test_run_l2_matches_committed_baseline(
         f"regenerate with `uv run pretensor benchmark l2 --dataset "
         f"{dataset.value} --out {baseline}`."
     )
+
+
+def test_run_l2_embeddings_fails_loudly_when_no_vectors_computed(
+    tmp_path: Path, graph_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed model fetch must abort the embeddings lane, not silently
+    benchmark the no-vectors fallback against the embeddings baseline."""
+    from pretensor.intelligence.embeddings import (
+        LocalEmbeddingClient,
+        embeddings_extra_installed,
+    )
+
+    if not embeddings_extra_installed():
+        pytest.skip(
+            "requires the [embeddings] extra: without it the runner "
+            "resolves --embeddings to off and the guard never engages"
+        )
+
+    def _download_failed(
+        self: LocalEmbeddingClient, texts: list[str]
+    ) -> list[list[float]]:
+        raise RuntimeError("simulated HF Hub 429")
+
+    monkeypatch.setattr(LocalEmbeddingClient, "embed", _download_failed)
+
+    with pytest.raises(RuntimeError, match="no table vectors"):
+        run_l2(Dataset.PAGILA, tmp_path / "out.json", graph_dir, embeddings=True)

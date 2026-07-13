@@ -33,6 +33,7 @@ from mcp.types import Tool as McpTool
 
 from mcp import ClientSession
 from pretensor.benchmark.l3.agent import AgentTool
+from pretensor.errors import PretensorError
 
 __all__ = [
     "McpClient",
@@ -91,7 +92,7 @@ whole question without short-circuiting healthy slow tools.
 """
 
 
-class McpClientError(RuntimeError):
+class McpClientError(PretensorError, RuntimeError):
     """Raised on subprocess startup, shutdown, or call-level failures."""
 
 

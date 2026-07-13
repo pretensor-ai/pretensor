@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from pretensor.config import GraphConfig
+from pretensor.mcp.tool_registry import McpTool
 from pretensor.visibility.filter import VisibilityFilter
 
 from ..payload_types import (
@@ -25,6 +26,7 @@ from ..service_registry import (
     graph_path_for_entry,
     load_registry,
     open_store_for_entry,
+    release_store,
 )
 
 
@@ -67,7 +69,7 @@ def list_databases_payload(
                 has_llm_enrichment = counts.has_llm_enrichment
                 has_external_consumers = counts.has_external_consumers
             finally:
-                store.close()
+                release_store(store)
         days = staleness_days(entry.last_indexed_at, now)
         stale = days > threshold
         capabilities = ["schema", "fk_edges", "inferred_joins", "clustering"]
@@ -107,4 +109,23 @@ def list_databases_payload(
     return {"databases": items}
 
 
-__all__ = ["list_databases_payload"]
+__all__ = ["create_tool", "list_databases_payload"]
+
+
+def create_tool(graph_dir: Path) -> McpTool:
+    from ._timed import timed_tool
+
+    async def _handle(args: dict) -> dict:
+        with timed_tool("list_databases", graph_dir):
+            return list_databases_payload(graph_dir)
+
+    return McpTool(
+        name="list_databases",
+        description="List all indexed database connections with table counts and staleness.",
+        input_schema={
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        },
+        handler=_handle,
+    )

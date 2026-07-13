@@ -34,7 +34,7 @@ class YamlSemanticLayer(SemanticLayer):
 
     Constructed against a loaded :class:`SemanticLayerModel` and an open
     :class:`KuzuStore`. Methods on the ABC return plain ``dict`` / ``list``
-    payloads as documented on :class:`SemanticLayer`; no Cloud model classes
+    payloads as documented on :class:`SemanticLayer`; no implementation-specific model classes
     leak through.
     """
 
@@ -107,12 +107,10 @@ class YamlSemanticLayer(SemanticLayer):
         return out
 
     def get_rules(self, entity_id: str) -> list[dict[str, Any]]:
-        # OSS has no business-rule surface. Cloud overrides.
+        # OSS has no business-rule surface. Extensions override.
         return []
 
-    def validate_query(
-        self, sql: str, *, connection_name: str
-    ) -> dict[str, Any]:
+    def validate_query(self, sql: str, *, connection_name: str) -> dict[str, Any]:
         if connection_name and connection_name != self._layer.connection_name:
             return {
                 "valid": False,

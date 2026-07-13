@@ -10,9 +10,9 @@ from rich.console import Console
 
 from pretensor.cli.config_file import (
     get_cli_config,
+    resolve_aliased_path_option,
     resolve_optional_path_option,
     resolve_optional_str_option,
-    resolve_path_option,
 )
 from pretensor.config import PretensorConfig
 from pretensor.mcp.server import print_mcp_config, run_server
@@ -27,10 +27,19 @@ def register_serve_command(app: typer.Typer) -> None:
 
     @app.command("serve")
     def serve_command(
-        graph_dir: Path = typer.Option(
+        state_dir: Path = typer.Option(
             Path(".pretensor"),
-            "--graph-dir",
+            "--state-dir",
             help="State directory (registry.json, graphs/, search index).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+        graph_dir: Path | None = typer.Option(
+            None,
+            "--graph-dir",
+            hidden=True,
+            help="Deprecated alias for --state-dir.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -67,10 +76,12 @@ def register_serve_command(app: typer.Typer) -> None:
         protocol stream. Use ``--config-only`` to print the snippet to stdout and exit.
         """
         cli_config = get_cli_config(ctx)
-        graph_dir = resolve_path_option(
+        state_dir = resolve_aliased_path_option(
             ctx,
-            param_name="graph_dir",
-            cli_value=graph_dir,
+            primary_param="state_dir",
+            primary_value=state_dir,
+            alias_param="graph_dir",
+            alias_value=graph_dir,
             config_value=cli_config.state_dir,
         ).resolve()
         visibility_file = resolve_optional_path_option(
@@ -80,7 +91,7 @@ def register_serve_command(app: typer.Typer) -> None:
             config_value=(
                 cli_config.visibility.path
                 if cli_config.visibility.path is not None
-                else default_visibility_path(graph_dir)
+                else default_visibility_path(state_dir)
             ),
         )
         profile = resolve_optional_str_option(
@@ -94,7 +105,7 @@ def register_serve_command(app: typer.Typer) -> None:
             profile = None
         if config_only:
             try:
-                sys.stdout.write(mcp_config_json(graph_dir) + "\n")
+                sys.stdout.write(mcp_config_json(state_dir) + "\n")
                 sys.stdout.flush()
             except Exception as e:
                 console.print(f"[red]Failed to generate config JSON:[/red] {e}")
@@ -102,7 +113,7 @@ def register_serve_command(app: typer.Typer) -> None:
             return
         if print_config:
             try:
-                print_mcp_config(graph_dir, stream=sys.stderr)
+                print_mcp_config(state_dir, stream=sys.stderr)
             except Exception:
                 pass
             Console(file=sys.stderr).print(
@@ -110,7 +121,7 @@ def register_serve_command(app: typer.Typer) -> None:
             )
         try:
             run_server(
-                graph_dir,
+                state_dir,
                 visibility_path=vis_path,
                 profile=profile,
                 config=PretensorConfig(graph=cli_config.graph),
@@ -121,7 +132,7 @@ def register_serve_command(app: typer.Typer) -> None:
         except PermissionError as e:
             console.print(
                 f"[red]Permission denied accessing state directory:[/red] {e}\n"
-                "Check read permissions on the --graph-dir path."
+                "Check read permissions on the --state-dir path."
             )
             raise typer.Exit(1) from e
         except Exception as e:

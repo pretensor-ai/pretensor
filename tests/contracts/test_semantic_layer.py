@@ -1,7 +1,7 @@
 """Contract tests for SemanticLayer extension point.
 
 ``SemanticLayerContractTest`` verifies that any :class:`~pretensor.semantic.base.SemanticLayer`
-implementation satisfies the full interface contract.  Cloud implementations
+implementation satisfies the full interface contract.  Downstream implementations
 import this class and bind ``make_layer`` to their own factory.
 """
 
@@ -24,11 +24,11 @@ class SemanticLayerContractTest(abc.ABC):
 
     Subclass and implement :meth:`make_layer` to verify any semantic layer.
 
-    Example (Cloud)::
+    Example (downstream)::
 
-        class TestMyCloudSemanticLayer(SemanticLayerContractTest):
+        class TestMySemanticLayer(SemanticLayerContractTest):
             def make_layer(self) -> SemanticLayer:
-                return MyCloudSemanticLayer(config=...)
+                return MySemanticLayer(config=...)
     """
 
     @abc.abstractmethod

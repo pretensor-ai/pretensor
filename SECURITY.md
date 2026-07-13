@@ -55,6 +55,43 @@ Out of scope:
 - Vulnerabilities that require physical access or compromise of the host machine running Pretensor.
 - Denial-of-service issues that result from supplying deliberately large or malformed schemas to the indexer — operator responsibility.
 
+## Credential storage and key rotation
+
+Connection strings (DSNs) are encrypted at rest by default. On `pretensor index`
+and `pretensor reindex`, the DSN is encrypted with a per-state-dir symmetric key
+before it is written to the registry, so the registry never stores a plaintext
+password for connections created with current versions.
+
+Files under the state directory (default `.pretensor/`):
+
+- `keystore` — the symmetric key that decrypts every stored DSN. Written
+  owner-only (`0o600`); its parent directory is created `0o700`. On a shared or
+  multi-user host, keeping these permissions intact is what prevents other local
+  users from reading your database credentials. Pretensor warns when it loads an
+  existing keystore (during `index`/`reindex`/`add` or the first MCP tool call
+  that decrypts a DSN) if its permissions are looser than `0o600`.
+- `registry.json` — the connection registry. Written `0o600`. Entries created
+  before default-on encryption may still contain a cleartext DSN; re-running
+  `pretensor reindex` re-encrypts them (it never downgrades an entry to
+  cleartext).
+
+These permissions are enforced on POSIX systems. On Windows, file modes are not
+applied the same way — protect the state directory with filesystem ACLs.
+
+### Rotating the encryption key
+
+There is a single symmetric key. To rotate it (for example, if you suspect the
+keystore was exposed):
+
+1. Note the connections you have indexed (`pretensor list`).
+2. Delete the keystore: `rm .pretensor/keystore`.
+3. Re-add each connection (`pretensor add …`) or re-run `pretensor index …`.
+   A fresh keystore is generated and the DSNs are re-encrypted under the new key.
+
+Because the operator is the trusted party and a manual rotation path exists,
+Pretensor does not ship dedicated key-rotation tooling. Rotate the underlying
+**database** credentials through your database, not through Pretensor.
+
 ## Safe harbor
 
 We will not pursue legal action against researchers who:

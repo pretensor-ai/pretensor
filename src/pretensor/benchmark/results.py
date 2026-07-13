@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from pretensor.errors import PretensorError
+
 __all__ = [
     "BenchmarkResult",
     "ComparisonError",
@@ -128,7 +130,7 @@ def read_json(path: Path) -> BenchmarkResult:
     return BenchmarkResult.from_dict(data)
 
 
-class ComparisonError(ValueError):
+class ComparisonError(PretensorError, ValueError):
     """Raised when two ``BenchmarkResult`` inputs cannot be compared."""
 
 

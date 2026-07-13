@@ -8,7 +8,8 @@ Fixtures are resolved relative to the repo root (this module's grandparent of
 The returned :class:`Fixture` names the dataset, points to its schema-snapshot
 YAML (always present), and optionally to a DDL-only ``schema.sql`` and a gold
 NL-to-SQL question set. Datasets without DDL or a question set (``adversarial``,
-``analytics_dwh``, ``saas_multitenant``) return ``None`` for those fields.
+``analytics_dwh``, ``saas_multitenant``, ``messy_warehouse``) return ``None`` for
+those fields.
 """
 
 from __future__ import annotations

@@ -10,6 +10,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from pretensor.core.dsn_crypto import DSNEncryptor
+from pretensor.core.secure_io import atomic_write_text
+from pretensor.errors import PretensorError
 
 __all__ = [
     "GraphRegistry",
@@ -21,7 +23,7 @@ __all__ = [
 _REGISTRY_VERSION = 1
 
 
-class DatabaseNotFoundError(KeyError):
+class DatabaseNotFoundError(PretensorError, KeyError):
     """Raised when a connection name is missing from the registry."""
 
 
@@ -190,12 +192,15 @@ class GraphRegistry:
         return Path(next(iter(paths)))
 
     def save(self) -> None:
-        """Write registry atomically."""
+        """Write the registry atomically with owner-only (0o600) permissions.
+
+        The registry can hold a cleartext DSN for entries that predate
+        default-on encryption, so it is written 0o600 to keep credentials off
+        a shared host's other users.
+        """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         payload: dict[str, Any] = self._data.model_dump(mode="json")
-        tmp = self._path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        tmp.replace(self._path)
+        atomic_write_text(self._path, json.dumps(payload, indent=2), mode=0o600)
 
 
 class MultiDatabaseRegistry(GraphRegistry):

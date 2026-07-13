@@ -1,7 +1,7 @@
 """Semantic layer extension point for Pretensor.
 
 OSS ships ``NullSemanticLayer`` (all methods return None/empty).
-Cloud implementations override ``SemanticLayer`` to populate the
+Downstream implementations override ``SemanticLayer`` to populate the
 reserved Kuzu node types (``Metric``, ``Dimension``, ``BusinessRule``)
 and their associated edge types.
 """

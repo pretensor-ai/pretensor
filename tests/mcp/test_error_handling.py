@@ -39,13 +39,16 @@ def test_tool_registry_catches_handler_exception() -> None:
     )
     result = asyncio.run(reg.call_tool("exploder", {}))
     assert "error" in result
-    assert "exploded" in result["error"]
+    # The opaque envelope must NOT echo the exception text to the client.
+    assert "exploded" not in result["error"]
+    assert result["error"] == "Internal tool error"
     assert result.get("tool") == "exploder"
+    assert "correlation_id" in result
 
 
-def test_tool_registry_exception_includes_traceback() -> None:
+def test_tool_registry_exception_envelope_is_opaque() -> None:
     async def _raises(args: dict) -> dict:
-        raise ValueError("something went wrong")
+        raise ValueError("something went wrong at /home/secret/graph.kuzu")
 
     reg = McpToolRegistry()
     reg.register(
@@ -58,7 +61,11 @@ def test_tool_registry_exception_includes_traceback() -> None:
     )
     result = asyncio.run(reg.call_tool("bad", {}))
     assert "error" in result
-    assert "traceback" in result
+    # No traceback key, no exception text, no filesystem path leaks.
+    assert "traceback" not in result
+    assert "something went wrong" not in result["error"]
+    assert "/home/secret" not in str(result)
+    assert "correlation_id" in result
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +127,9 @@ def test_context_payload_unknown_database(tmp_path: Path) -> None:
 
     result = context_payload(tmp_path, table="orders", db="nonexistent")
     assert "error" in result
-    assert "nonexistent" in result["error"].lower() or "unknown" in result["error"].lower()
+    assert (
+        "nonexistent" in result["error"].lower() or "unknown" in result["error"].lower()
+    )
 
 
 def test_cypher_payload_unknown_database(tmp_path: Path) -> None:
@@ -132,7 +141,9 @@ def test_cypher_payload_unknown_database(tmp_path: Path) -> None:
         database="nonexistent",
     )
     assert "error" in result
-    assert "nonexistent" in result["error"].lower() or "unknown" in result["error"].lower()
+    assert (
+        "nonexistent" in result["error"].lower() or "unknown" in result["error"].lower()
+    )
 
 
 def test_impact_payload_unknown_database(tmp_path: Path) -> None:
@@ -235,7 +246,9 @@ def test_cypher_payload_mutating_query(tmp_path: Path) -> None:
     _write_registry_only(tmp_path)
     result = cypher_payload(tmp_path, query="CREATE (n:Node)", database="demo")
     assert "error" in result
-    assert "read" in result["error"].lower() or "not permitted" in result["error"].lower()
+    assert (
+        "read" in result["error"].lower() or "not permitted" in result["error"].lower()
+    )
 
 
 def test_cypher_payload_invalid_timeout(tmp_path: Path) -> None:

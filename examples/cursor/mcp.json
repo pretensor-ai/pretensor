@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pretensor": {
+      "command": "pretensor",
+      "args": ["serve", "--graph-dir", "/absolute/path/to/.pretensor"]
+    }
+  }
+}

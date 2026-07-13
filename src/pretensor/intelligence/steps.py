@@ -1,7 +1,7 @@
 """PipelineStep Protocol and PipelineRunner for the intelligence pipeline.
 
 The runner resolves step execution order from declared dependencies and executes
-each step in sequence.  Cloud can register additional steps (e.g. ``llm_refine``,
+each step in sequence.  Plugins can register additional steps (e.g. ``llm_refine``,
 ``feedback_score``, ``semantic_propose``) by appending them before calling
 :meth:`PipelineRunner.run`.
 """
@@ -11,12 +11,42 @@ from __future__ import annotations
 import logging
 from typing import Any, Protocol, runtime_checkable
 
-__all__ = ["PipelineStep", "PipelineRunner", "PipelineContext", "CyclicDependencyError"]
+__all__ = [
+    "CyclicDependencyError",
+    "PipelineContext",
+    "PipelineRunner",
+    "PipelineStep",
+]
+# The underscore-prefixed ``_CTX_*`` constants below are intentionally
+# omitted from ``__all__`` — they are private-by-convention names shared
+# across step modules in this package. Importing them by full path is
+# fine for in-package callers; they should not be re-exported as part of
+# the public API surface.
+
+from pretensor.errors import PretensorError
 
 logger = logging.getLogger(__name__)
 
 
-class CyclicDependencyError(ValueError):
+# ---------------------------------------------------------------------------
+# Canonical ``PipelineContext`` keys — single source of truth.
+# Both :mod:`pretensor.intelligence.pipeline` (the orchestration layer) and
+# every step module that needs to read or write artifacts on the context
+# import from here. Keeping them in one place prevents the silent no-op
+# class of bug where a string diverges between writer and reader.
+# ---------------------------------------------------------------------------
+_CTX_STORE = "store"
+_CTX_DATABASE_KEY = "database_key"
+_CTX_CONFIG = "config"
+_CTX_GRAPH = "graph"
+_CTX_ROLE_BY_TABLE = "role_by_table"
+_CTX_CLUSTERS = "clusters"
+_CTX_PATTERNS = "patterns"
+_CTX_EMBEDDINGS_CONFIG = "embeddings_config"
+_CTX_EMBEDDINGS_PRECOMPUTED = "embeddings_precomputed"
+
+
+class CyclicDependencyError(PretensorError, ValueError):
     """Raised when the pipeline step dependency graph contains a cycle."""
 
 
