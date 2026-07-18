@@ -1,0 +1,91 @@
+{
+  "dataset": "pagila",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:35fb2bebef5ca2e444d2979394b04d424e9965abf22097df34065f915bab9dcf",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.7
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": null
+    }
+  },
+  "notes": [
+    "role_f1 unavailable for dataset 'pagila': no gold-role annotation file (only adversarial has labels today)."
+  ],
+  "per_item": [
+    {
+      "expected": true,
+      "id": "public.actor.actor_id\u2194public.film_actor.actor_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.customer.customer_id\u2194public.payment.customer_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.customer.customer_id\u2194public.rental.customer_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.film.film_id\u2194public.film_actor.actor_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.film.film_id\u2194public.film_actor.film_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.film.film_id\u2194public.inventory.film_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.film_actor.film_id\u2194public.inventory.film_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.inventory.inventory_id\u2194public.rental.inventory_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "public.payment.customer_id\u2194public.rental.customer_id",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "public.payment.rental_id\u2194public.rental.rental_id",
+      "kind": "inferred_join",
+      "predicted": true
+    }
+  ],
+  "pretensor_version": "0.1.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

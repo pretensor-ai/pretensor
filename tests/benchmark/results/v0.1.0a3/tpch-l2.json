@@ -1,0 +1,562 @@
+{
+  "dataset": "tpch",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:2eedcb4b2454b3dd34af1037ba2c627c251aa2fe107516dcde47cf07d3a10ea8",
+  "level": "l2",
+  "metrics": {
+    "compile_metric_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "query_recall_at_5": {
+      "direction": "higher_is_better",
+      "value": 0.6903679653679654
+    },
+    "traverse_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    }
+  },
+  "notes": [
+    "semantic_search_recall_at_5 skipped: --embeddings not requested or the [embeddings] extra is not installed."
+  ],
+  "per_item": [
+    {
+      "error": null,
+      "id": "total_lineitems",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_orders",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_revenue",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders"
+      ],
+      "id": "tpch_q10_returned_item_reporting",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "nation",
+        "orders"
+      ],
+      "recall": 0.75,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "nation",
+        "partsupp",
+        "supplier"
+      ],
+      "id": "tpch_q11_important_stock_identification",
+      "kind": "query_recall",
+      "matched": [
+        "nation",
+        "partsupp"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "partsupp",
+        "region"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "orders"
+      ],
+      "id": "tpch_q12_shipping_modes_and_order_priority",
+      "kind": "query_recall",
+      "matched": [
+        "orders"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "orders"
+      ],
+      "id": "tpch_q13_customer_distribution",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "orders"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "customer",
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "part"
+      ],
+      "id": "tpch_q14_promotion_effect",
+      "kind": "query_recall",
+      "matched": [
+        "part"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "part"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "revenue0",
+        "supplier"
+      ],
+      "id": "tpch_q15_top_supplier",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "part",
+        "partsupp",
+        "region"
+      ]
+    },
+    {
+      "gold_tables": [
+        "part",
+        "partsupp",
+        "supplier"
+      ],
+      "id": "tpch_q16_parts_supplier_relationship",
+      "kind": "query_recall",
+      "matched": [
+        "part",
+        "supplier"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "customer",
+        "part",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "part"
+      ],
+      "id": "tpch_q17_small_quantity_order_revenue",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem",
+        "part"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "lineitem",
+        "orders",
+        "part",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "orders"
+      ],
+      "id": "tpch_q18_large_volume_customer",
+      "kind": "query_recall",
+      "matched": [
+        "customer"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "part",
+        "region",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "part"
+      ],
+      "id": "tpch_q19_discounted_revenue",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "lineitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem"
+      ],
+      "id": "tpch_q1_pricing_summary",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "lineitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "nation",
+        "part",
+        "partsupp",
+        "supplier"
+      ],
+      "id": "tpch_q20_potential_part_promotion",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem",
+        "nation",
+        "part",
+        "supplier"
+      ],
+      "recall": 0.8,
+      "retrieved_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "part",
+        "region",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "nation",
+        "orders",
+        "supplier"
+      ],
+      "id": "tpch_q21_suppliers_who_kept_orders_waiting",
+      "kind": "query_recall",
+      "matched": [
+        "nation",
+        "orders"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "orders",
+        "part",
+        "region"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "orders"
+      ],
+      "id": "tpch_q22_global_sales_opportunity",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "orders"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "customer",
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "nation",
+        "part",
+        "partsupp",
+        "region",
+        "supplier"
+      ],
+      "id": "tpch_q2_minimum_cost_supplier",
+      "kind": "query_recall",
+      "matched": [
+        "nation",
+        "part",
+        "region",
+        "supplier"
+      ],
+      "recall": 0.8,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "part",
+        "region",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "orders"
+      ],
+      "id": "tpch_q3_shipping_priority",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "orders"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "customer",
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "orders"
+      ],
+      "id": "tpch_q4_order_priority_checking",
+      "kind": "query_recall",
+      "matched": [
+        "orders"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "orders"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "region",
+        "supplier"
+      ],
+      "id": "tpch_q5_local_supplier_volume",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "nation",
+        "orders",
+        "supplier"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "orders",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem"
+      ],
+      "id": "tpch_q6_forecasting_revenue_change",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "lineitem"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "supplier"
+      ],
+      "id": "tpch_q7_volume_shipping",
+      "kind": "query_recall",
+      "matched": [
+        "customer",
+        "nation",
+        "supplier"
+      ],
+      "recall": 0.6,
+      "retrieved_tables": [
+        "customer",
+        "nation",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "part",
+        "region",
+        "supplier"
+      ],
+      "id": "tpch_q8_national_market_share",
+      "kind": "query_recall",
+      "matched": [
+        "orders",
+        "part",
+        "region",
+        "supplier"
+      ],
+      "recall": 0.5714285714285714,
+      "retrieved_tables": [
+        "orders",
+        "part",
+        "region",
+        "supplier"
+      ]
+    },
+    {
+      "gold_tables": [
+        "lineitem",
+        "nation",
+        "orders",
+        "part",
+        "partsupp",
+        "supplier"
+      ],
+      "id": "tpch_q9_product_type_profit",
+      "kind": "query_recall",
+      "matched": [
+        "lineitem",
+        "nation",
+        "orders",
+        "part",
+        "supplier"
+      ],
+      "recall": 0.8333333333333334,
+      "retrieved_tables": [
+        "customer",
+        "lineitem",
+        "nation",
+        "orders",
+        "part",
+        "region",
+        "supplier"
+      ]
+    },
+    {
+      "correct": true,
+      "from_table": "public.supplier",
+      "gold_path": [
+        [
+          "public.supplier",
+          "public.nation"
+        ],
+        [
+          "public.nation",
+          "public.region"
+        ]
+      ],
+      "id": "tpch_q2_minimum_cost_supplier",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.supplier",
+            "public.nation"
+          ],
+          [
+            "public.nation",
+            "public.region"
+          ]
+        ]
+      ],
+      "to_table": "public.region"
+    },
+    {
+      "correct": true,
+      "from_table": "public.customer",
+      "gold_path": [
+        [
+          "public.customer",
+          "public.orders"
+        ],
+        [
+          "public.orders",
+          "public.lineitem"
+        ]
+      ],
+      "id": "tpch_q3_shipping_priority",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.customer",
+            "public.orders"
+          ],
+          [
+            "public.orders",
+            "public.lineitem"
+          ]
+        ]
+      ],
+      "to_table": "public.lineitem"
+    },
+    {
+      "correct": true,
+      "from_table": "public.lineitem",
+      "gold_path": [
+        [
+          "public.lineitem",
+          "public.orders"
+        ]
+      ],
+      "id": "tpch_q4_order_priority_checking",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.lineitem",
+            "public.orders"
+          ]
+        ]
+      ],
+      "to_table": "public.orders"
+    }
+  ],
+  "pretensor_version": "0.1.0a3",
+  "ran_at": "1970-01-01T00:00:00Z"
+}
