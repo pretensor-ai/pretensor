@@ -119,6 +119,10 @@ def register_serve_command(app: typer.Typer) -> None:
             Console(file=sys.stderr).print(
                 "[dim]MCP JSON-RPC on stdout — stderr above is config only.[/dim]",
             )
+        # Startup/runtime errors must go to stderr: stdout is the JSON-RPC
+        # protocol channel, and MCP clients surface stderr — not stdout — in
+        # their logs, so an error printed to stdout reads as a silent crash.
+        err_console = Console(file=sys.stderr)
         try:
             run_server(
                 state_dir,
@@ -127,14 +131,14 @@ def register_serve_command(app: typer.Typer) -> None:
                 config=PretensorConfig(graph=cli_config.graph),
             )
         except ValueError as e:
-            console.print(f"[red]{e}[/red]")
+            err_console.print(f"[red]{e}[/red]")
             raise typer.Exit(1) from e
         except PermissionError as e:
-            console.print(
+            err_console.print(
                 f"[red]Permission denied accessing state directory:[/red] {e}\n"
                 "Check read permissions on the --state-dir path."
             )
             raise typer.Exit(1) from e
         except Exception as e:
-            console.print(f"[red]MCP server error:[/red] {e}")
+            err_console.print(f"[red]MCP server error:[/red] {e}")
             raise typer.Exit(1) from e

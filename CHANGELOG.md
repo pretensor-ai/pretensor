@@ -5,12 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [PEP 440](https://peps.python.org/pep-0440/) versioning.
 
-Pretensor is currently in alpha on PyPI (`pip install pretensor` —
-no `--pre` needed yet because no stable release exists). Until `1.0.0`
-ships, the schema and CLI surface can change between versions; this
-changelog tracks what moves between releases.
+`0.1.0` is the first non-alpha release: `pip install pretensor` resolves
+to the latest non-prerelease version, and pre-releases published after it
+require `--pre`. Until `1.0.0` ships, the schema and CLI surface can
+still change between minor versions; this changelog tracks what moves
+between releases.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-08-13
+
+### Fixed
+- `pretensor serve` crashed at startup on fresh installs: the unbounded
+  `mcp>=1.0` dependency resolved to the new `mcp` 2.0 major release,
+  whose `Server` API is incompatible. The dependency is now capped to
+  `mcp>=1.0,<2` (2.x support is tracked as follow-up work), and an
+  end-to-end stdio smoke test now exercises the real CLI handshake so a
+  startup-breaking dependency drift fails in CI instead of on users'
+  machines.
+- `pretensor serve` startup errors are printed to stderr instead of
+  stdout. Stdout is the MCP JSON-RPC channel and clients only surface
+  stderr in their logs, so a startup failure looked like a silent
+  disconnect.
+- `pretensor analyze`: statements quoting identifiers with backticks
+  (MySQL, BigQuery `` `project.dataset.table` ``) no longer fail table
+  resolution. The multi-dialect parse retry accepted the first dialect
+  returning any refs, and generic-dialect tokenization of backticks
+  produced garbage names that stopped the retry before the right dialect
+  ran; implausible refs are now treated as a failed parse.
+- `pretensor analyze`: table references resolve case-insensitively when
+  exactly one indexed table matches, so conventional lowercase SQL
+  resolves against Snowflake's uppercase-stored identifiers. Exact
+  matches still win, and ambiguous case-variant twins stay dropped.
+- `pretensor analyze`: MySQL `REPLACE INTO` statements are recognized and
+  classified as writes (sqlglot cannot parse them in any dialect; the
+  pre-parse normalizer rewrites them to `INSERT INTO`, which has the same
+  write-target shape).
+- `pretensor analyze`: SQL-bearing variable detection also matches
+  affixed names (`merge_sql`, `orders_query`, `sql_fetch_users`), not
+  only the exact names `query`/`sql`/`stmt`/`statement`. The is-this-SQL
+  classifier still gates every candidate, so non-SQL strings in such
+  variables are rejected as before.
+- The MCP `cypher` tool no longer leaks a worker thread per timed-out
+  query: all queries now run on one shared, bounded thread pool, and a
+  timeout returns immediately instead of blocking until the runaway
+  query finishes. Under sustained slow-query load the previous
+  per-query executors could accumulate threads without limit.
+
+### Added
+- `pretensor analyze`: scan an application repository for SQL string
+  literals in Python source and link the code that issues them to the
+  indexed tables in the graph. Produces `ExternalConsumer` nodes and
+  `CONSUMES` edges carrying provenance (service, file, line range,
+  read/write op, confidence), written idempotently per scan run with
+  stale rows swept on re-scan. Raw SQL text is never stored — only a
+  `sha256[:16]` fingerprint and the resolved table references. Flags:
+  required `--connection`, `--service`, repeatable `--include` /
+  `--exclude`, `--max-file-bytes`, `--min-confidence`,
+  `--default-schema` (schema assumed for unqualified table names),
+  `--dry-run`, and `--json`. When the graph has no tables for the
+  connection the command errors with a copy-pasteable `pretensor index`
+  hint; it never auto-indexes. A `# noqa: pretensor-analyze` comment on
+  or above a statement opts it out of extraction.
+- `consumers` MCP tool: the external code locations that read or write
+  one table (service, file, line range, op, kind, confidence), from the
+  data produced by `pretensor analyze`. Optional `op` filter and
+  `min_confidence` cutoff.
+- The `impact` MCP tool now attaches a `consumers` list to every
+  reached table. The field is additive — existing callers that ignore
+  it are unaffected.
+- `pathspec` added to base dependencies (gitignore-aware repository
+  walking for `analyze`).
 
 ## [0.1.0a4] - 2026-07-13
 

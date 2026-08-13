@@ -3,12 +3,12 @@
 [![PyPI](https://img.shields.io/pypi/v/pretensor.svg)](https://pypi.org/project/pretensor/)
 [![CI](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pretensor-ai/pretensor/actions/workflows/ci.yml)
 [![Bench](https://github.com/pretensor-ai/pretensor/actions/workflows/bench.yml/badge.svg?branch=main)](https://github.com/pretensor-ai/pretensor/actions/workflows/bench.yml)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-yellow.svg)](#status)
+[![Status: Beta](https://img.shields.io/badge/status-beta-blue.svg)](#status)
 [![Python: 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](#prerequisites)
 
 **Pretensor OSS** introspects **PostgreSQL** and **Snowflake**, with optional **BigQuery** connector support, builds a **Kuzu** knowledge graph of tables, columns, foreign keys, inferred joins, and related metadata, and exposes that graph to AI tools through an **MCP** (Model Context Protocol) server. Agents query schema context and search without issuing raw SQL against your graph store.
 
-> **Status: Alpha.** Pretensor is on PyPI as `pretensor` and currently in alpha. CLI flags, MCP tools, and graph schema can still change between alpha versions — pin exact versions until `1.0.0`. See [docs/releases.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/releases.md) for the versioning policy.
+> **Status: Beta.** Pretensor is on PyPI as `pretensor`; `0.1.0` is the first non-alpha release. CLI flags, MCP tools, and graph schema can still change between minor versions — pin exact versions until `1.0.0`. See [docs/releases.md](https://github.com/pretensor-ai/pretensor/blob/main/docs/releases.md) for the versioning policy.
 
 ## Who is this for
 
@@ -57,7 +57,7 @@ Try it without installing:
 uvx --from pretensor pretensor --help
 ```
 
-> **A note on alpha versions.** Pretensor is in alpha. The plain `pip install pretensor` command picks up the latest alpha because PyPI has no stable release yet. Once `1.0.0` ships, future alphas will require `--pre` (e.g. `pip install --pre pretensor`); pin to a specific version (e.g. `pretensor==<version>`) if you want a deterministic install today — see the [PyPI badge above](https://pypi.org/project/pretensor/) for the latest.
+> **A note on versions.** From `0.1.0` on, plain `pip install pretensor` resolves to the latest non-alpha release, and pre-releases require `--pre` (e.g. `pip install --pre pretensor`). Pin to a specific version (e.g. `pretensor==<version>`) if you want a deterministic install — see the [PyPI badge above](https://pypi.org/project/pretensor/) for the latest.
 
 If you want to hack on Pretensor itself rather than use it, see the contributor setup in [CONTRIBUTING.md](https://github.com/pretensor-ai/pretensor/blob/main/CONTRIBUTING.md) for the `git clone` + `make install` flow.
 
@@ -74,6 +74,26 @@ Use **`--state-dir`** on `index` / `reindex` and **`--graph-dir`** on `serve` wh
 
 **Full guide — install, tools, visibility, reindexing, graph visualization:** [guides/quickstart.md](https://github.com/pretensor-ai/pretensor/blob/main/guides/quickstart.md)
 
+## Scan application code (`analyze`)
+
+```bash
+pretensor analyze path/to/service-repo --connection mydb
+```
+
+`analyze` scans a repository for SQL string literals in Python source (stdlib
+AST — no code is executed), resolves each statement's table references with
+sqlglot, and links the issuing code to the matching tables in the graph as
+external consumers: service, file, line range, read/write op, and a confidence
+score. Raw SQL text is never stored, only a fingerprint. The results power the
+`consumers` MCP tool and enrich `impact`, so an agent can answer "which
+services consume this table?" with provenance.
+
+Useful flags: `--service` labels the scanned repo (defaults to the directory
+name), `--default-schema` sets the schema assumed for unqualified table names,
+`--dry-run` previews without writing, `--json` emits a machine-readable
+summary. A `# noqa: pretensor-analyze` comment on or above a statement opts it
+out.
+
 ## MCP tools
 
 | Name | Role |
@@ -85,7 +105,8 @@ Use **`--state-dir`** on `index` / `reindex` and **`--graph-dir`** on `serve` wh
 | `cypher` | Read-only Kuzu Cypher for one indexed database; mutating clauses are rejected. |
 | `context` | Full context for one physical table, including columns, joins, lineage, and cluster metadata. Optional `include_similar` arg surfaces cross-cluster nearest neighbors when embeddings are present. |
 | `traverse` | Join paths between two physical tables. When ambiguous and tables carry embeddings, ranks tied paths by embedding similarity. |
-| `impact` | Downstream tables reachable from a table via FK and inferred-join edges. |
+| `impact` | Downstream tables reachable from a table via FK and inferred-join edges. Each reached table carries the external code consumers found by `pretensor analyze`. |
+| `consumers` | External code locations (service, file, line range, read/write op, confidence) that consume one table, from `pretensor analyze`. |
 | `detect_changes` | Compare the live database schema to the last indexed snapshot without mutating the graph. |
 | `compile_metric` | Compile semantic-layer YAML into validated SQL for one indexed database. The error string includes a "did you mean: …" suggestion list when an unresolved metric, table, or column name has close matches. |
 | `validate_sql` | Validate SQL against the indexed graph before execution. |
@@ -116,16 +137,17 @@ example per framework.
 - **`connectors/`** — database-specific introspection (PostgreSQL, Snowflake, BigQuery)
 - **`core/`** — Kuzu graph store, schema writing, relationship discovery
 - **`intelligence/`** — deterministic graph intelligence (classification, clustering, join-path precomputation; metric-template code exists but is not part of the default OSS indexing flow)
+- **`enrichment/`** — optional graph enrichment passes (dbt manifest, `analyze` code scanner)
 - **`mcp/`** — MCP server, tools, resources
-- **`cli/`** — Typer CLI (`index`, `reindex`, `serve`, `list`, `quickstart`, `export`, `validate`, `sync-grants`, `add`, `remove`, plus the `semantic` subcommand group)
+- **`cli/`** — Typer CLI (`index`, `reindex`, `analyze`, `serve`, `list`, `quickstart`, `export`, `validate`, `sync-grants`, `add`, `remove`, plus the `semantic` subcommand group)
 
 ## Status
 
-Pretensor is in **pre-release development**. Before the first packaged release:
+Pretensor is **early software**:
 
-- The package on PyPI is named `pretensor`. The first stable release will be `1.0.0`; everything before that is alpha. `pip install pretensor` works today because no stable version exists yet — `--pre` will be required once `1.0.0` ships and future alphas resume.
-- There is no SemVer stability guarantee yet, so CLI flags, MCP tools, and graph schema may change between alphas. Pin exact versions.
-- Treat current builds as evaluation software and test upgrades in a staging environment before production use.
+- The package on PyPI is named `pretensor`. `0.1.0` is the first non-alpha release; pre-releases published after it require `--pre` to install.
+- There is no SemVer stability guarantee before `1.0.0`, so CLI flags, MCP tools, and graph schema may still change between releases. Pin exact versions.
+- Test upgrades in a staging environment before production use.
 
 Progress and release notes: [CHANGELOG.md](https://github.com/pretensor-ai/pretensor/blob/main/CHANGELOG.md).
 

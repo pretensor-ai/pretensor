@@ -151,7 +151,10 @@ jobs:
           TAG: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet --exit-code tests/benchmark/results/; then
+          # The artifact lands as untracked files in a fresh checkout, so
+          # `git diff` never sees it — check the porcelain status (which
+          # includes untracked paths) instead.
+          if [ -z "$(git status --porcelain tests/benchmark/results/)" ]; then
             echo "No release-gate JSON to archive."
             exit 0
           fi

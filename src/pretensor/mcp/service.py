@@ -15,6 +15,7 @@ from pretensor.mcp.resources import (
 )
 from pretensor.mcp.service_registry import resolve_registry_entry
 from pretensor.mcp.tools.compile_metric import compile_metric_payload
+from pretensor.mcp.tools.consumers import consumers_payload
 from pretensor.mcp.tools.context import context_payload
 from pretensor.mcp.tools.cypher import cypher_payload
 from pretensor.mcp.tools.detect_changes import detect_changes_payload
@@ -34,6 +35,7 @@ __all__ = [
     "context_payload",
     "traverse_payload",
     "impact_payload",
+    "consumers_payload",
     "detect_changes_payload",
     "compile_metric_payload",
     "schema_payload",

@@ -2209,6 +2209,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pathspec"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/82/42f767fc1c1143d6fd36efb827202a2d997a375e160a71eb2888a925aac1/pathspec-1.1.1.tar.gz", hash = "sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a", size = 135180, upload-time = "2026-04-27T01:46:08.907Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl", hash = "sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189", size = 57328, upload-time = "2026-04-27T01:46:07.06Z" },
+]
+
+[[package]]
 name = "pillow"
 version = "12.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2331,7 +2340,7 @@ wheels = [
 
 [[package]]
 name = "pretensor"
-version = "0.1.0a4"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -2339,6 +2348,7 @@ dependencies = [
     { name = "igraph" },
     { name = "kuzu" },
     { name = "mcp" },
+    { name = "pathspec" },
     { name = "pydantic" },
     { name = "rapidfuzz" },
     { name = "rich" },
@@ -2423,10 +2433,11 @@ requires-dist = [
     { name = "leidenalg", marker = "extra == 'clustering'", specifier = ">=0.10" },
     { name = "leidenalg", marker = "extra == 'dev'", specifier = ">=0.10" },
     { name = "llama-index-core", marker = "extra == 'llama-index'", specifier = ">=0.10" },
-    { name = "mcp", specifier = ">=1.0" },
+    { name = "mcp", specifier = ">=1.0,<2" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'embeddings'", specifier = ">=1.26" },
     { name = "onnxruntime", marker = "extra == 'embeddings'", specifier = ">=1.17" },
+    { name = "pathspec", specifier = ">=0.12" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
     { name = "psycopg2-binary", marker = "extra == 'all-connectors'", specifier = ">=2.9" },
     { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = ">=2.9" },

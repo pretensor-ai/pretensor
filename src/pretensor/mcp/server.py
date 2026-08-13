@@ -28,6 +28,9 @@ from pretensor.mcp.tools import (
     compile_metric as compile_metric_tool,
 )
 from pretensor.mcp.tools import (
+    consumers as consumers_tool,
+)
+from pretensor.mcp.tools import (
     context as context_tool,
 )
 from pretensor.mcp.tools import (
@@ -100,6 +103,7 @@ def _build_oss_registry(graph_dir: Path) -> McpToolRegistry:
         context_tool.create_tool,
         traverse_tool.create_tool,
         impact_tool.create_tool,
+        consumers_tool.create_tool,
         detect_changes_tool.create_tool,
         compile_metric_tool.create_tool,
         validate_sql_tool.create_tool,

@@ -93,6 +93,8 @@ class GraphSchemaManager:
         self._conn.execute(graph_schema.DDL_CREATE_SEMANTIC_METRIC_DEPENDS_REL)
         self._conn.execute(graph_schema.DDL_CREATE_SEMANTIC_DIMENSION_LEVEL_REL)
         self._conn.execute(graph_schema.DDL_CREATE_SEMANTIC_RULE_APPLIES_TO_REL)
+        self._conn.execute(graph_schema.DDL_CREATE_EXTERNAL_CONSUMER_NODE)
+        self._conn.execute(graph_schema.DDL_CREATE_CONSUMES_REL)
 
     def _ensure_schema_table_entity_type_column(self) -> None:
         """Add ``entity_type`` to ``SchemaTable`` when upgrading older graph files."""
