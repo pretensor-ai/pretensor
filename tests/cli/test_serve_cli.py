@@ -97,9 +97,7 @@ def test_serve_passes_visibility_path(tmp_path: Path) -> None:
         captured["config"] = config
 
     with (
-        patch(
-            "pretensor.cli.commands.serve.run_server", side_effect=_fake_run_server
-        ),
+        patch("pretensor.cli.commands.serve.run_server", side_effect=_fake_run_server),
         patch("pretensor.cli.commands.serve.print_mcp_config"),
     ):
         result = CliRunner().invoke(
@@ -132,7 +130,9 @@ def test_serve_value_error_exits_1(tmp_path: Path) -> None:
             ["serve", "--no-print-config", "--graph-dir", str(tmp_path)],
         )
     assert result.exit_code == 1
-    assert "bad config" in _normalize(result.stdout)
+    # Serve errors go to stderr: stdout is the JSON-RPC protocol channel,
+    # and MCP clients only surface stderr in their logs.
+    assert "bad config" in _normalize(result.stderr)
 
 
 def test_serve_profile_empty_string_normalised(tmp_path: Path) -> None:
@@ -146,9 +146,7 @@ def test_serve_profile_empty_string_normalised(tmp_path: Path) -> None:
         captured["config"] = config
 
     with (
-        patch(
-            "pretensor.cli.commands.serve.run_server", side_effect=_fake_run_server
-        ),
+        patch("pretensor.cli.commands.serve.run_server", side_effect=_fake_run_server),
         patch("pretensor.cli.commands.serve.print_mcp_config"),
     ):
         result = CliRunner().invoke(

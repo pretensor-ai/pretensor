@@ -159,7 +159,7 @@ def test_oss_registry_has_expected_tools() -> None:
     from pretensor.mcp.server import _build_oss_registry
 
     registry = _build_oss_registry(Path("/tmp/fake"))
-    assert len(registry) == 11
+    assert len(registry) == 12
     expected_tools = {
         "list_databases",
         "schema",
@@ -169,6 +169,7 @@ def test_oss_registry_has_expected_tools() -> None:
         "context",
         "traverse",
         "impact",
+        "consumers",
         "detect_changes",
         "compile_metric",
         "validate_sql",
@@ -194,4 +195,4 @@ def test_create_server_accepts_extra_tools(tmp_path: Path) -> None:
     registry = _build_oss_registry(tmp_path)
     registry.register(extra)
     assert "suggest_query" in registry
-    assert len(registry) == 12
+    assert len(registry) == 13

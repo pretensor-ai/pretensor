@@ -22,9 +22,7 @@ def table_refs_from_sql(
     if not sql or not sql.strip():
         return []
     try:
-        parsed = sqlglot.parse_one(
-            sql, dialect=dialect, error_level=ErrorLevel.WARN
-        )
+        parsed = sqlglot.parse_one(sql, dialect=dialect, error_level=ErrorLevel.WARN)
     except Exception as exc:
         logger.warning("sqlglot parse failed (%s): %s", dialect, exc)
         return []
@@ -61,20 +59,28 @@ def dml_write_targets(
     if not sql or not sql.strip():
         return []
     try:
-        parsed = sqlglot.parse_one(
-            sql, dialect=dialect, error_level=ErrorLevel.WARN
-        )
+        parsed = sqlglot.parse_one(sql, dialect=dialect, error_level=ErrorLevel.WARN)
     except Exception as exc:
         logger.warning("sqlglot parse failed (%s): %s", dialect, exc)
         return []
     return _write_targets_from_expr(parsed, default_schema=default_schema)
 
 
-def _write_targets_from_expr(expr: Any, *, default_schema: str) -> list[tuple[str, str]]:
+def _unwrap_target_table(node: Any) -> exp.Table | None:
+    """Unwrap a DML target to its Table; INSERT with a column list wraps the
+    table in ``exp.Schema(this=Table, expressions=[columns])``."""
+    if isinstance(node, exp.Schema):
+        node = node.this
+    return node if isinstance(node, exp.Table) else None
+
+
+def _write_targets_from_expr(
+    expr: Any, *, default_schema: str
+) -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     for ins in expr.find_all(exp.Insert):
-        tbl = ins.this
-        if isinstance(tbl, exp.Table):
+        tbl = _unwrap_target_table(ins.this)
+        if tbl is not None:
             out.append((_schema_for_table(tbl, default_schema), str(tbl.name)))
     for upd in expr.find_all(exp.Update):
         tbl = upd.this

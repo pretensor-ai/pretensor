@@ -12,6 +12,7 @@ This guide takes you from zero to a running MCP server connected to a real datab
 - [7. Visibility and profiles](#7-visibility-and-profiles)
 - [8. Reindex after schema changes](#8-reindex-after-schema-changes)
 - [9. Embeddings (optional)](#9-embeddings-optional)
+- [10. Link application code to tables (`analyze`)](#10-link-application-code-to-tables-analyze)
 
 ---
 
@@ -58,7 +59,7 @@ pip install 'pretensor[postgres]'
 uv pip install 'pretensor[postgres]'
 ```
 
-Once installed, the `pretensor` CLI is on `$PATH` and Sections 2–8 below assume you can call it directly. Pretensor is currently in alpha; `pip install pretensor` picks up the latest alpha automatically because no stable release exists yet (once `1.0.0` ships, you'll need `--pre` to keep installing alphas).
+Once installed, the `pretensor` CLI is on `$PATH` and Sections 2–8 below assume you can call it directly. From `0.1.0` on, `pip install pretensor` resolves to the latest non-alpha release; pre-releases require `--pre`.
 
 > **The database driver is an extra.** A bare `pip install pretensor` installs no
 > DB driver, so `pretensor index postgresql://…` fails at connect time with a
@@ -193,10 +194,12 @@ pretensor index ... --skills-target /tmp/my-graph-skill.md
 | `list_databases` | List indexed database connections with table counts, schemas, capabilities, and staleness |
 | `schema` | Inspect node labels, edge types, and available properties before writing Cypher |
 | `query` | BM25 full-text search over table and entity metadata; optional `db` filter |
+| `semantic_search` | Cosine ranking over indexed table embeddings (requires the `[embeddings]` extra; falls back to BM25 otherwise) |
 | `cypher` | Read-only Kuzu Cypher; mutating clauses are rejected |
 | `context` | Full context for one table: columns, classifier fields, joins, lineage, entity, cluster |
 | `traverse` | Join paths between two physical tables |
-| `impact` | Downstream tables reachable through FK and inferred-join edges |
+| `impact` | Downstream tables reachable through FK and inferred-join edges; each reached table carries its external code consumers from `pretensor analyze` |
+| `consumers` | External code locations (service, file, line range, read/write op, confidence) that consume one table — see [section 10](#10-link-application-code-to-tables-analyze) |
 | `detect_changes` | Compare a live schema to the last indexed snapshot without mutating the graph |
 | `compile_metric` | Compile semantic-layer YAML into validated SQL for one indexed database |
 | `validate_sql` | Validate SQL against the indexed graph before execution |
@@ -426,3 +429,43 @@ tool returns a structured fallback envelope pointing the caller at `query`
   extras absent" is enforced operationally by that contract, not by a
   full extras-present CI lane (the dedicated L1+L2 null-path-parity CI
   lane is a follow-up tracked alongside the benchmark harness).
+
+---
+
+## 10. Link application code to tables (`analyze`)
+
+Once a database is indexed, `pretensor analyze` scans an application
+repository for SQL and records which code consumes which tables:
+
+```bash
+pretensor analyze path/to/service-repo --connection mydb
+
+# Common variations
+pretensor analyze . --connection mydb --service billing-api
+pretensor analyze . --connection mydb --dry-run          # preview, no writes
+pretensor analyze . --connection mydb --json             # machine-readable summary
+pretensor analyze . --connection mydb --default-schema analytics
+```
+
+What it does:
+
+* Walks the repo gitignore-aware (v1 scans Python files; `--include` /
+  `--exclude` narrow the sweep, `--max-file-bytes` caps file size).
+* Lifts SQL string literals from the AST by syntactic context — no code is
+  executed — classifies them, and resolves table references with sqlglot.
+  Unqualified table names resolve against `--default-schema` (default
+  `public`).
+* Writes one external-consumer record per code location with service, file,
+  line range, read/write op, and confidence. Raw SQL text is never stored,
+  only a fingerprint. Re-scanning the same service replaces its prior rows.
+* References that don't match a table indexed under `--connection` are
+  dropped (counted in the summary), never written to the wrong connection.
+
+Opt a statement out with a `# noqa: pretensor-analyze` comment on the same
+line or the line above. If the graph has no tables for the connection, the
+command exits with a copy-pasteable `pretensor index` hint — it never
+indexes on its own.
+
+The results surface through MCP: the `consumers` tool answers "which
+services read or write this table?" directly, and every table reached by
+`impact` carries its consumer list.

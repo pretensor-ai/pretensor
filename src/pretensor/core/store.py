@@ -15,6 +15,7 @@ from pretensor.core.graph_schema_manager import (
 )
 from pretensor.core.graph_store import GraphStore, TableEmbeddingRow
 from pretensor.core.query_runner import QueryRunner
+from pretensor.graph_models.consumer import ConsumesEdge, ExternalConsumerNode
 from pretensor.graph_models.edge import GraphEdge, LineageEdge
 from pretensor.graph_models.entity import EntityNode
 from pretensor.graph_models.node import GraphNode
@@ -179,6 +180,27 @@ class KuzuStore:
     def clear_intelligence_artifacts(self) -> None:
         """Remove clusters and precomputed join paths (keeps tables and FK edges)."""
         return self._graph.clear_intelligence_artifacts()
+
+    def upsert_external_consumer(self, node: ExternalConsumerNode) -> None:
+        """Insert or update an ``ExternalConsumer`` node (idempotent by ``node_id``)."""
+        return self._graph.upsert_external_consumer(node)
+
+    def upsert_consumes_edge(self, edge: ConsumesEdge) -> None:
+        """Insert or update a ``CONSUMES`` edge (idempotent by ``edge_id``)."""
+        return self._graph.upsert_consumes_edge(edge)
+
+    def mark_tables_have_external_consumers(self, table_node_ids: list[str]) -> None:
+        """Set ``has_external_consumers = true`` on the given ``SchemaTable`` nodes."""
+        return self._graph.mark_tables_have_external_consumers(table_node_ids)
+
+    def sweep_stale_consumers(
+        self, service_name: str, connection_name: str, current_scan_run_id: str
+    ) -> None:
+        """Delete stale consumers/edges from prior runs of one service and clear
+        ``has_external_consumers`` on tables that lost their last consumer."""
+        return self._graph.sweep_stale_consumers(
+            service_name, connection_name, current_scan_run_id
+        )
 
     def upsert_column_for_table(
         self,

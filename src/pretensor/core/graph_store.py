@@ -9,6 +9,7 @@ from typing import Any, NamedTuple
 
 from pretensor.core.graph_schema_manager import _SCHEMA_TABLE_EMBEDDING_DIM
 from pretensor.core.query_runner import QueryRunner
+from pretensor.graph_models.consumer import ConsumesEdge, ExternalConsumerNode
 from pretensor.graph_models.edge import GraphEdge, LineageEdge
 from pretensor.graph_models.entity import EntityNode
 from pretensor.graph_models.node import GraphNode
@@ -448,6 +449,139 @@ class GraphStore:
         self._runner.execute("MATCH ()-[r:IN_CLUSTER]->() DELETE r")
         self._runner.execute("MATCH (c:Cluster) DELETE c")
         self._runner.execute("MATCH (j:JoinPath) DELETE j")
+
+    # ── Analyze enrichment: external consumers ────────────────────────────────
+
+    def upsert_external_consumer(self, node: ExternalConsumerNode) -> None:
+        """Insert or update an ``ExternalConsumer`` node (idempotent by ``node_id``)."""
+        self._runner.execute(
+            """
+            MERGE (c:ExternalConsumer {node_id: $node_id})
+            SET c.connection_name = $connection_name,
+                c.service_name = $service_name,
+                c.file_path = $file_path,
+                c.language = $language,
+                c.symbol = $symbol,
+                c.kind = $kind,
+                c.line_start = $line_start,
+                c.line_end = $line_end,
+                c.sql_fingerprint = $sql_fingerprint,
+                c.confidence = $confidence,
+                c.dialect_used = $dialect_used,
+                c.scan_run_id = $scan_run_id
+            """,
+            {
+                "node_id": node.node_id,
+                "connection_name": node.connection_name,
+                "service_name": node.service_name,
+                "file_path": node.file_path,
+                "language": node.language,
+                "symbol": node.symbol,
+                "kind": node.kind,
+                "line_start": node.line_start,
+                "line_end": node.line_end,
+                "sql_fingerprint": node.sql_fingerprint,
+                "confidence": node.confidence,
+                "dialect_used": node.dialect_used,
+                "scan_run_id": node.scan_run_id,
+            },
+        )
+
+    def upsert_consumes_edge(self, edge: ConsumesEdge) -> None:
+        """Insert or update a ``CONSUMES`` edge (idempotent by ``edge_id``)."""
+        self._runner.execute(
+            """
+            MATCH (c:ExternalConsumer {node_id: $src}), (t:SchemaTable {node_id: $dst})
+            MERGE (c)-[r:CONSUMES {edge_id: $edge_id}]->(t)
+            SET r.op = $op,
+                r.source = $source,
+                r.confidence = $confidence,
+                r.scan_run_id = $scan_run_id
+            """,
+            {
+                "src": edge.source_node_id,
+                "dst": edge.target_node_id,
+                "edge_id": edge.edge_id,
+                "op": edge.op,
+                "source": edge.source,
+                "confidence": edge.confidence,
+                "scan_run_id": edge.scan_run_id,
+            },
+        )
+
+    def mark_tables_have_external_consumers(self, table_node_ids: list[str]) -> None:
+        """Set ``has_external_consumers = true`` on the given ``SchemaTable`` nodes."""
+        if not table_node_ids:
+            return
+        self._runner.execute_write(
+            """
+            MATCH (t:SchemaTable)
+            WHERE t.node_id IN $ids
+            SET t.has_external_consumers = true
+            """,
+            {"ids": table_node_ids},
+        )
+
+    def sweep_stale_consumers(
+        self, service_name: str, connection_name: str, current_scan_run_id: str
+    ) -> None:
+        """Delete stale ``ExternalConsumer`` rows and ``CONSUMES`` edges from prior
+        scans of the same service/connection, then clear ``has_external_consumers``
+        on tables that lost their last consumer.
+
+        Edges are matched on their own ``scan_run_id`` as well as their node's, so
+        a still-live consumer whose resolved-table set shrank between scans sheds
+        its orphaned edges too. The flag is cleared only for tables that had an
+        edge removed here and now have no ``CONSUMES`` edges at all — tables
+        flagged solely by the database-side signal (dbt exposures) are never
+        touched; a table carrying both signals regains the database-side flag at
+        the next index run.
+        """
+        params = {"sn": service_name, "cn": connection_name, "sid": current_scan_run_id}
+        stale_edge_predicate = """
+            WHERE c.service_name = $sn
+              AND c.connection_name = $cn
+              AND (c.scan_run_id <> $sid OR r.scan_run_id <> $sid)
+        """
+        affected = self._runner.query_all_rows(
+            f"""
+            MATCH (c:ExternalConsumer)-[r:CONSUMES]->(t:SchemaTable)
+            {stale_edge_predicate}
+            RETURN DISTINCT t.node_id
+            """,
+            params,
+        )
+        self._runner.execute_write(
+            f"""
+            MATCH (c:ExternalConsumer)-[r:CONSUMES]->()
+            {stale_edge_predicate}
+            DELETE r
+            """,
+            params,
+        )
+        self._runner.execute_write(
+            """
+            MATCH (c:ExternalConsumer)
+            WHERE c.service_name = $sn
+              AND c.connection_name = $cn
+              AND c.scan_run_id <> $sid
+            DELETE c
+            """,
+            params,
+        )
+        affected_ids = [str(r[0]) for r in affected]
+        if affected_ids:
+            self._runner.execute_write(
+                """
+                MATCH (t:SchemaTable)
+                WHERE t.node_id IN $ids
+                OPTIONAL MATCH (:ExternalConsumer)-[r:CONSUMES]->(t)
+                WITH t, count(r) AS remaining
+                WHERE remaining = 0
+                SET t.has_external_consumers = false
+                """,
+                {"ids": affected_ids},
+            )
 
     def upsert_column_for_table(
         self,

@@ -32,6 +32,9 @@ __all__ = [
     "DDL_CREATE_SEMANTIC_METRIC_DEPENDS_REL",
     "DDL_CREATE_SEMANTIC_DIMENSION_LEVEL_REL",
     "DDL_CREATE_SEMANTIC_RULE_APPLIES_TO_REL",
+    # Analyze enrichment: external code consumers of physical tables.
+    "DDL_CREATE_EXTERNAL_CONSUMER_NODE",
+    "DDL_CREATE_CONSUMES_REL",
 ]
 
 # Table node — one row per physical table in an indexed database.
@@ -312,6 +315,42 @@ CREATE REL TABLE IF NOT EXISTS RULE_APPLIES_TO(
 )
 """
 
+# ── Analyze enrichment: external code consumers ───────────────────────────────
+#
+# ExternalConsumer is a code location (service + file + normalized SQL fingerprint)
+# that issues a SQL statement against a physical table. CONSUMES links it to the
+# consumed SchemaTable, one edge per (consumer, table, op). Raw SQL text is never
+# stored — only the sha256[:16] fingerprint and the resolved table references.
+DDL_CREATE_EXTERNAL_CONSUMER_NODE = """
+CREATE NODE TABLE IF NOT EXISTS ExternalConsumer(
+    node_id STRING,
+    connection_name STRING,
+    service_name STRING,
+    file_path STRING,
+    language STRING,
+    symbol STRING,
+    kind STRING,
+    line_start INT64,
+    line_end INT64,
+    sql_fingerprint STRING,
+    confidence DOUBLE,
+    dialect_used STRING,
+    scan_run_id STRING,
+    PRIMARY KEY (node_id)
+)
+"""
+
+DDL_CREATE_CONSUMES_REL = """
+CREATE REL TABLE IF NOT EXISTS CONSUMES(
+    FROM ExternalConsumer TO SchemaTable,
+    edge_id STRING,
+    op STRING,
+    source STRING,
+    confidence DOUBLE,
+    scan_run_id STRING
+)
+"""
+
 # ── Catalog summary (for cypher tool description and schema tool) ──────────────
 #
 # Single source of truth for the node labels and edge types exposed to MCP
@@ -343,6 +382,10 @@ CATALOG_NODE_LABELS: tuple[tuple[str, str], ...] = (
     ("Metric", "semantic metric (extension point; empty by default)"),
     ("Dimension", "semantic dimension (extension point; empty by default)"),
     ("BusinessRule", "semantic business rule (extension point; empty by default)"),
+    (
+        "ExternalConsumer",
+        "code location consuming a table via SQL (service_name, file_path, kind, sql_fingerprint, confidence, scan_run_id)",
+    ),
 )
 
 CATALOG_EDGE_TYPES: tuple[tuple[str, str, str, str], ...] = (
@@ -397,6 +440,12 @@ CATALOG_EDGE_TYPES: tuple[tuple[str, str, str, str], ...] = (
         "BusinessRule",
         "SchemaTable",
         "rule → tables (extension point)",
+    ),
+    (
+        "CONSUMES",
+        "ExternalConsumer",
+        "SchemaTable",
+        "code location → table it queries (op read/write, source, confidence, scan_run_id)",
     ),
 )
 

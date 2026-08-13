@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from pretensor.config import GraphConfig
 from pretensor.mcp.service_context import get_effective_graph_config
@@ -217,6 +217,9 @@ class ImpactItemPayload(TypedDict, total=False):
     via: str
     confidence: float
     hop: int
+    # Additive: external code consumers of this table (empty when none). Old
+    # callers that ignore this key are unaffected.
+    consumers: list[dict[str, Any]]
 
 
 def utc_now() -> datetime:

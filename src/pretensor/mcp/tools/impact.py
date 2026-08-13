@@ -127,6 +127,8 @@ def impact_payload(
                 new_via = f"{via} → {dep_short}.{scol}"
                 q.append((dependent, new_d, new_min, new_via, cur))
 
+        consumers_by_table = _consumers_by_table(store, db_key)
+
         direct: list[ImpactItemPayload] = []
         two_hop: list[ImpactItemPayload] = []
         three_hop: list[ImpactItemPayload] = []
@@ -138,6 +140,7 @@ def impact_payload(
                 "name": name,
                 "via": via,
                 "confidence": conf,
+                "consumers": consumers_by_table.get(node_id, []),
             }
             if conf < 0.5:
                 item["hop"] = depth
@@ -164,6 +167,39 @@ def impact_payload(
         }
     finally:
         release_store(store)
+
+
+def _consumers_by_table(store: Any, db_key: str) -> dict[str, list[dict[str, Any]]]:
+    """Map ``SchemaTable.node_id`` → external code consumers of that table.
+
+    One pass over ``CONSUMES`` edges for the database; the fingerprint stays on
+    the ExternalConsumer node (never the raw SQL). Returns an empty map when the
+    graph carries no consumers.
+    """
+    rows = store.query_all_rows(
+        """
+        MATCH (c:ExternalConsumer)-[r:CONSUMES]->(t:SchemaTable)
+        WHERE t.database = $db
+        RETURN t.node_id, c.service_name, c.file_path, c.line_start, c.line_end,
+               c.kind, r.op, r.confidence
+        ORDER BY r.confidence DESC, c.service_name, c.file_path
+        """,
+        {"db": db_key},
+    )
+    out: dict[str, list[dict[str, Any]]] = {}
+    for node_id, service, file_path, ls, le, kind, op, conf in rows:
+        out.setdefault(str(node_id), []).append(
+            {
+                "service": service,
+                "file": file_path,
+                "line_start": ls,
+                "line_end": le,
+                "kind": kind,
+                "op": op,
+                "confidence": conf,
+            }
+        )
+    return out
 
 
 __all__ = ["create_tool", "impact_payload"]

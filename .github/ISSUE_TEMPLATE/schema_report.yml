@@ -1,0 +1,122 @@
+name: Schema doesn't match my database
+description: The knowledge graph is missing or misrepresenting tables, columns, keys, or relationships from your database.
+title: "schema: <what's missing or wrong>"
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when Pretensor indexed your database but the resulting graph is **wrong or incomplete** — a table or column is missing, a foreign key or inferred join is wrong, or MCP tools return schema context that doesn't match reality. For crashes and errors, use the bug report form instead.
+
+        **Security vulnerabilities must not be filed as public issues.** See [SECURITY.md](https://github.com/pretensor-ai/pretensor/blob/main/SECURITY.md) and report privately via [GitHub Security Advisories](https://github.com/pretensor-ai/pretensor/security/advisories/new).
+
+  - type: input
+    id: pretensor-version
+    attributes:
+      label: Pretensor version
+      description: Output of `pretensor --version`.
+      placeholder: "0.1.0aN"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Database backend
+      options:
+        - PostgreSQL
+        - MySQL
+        - Snowflake
+        - BigQuery
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: backend-version
+    attributes:
+      label: Database version
+      description: e.g. `PostgreSQL 16.3`, `Snowflake 8.x`.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem-kind
+    attributes:
+      label: What is wrong in the graph?
+      options:
+        - Table missing
+        - Column missing
+        - Foreign key missing or wrong
+        - Inferred join / relationship wrong
+        - Wrong metadata (types, row counts, comments)
+        - Search / context returns the wrong schema objects
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where do you see it?
+      description: The surface where the wrong output shows up.
+      options:
+        - CLI (`pretensor list` / `validate` / `export`)
+        - MCP tool response (`schema`, `context`, `traverse`, ...)
+        - Both
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the database actually contains
+      description: |
+        The relevant schema as it exists in your database — a sanitized DDL
+        snippet (`CREATE TABLE ...`), an information-schema query result, or a
+        prose description. Redact table/column names if needed, but keep the
+        structure (keys, references) intact.
+      render: sql
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What Pretensor produced instead
+      description: The wrong or missing output — CLI output, MCP tool response JSON, or `pretensor export` fragment.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reindex
+    attributes:
+      label: Does a fresh index reproduce it?
+      description: Whether the problem survives a full `pretensor index` (not just `reindex`) into a clean state directory.
+      options:
+        - Yes — reproduced after a fresh full index
+        - No — a fresh index fixed it
+        - Not tried
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Index/reindex logs or additional context
+      description: Output of the indexing run (add `--log-level debug` if possible). Redact secrets, DSNs, and personally identifiable data.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I redacted credentials and sensitive schema details from all snippets.
+          required: true

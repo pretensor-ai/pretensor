@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from pathlib import Path
@@ -34,6 +35,29 @@ __all__ = [
 
 DEFAULT_CYPHER_TIMEOUT_SECONDS = 5.0
 _MAX_TIMEOUT_SECONDS = 120.0
+
+# One bounded pool shared by every cypher call. ThreadPoolExecutor cannot
+# interrupt a running task, so a timed-out query's worker keeps executing in
+# the background; the shared ceiling turns that from an unbounded thread leak
+# into at most _QUERY_POOL_MAX_WORKERS wedged threads, behind which further
+# queries queue. A per-call executor would also block the timeout response
+# itself: `with ThreadPoolExecutor(...)` shuts down with wait=True on exit.
+_QUERY_POOL_MAX_WORKERS = 4
+_query_pool: ThreadPoolExecutor | None = None
+_query_pool_lock = threading.Lock()
+
+
+def _get_query_pool() -> ThreadPoolExecutor:
+    global _query_pool
+    if _query_pool is None:
+        with _query_pool_lock:
+            if _query_pool is None:
+                _query_pool = ThreadPoolExecutor(
+                    max_workers=_QUERY_POOL_MAX_WORKERS,
+                    thread_name_prefix="cypher-query",
+                )
+    return _query_pool
+
 
 # Mask quoted literals before scanning so clauses inside strings do not false-positive.
 _STRING_LITERAL_RE = re.compile(
@@ -413,9 +437,8 @@ def cypher_payload(
         return {"error": f"Graph file not found for database: {db!r}"}
 
     try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(_materialize_read_only_rows, graph_path, q)
-            rows = future.result(timeout=timeout_seconds)
+        future = _get_query_pool().submit(_materialize_read_only_rows, graph_path, q)
+        rows = future.result(timeout=timeout_seconds)
     except FutureTimeoutError:
         return {"error": f"Query timed out after {timeout_seconds:g}s"}
     except Exception as exc:

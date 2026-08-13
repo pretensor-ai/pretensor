@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 
 from pretensor.benchmark import register_benchmark_command
+from pretensor.cli.commands.analyze import register_analyze_command
 from pretensor.cli.commands.connections import register_connection_commands
 from pretensor.cli.commands.export import register_export_command
 from pretensor.cli.commands.index import register_index_command
@@ -97,6 +98,7 @@ register_connection_commands(app)
 
 register_benchmark_command(app)
 register_index_command(app, console=console)
+register_analyze_command(app, console=console)
 register_list_command(app, console=console)
 register_quickstart_command(app, console=console)
 register_reindex_command(app, console=console)
