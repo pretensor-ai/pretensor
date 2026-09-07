@@ -48,6 +48,15 @@ def test_non_python_file_is_not_yielded(tmp_path: Path) -> None:
     assert result == ["app.py"]
 
 
+def test_sql_file_is_yielded_with_sql_language(tmp_path: Path) -> None:
+    _write(tmp_path / "report.sql", "SELECT id FROM orders;\n")
+    results = list(walk_repo(tmp_path))
+    assert len(results) == 1
+    path, lang = results[0]
+    assert path == tmp_path / "report.sql"
+    assert lang == "sql"
+
+
 @pytest.mark.parametrize("skip_dir", sorted(SKIP_DIRS))
 def test_skip_dirs_are_pruned(tmp_path: Path, skip_dir: str) -> None:
     _write(tmp_path / skip_dir / "code.py")
@@ -71,6 +80,61 @@ def test_gitignore_excludes_directory(tmp_path: Path) -> None:
     _write(tmp_path / "src" / "app.py")
     result = _collect(tmp_path)
     assert result == [str(Path("src") / "app.py")]
+
+
+def test_nested_gitignore_excludes_file_in_its_dir(tmp_path: Path) -> None:
+    _write(tmp_path / "sub" / ".gitignore", "secret.py\n")
+    _write(tmp_path / "sub" / "secret.py")
+    _write(tmp_path / "sub" / "app.py")
+    _write(tmp_path / "secret.py")  # outside the nested file's scope
+    result = _collect(tmp_path)
+    assert result == ["secret.py", str(Path("sub") / "app.py")]
+
+
+def test_nested_gitignore_patterns_are_relative_to_their_dir(tmp_path: Path) -> None:
+    _write(tmp_path / "sub" / ".gitignore", "generated/\n")
+    _write(tmp_path / "sub" / "generated" / "output.py")
+    _write(tmp_path / "generated" / "kept.py")
+    result = _collect(tmp_path)
+    assert result == [str(Path("generated") / "kept.py")]
+
+
+def test_nested_negation_reincludes_at_its_level(tmp_path: Path) -> None:
+    _write(tmp_path / "sub" / ".gitignore", "*.py\n!keep.py\n")
+    _write(tmp_path / "sub" / "keep.py")
+    _write(tmp_path / "sub" / "drop.py")
+    _write(tmp_path / "main.py")
+    result = _collect(tmp_path)
+    assert result == ["main.py", str(Path("sub") / "keep.py")]
+
+
+def test_nested_negation_overrides_root_ignore(tmp_path: Path) -> None:
+    (tmp_path / ".gitignore").write_text("secrets.py\n", encoding="utf-8")
+    _write(tmp_path / "sub" / ".gitignore", "!secrets.py\n")
+    _write(tmp_path / "sub" / "secrets.py")
+    _write(tmp_path / "secrets.py")
+    result = _collect(tmp_path)
+    assert result == [str(Path("sub") / "secrets.py")]
+
+
+def test_deeper_gitignore_takes_precedence_over_shallower(tmp_path: Path) -> None:
+    _write(tmp_path / "sub" / ".gitignore", "!gen.py\n")
+    _write(tmp_path / "sub" / "deep" / ".gitignore", "gen.py\n")
+    (tmp_path / ".gitignore").write_text("gen.py\n", encoding="utf-8")
+    _write(tmp_path / "sub" / "gen.py")  # re-included by sub/.gitignore
+    _write(tmp_path / "sub" / "deep" / "gen.py")  # re-ignored by deep/.gitignore
+    _write(tmp_path / "gen.py")  # ignored by root
+    result = _collect(tmp_path)
+    assert result == [str(Path("sub") / "gen.py")]
+
+
+def test_negation_cannot_reinclude_inside_ignored_dir(tmp_path: Path) -> None:
+    (tmp_path / ".gitignore").write_text("generated/\n", encoding="utf-8")
+    _write(tmp_path / "generated" / ".gitignore", "!keep.py\n")
+    _write(tmp_path / "generated" / "keep.py")
+    _write(tmp_path / "main.py")
+    result = _collect(tmp_path)
+    assert result == ["main.py"]
 
 
 def test_file_size_cap(tmp_path: Path) -> None:

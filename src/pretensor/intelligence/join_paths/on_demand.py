@@ -6,7 +6,7 @@ import hashlib
 import heapq
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 from pretensor.core.store import KuzuStore
@@ -42,7 +42,15 @@ def edge_cost(edge: AdjEdge) -> float:
 
 @dataclass(frozen=True, slots=True)
 class JoinStep:
-    """One hop along a join path (table → table via columns)."""
+    """One hop along a join path (table → table via columns).
+
+    ``source`` and ``reasoning`` are additive provenance fields:
+    ``"declared_fk"`` for FK hops (always paired with ``confidence == 1.0``),
+    or the ``INFERRED_JOIN.source`` value (``"heuristic"``, ``"llm_inferred"``,
+    ``"embedding"``, ``"statistical"``) for inferred hops. Default to ``""``/
+    ``None`` so existing positional construction (tests, legacy data) keeps
+    working; renderers resolve a missing ``source`` at the MCP payload layer.
+    """
 
     from_schema: str
     from_table: str
@@ -52,6 +60,8 @@ class JoinStep:
     to_column: str
     edge_type: EdgeKind
     confidence: float
+    source: str = ""
+    reasoning: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +89,10 @@ class AdjEdge:
     target_column: str
     kind: EdgeKind
     confidence: float
+    # Provenance fields, see JoinStep for semantics. Defaulted for the
+    # same backward-compatibility reason as JoinStep.
+    source: str = ""
+    reasoning: str | None = None
 
 
 def table_meta(store: KuzuStore, database_key: str) -> dict[str, tuple[str, str]]:
@@ -121,27 +135,38 @@ def build_adjacency(store: KuzuStore, database_key: str) -> dict[str, list[AdjEd
         sa, sb = str(a), str(b)
         s_col = str(sc) if sc is not None else ""
         t_col = str(tc) if tc is not None else ""
-        adj.setdefault(sa, []).append(AdjEdge(sb, s_col, t_col, "fk", _FK_CONFIDENCE))
-        adj.setdefault(sb, []).append(AdjEdge(sa, t_col, s_col, "fk", _FK_CONFIDENCE))
+        adj.setdefault(sa, []).append(
+            AdjEdge(sb, s_col, t_col, "fk", _FK_CONFIDENCE, source="declared_fk")
+        )
+        adj.setdefault(sb, []).append(
+            AdjEdge(sa, t_col, s_col, "fk", _FK_CONFIDENCE, source="declared_fk")
+        )
 
     inf_rows = store.query_all_rows(
         """
         MATCH (a:SchemaTable)-[r:INFERRED_JOIN]->(b:SchemaTable)
         WHERE a.database = $db AND b.database = $db
-        RETURN a.node_id, b.node_id, r.source_column, r.target_column, r.confidence
+        RETURN a.node_id, b.node_id, r.source_column, r.target_column, r.confidence,
+               r.source, r.reasoning
         """,
         {"db": database_key},
     )
     for row in inf_rows:
-        a, b, sc, tc, conf = row
+        a, b, sc, tc, conf, src, reason = row
         if a is None or b is None:
             continue
         sa, sb = str(a), str(b)
         w = float(conf) if conf is not None else 0.5
         s_col = str(sc) if sc is not None else ""
         t_col = str(tc) if tc is not None else ""
-        adj.setdefault(sa, []).append(AdjEdge(sb, s_col, t_col, "inferred", w))
-        adj.setdefault(sb, []).append(AdjEdge(sa, t_col, s_col, "inferred", w))
+        src_s = str(src) if src else "unknown"
+        reason_s = str(reason) if reason else None
+        adj.setdefault(sa, []).append(
+            AdjEdge(sb, s_col, t_col, "inferred", w, source=src_s, reasoning=reason_s)
+        )
+        adj.setdefault(sb, []).append(
+            AdjEdge(sa, t_col, s_col, "inferred", w, source=src_s, reasoning=reason_s)
+        )
     return adj
 
 
@@ -159,10 +184,8 @@ def best_path(
     winner = paths[0]
     if len(paths) > 1 and abs(paths[0].cost - paths[1].cost) < 1e-9:
         # Tied-cost peer exists — surface ambiguity so callers re-enumerate.
-        from dataclasses import replace
         winner = replace(winner, ambiguous=True)
     else:
-        from dataclasses import replace
         winner = replace(winner, ambiguous=False)
     return winner
 
@@ -220,6 +243,8 @@ def best_paths(
                     to_column=e.target_column,
                     edge_type=e.kind,
                     confidence=e.confidence,
+                    source=e.source,
+                    reasoning=e.reasoning,
                 )
             )
             conf *= e.confidence
@@ -242,12 +267,21 @@ def best_paths(
                 depth=length,
                 confidence=conf,
                 cost=cost,
-                ambiguous=len(ranked) > 1,
+                ambiguous=False,
                 steps=steps_t,
                 semantic_label=label,
                 stale=False,
             )
         )
+    # A path is ambiguous only when another distinct path ties its cost —
+    # matching best_path's semantics. The mere existence of a (worse-ranked)
+    # alternative is expected in any connected graph and is not ambiguity.
+    if len(out) > 1:
+        for i, p in enumerate(out):
+            if any(
+                j != i and abs(out[j].cost - p.cost) < 1e-9 for j in range(len(out))
+            ):
+                out[i] = replace(p, ambiguous=True)
     return out
 
 
@@ -373,9 +407,8 @@ def yen_k_shortest(
                 goal,
                 max_depth - i,
                 edge_kinds=edge_kinds,
-                max_inferred_hops=max_inferred_hops - sum(
-                    1 for e in root_edges if e.kind == "inferred"
-                ),
+                max_inferred_hops=max_inferred_hops
+                - sum(1 for e in root_edges if e.kind == "inferred"),
                 blocked_nodes=frozenset(root_nodes),
                 blocked_edges=frozenset(blocked_edges),
             )
@@ -425,6 +458,8 @@ def steps_to_json_payload(steps: tuple[JoinStep, ...]) -> list[dict[str, Any]]:
             "to_column": s.to_column,
             "edge_type": s.edge_type,
             "confidence": s.confidence,
+            "source": s.source,
+            "reasoning": s.reasoning,
         }
         for s in steps
     ]
@@ -443,6 +478,8 @@ def reverse_stored_path(path: StoredJoinPath) -> StoredJoinPath:
                 to_column=s.from_column,
                 edge_type=s.edge_type,
                 confidence=s.confidence,
+                source=s.source,
+                reasoning=s.reasoning,
             )
         )
     rt = tuple(rev_steps)
@@ -476,6 +513,7 @@ def parse_steps_json(raw: str) -> tuple[JoinStep, ...]:
     for item in data:
         if not isinstance(item, dict):
             continue
+        raw_reasoning = item.get("reasoning")
         steps.append(
             JoinStep(
                 from_schema=str(item.get("from_schema", "")),
@@ -486,6 +524,11 @@ def parse_steps_json(raw: str) -> tuple[JoinStep, ...]:
                 to_column=str(item.get("to_column", "")),
                 edge_type=edge_kind(item.get("edge_type")),
                 confidence=float(item.get("confidence", 1.0)),
+                # Missing on JoinPath rows persisted before the provenance
+                # fields existed; the MCP payload layer resolves a final
+                # default from edge_type.
+                source=str(item.get("source") or ""),
+                reasoning=str(raw_reasoning) if raw_reasoning else None,
             )
         )
     return tuple(steps)

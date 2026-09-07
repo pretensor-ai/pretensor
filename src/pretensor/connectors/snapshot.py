@@ -8,6 +8,8 @@ from pretensor.connectors.models import Column, SchemaSnapshot, Table, ViewDepen
 from pretensor.introspection.models.base import PretensorModel
 
 __all__ = [
+    "VOLATILE_COLUMN_FIELDS",
+    "VOLATILE_TABLE_FIELDS",
     "ChangeTarget",
     "ChangeType",
     "SchemaChange",
@@ -185,29 +187,66 @@ def _lineage_diffs(
     return changes
 
 
+# Volatile fields change with ordinary query/data activity (pg_stat counters,
+# planner statistics, storage size) and never indicate schema drift. They are
+# excluded from diffing so a table is only reported MODIFIED on DDL-level
+# change — otherwise every queried table shows up as "modified" on a live DB.
+# The graph patcher refreshes these unconditionally on reindex instead.
+VOLATILE_TABLE_FIELDS = (
+    "row_count",
+    "seq_scan_count",
+    "idx_scan_count",
+    "insert_count",
+    "update_count",
+    "delete_count",
+    "access_read_count",
+    "access_write_count",
+    "days_since_last_access",
+    "potentially_unused",
+    "table_bytes",
+)
+
+_STRUCTURAL_TABLE_FIELDS = (
+    "comment",
+    "table_type",
+    "is_partitioned",
+    "partition_key",
+    "grants",
+    "clustering_key",
+)
+
+# Planner statistics rewritten by every ANALYZE/autovacuum run — same volatility
+# class as the table counters above, at column granularity.
+VOLATILE_COLUMN_FIELDS = (
+    "most_common_values",
+    "histogram_bounds",
+    "stats_correlation",
+)
+
+_STRUCTURAL_COLUMN_FIELDS = (
+    "data_type",
+    "nullable",
+    "is_primary_key",
+    "is_foreign_key",
+    "default_value",
+    "comment",
+    "is_indexed",
+    "check_constraints",
+    "ordinal_position",
+)
+
+
 def _column_diffs(old: Column, new: Column) -> list[str]:
-    """Compare two Column objects on structural and catalog-stat fields.
+    """Compare two Column objects on structural fields only.
 
     ``parent_column`` and ``is_array`` are intentionally excluded: they are
     set once during initial introspection (e.g. BigQuery nested fields) and
-    are not expected to change across re-indexes of the same table.
+    are not expected to change across re-indexes of the same table. Fields in
+    :data:`VOLATILE_COLUMN_FIELDS` are excluded because planner stats churn
+    must not register as schema change.
     """
-    structural_fields = (
-        "data_type",
-        "nullable",
-        "is_primary_key",
-        "is_foreign_key",
-        "default_value",
-        "comment",
-        "is_indexed",
-        "check_constraints",
-        "ordinal_position",
-        "most_common_values",
-        "histogram_bounds",
-        "stats_correlation",
-    )
     diffs: list[str] = []
-    for field in structural_fields:
+    for field in _STRUCTURAL_COLUMN_FIELDS:
         old_val = getattr(old, field)
         new_val = getattr(new, field)
         if old_val != new_val:
@@ -216,27 +255,13 @@ def _column_diffs(old: Column, new: Column) -> list[str]:
 
 
 def _table_diffs(old: Table, new: Table) -> list[str]:
-    """Compare table-level metadata (not column sets)."""
+    """Compare table-level metadata (not column sets) on structural fields.
+
+    Fields in :data:`VOLATILE_TABLE_FIELDS` are excluded — runtime activity
+    must not register as schema change.
+    """
     diffs: list[str] = []
-    for field in (
-        "comment",
-        "table_type",
-        "row_count",
-        "seq_scan_count",
-        "idx_scan_count",
-        "insert_count",
-        "update_count",
-        "delete_count",
-        "is_partitioned",
-        "partition_key",
-        "grants",
-        "access_read_count",
-        "access_write_count",
-        "days_since_last_access",
-        "potentially_unused",
-        "table_bytes",
-        "clustering_key",
-    ):
+    for field in _STRUCTURAL_TABLE_FIELDS:
         old_val = getattr(old, field)
         new_val = getattr(new, field)
         if old_val != new_val:

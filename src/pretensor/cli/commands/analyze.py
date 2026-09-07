@@ -2,32 +2,21 @@
 
 from __future__ import annotations
 
-import dataclasses
 import json
+import sys
 from pathlib import Path
 
 import typer
+from click.core import ParameterSource
 from rich.console import Console
-from rich.table import Table
 
 from pretensor.cli import constants as cli_constants
+from pretensor.cli.commands._command_runners import run_analyze_one
 from pretensor.cli.config_file import get_cli_config, resolve_aliased_path_option
-from pretensor.enrichment.analyze.pipeline import (
-    EmptyGraphError,
-    run_analyze_enrichment,
-)
-from pretensor.enrichment.analyze.summary import AnalyzeSummary
-from pretensor.mcp.service_registry import (
-    load_registry,
-    open_store_for_entry,
-    release_store,
-    resolve_registry_entry,
-)
 
 __all__ = ["register_analyze_command"]
 
 _EXIT_ERROR = 1
-_MAX_DISPLAY_ROWS = 20
 
 
 def register_analyze_command(app: typer.Typer, *, console: Console) -> None:
@@ -37,20 +26,27 @@ def register_analyze_command(app: typer.Typer, *, console: Console) -> None:
     def analyze_command(
         path: Path = typer.Argument(
             Path("."),
-            help="Repository root to scan (default: current directory).",
+            help="Repository root to scan (default: current directory). "
+            "Ignored with --all.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
         ),
-        connection: str = typer.Option(
-            ...,
+        connection: str | None = typer.Option(
+            None,
             "--connection",
-            help="Required. Connection whose tables SQL refs resolve against.",
+            help="Connection whose tables SQL refs resolve against. Required unless --all.",
+        ),
+        all_repos: bool = typer.Option(
+            False,
+            "--all",
+            help="Analyze every repository listed under `repositories:` in config.",
         ),
         service: str | None = typer.Option(
             None,
             "--service",
-            help="Consumer-service label (default: scanned directory basename).",
+            help="Consumer-service label (default: scanned directory basename). "
+            "Ignored with --all.",
         ),
         include: list[str] = typer.Option(
             [],
@@ -72,10 +68,14 @@ def register_analyze_command(app: typer.Typer, *, console: Console) -> None:
             "--min-confidence",
             help="Minimum confidence to emit a CONSUMES edge.",
         ),
-        default_schema: str = typer.Option(
-            "public",
+        default_schema: str | None = typer.Option(
+            None,
             "--default-schema",
-            help="Schema assumed for unqualified table names in scanned SQL.",
+            help=(
+                "Schema assumed for unqualified table names in scanned SQL. "
+                "Default: derived from the connection (indexed schemas and "
+                "dialect), falling back to 'public'."
+            ),
         ),
         dry_run: bool = typer.Option(
             False,
@@ -117,85 +117,89 @@ def register_analyze_command(app: typer.Typer, *, console: Console) -> None:
             config_value=cli_config.state_dir,
         )
 
-        service_name = service or path.name
+        if all_repos:
+            _warn_ignored_with_all(console, ctx, as_json=as_json)
+            if not cli_config.repositories:
+                console.print(
+                    "[red]No repositories configured.[/red] "
+                    "Run `pretensor init` to link one, or pass a path and --connection."
+                )
+                raise typer.Exit(_EXIT_ERROR)
+            worst = 0
+            json_summaries: list[dict] | None = [] if as_json else None
+            for repo in cli_config.repositories:
+                if not as_json:
+                    console.print(f"[bold blue]Analyzing[/bold blue] {repo.path}")
+                code = run_analyze_one(
+                    console=console,
+                    repo_path=repo.path,
+                    connection=repo.connection,
+                    service=repo.service,
+                    state_dir=state_dir,
+                    graph_dir=graph_dir,
+                    include=include,
+                    exclude=exclude,
+                    max_file_bytes=max_file_bytes,
+                    min_confidence=min_confidence,
+                    default_schema=default_schema,
+                    dry_run=dry_run,
+                    as_json=as_json,
+                    json_sink=json_summaries,
+                )
+                worst = max(worst, code)
+            if as_json:
+                typer.echo(json.dumps(json_summaries, indent=2))
+            raise typer.Exit(worst)
 
-        reg = load_registry(state_dir)
-        entry = resolve_registry_entry(reg, connection)
-        if entry is None:
-            _empty_graph_error(console, connection)
+        if connection is None:
+            console.print("[red]--connection is required[/red] unless you pass --all.")
             raise typer.Exit(_EXIT_ERROR)
 
-        store = open_store_for_entry(entry)
-        try:
-            summary = run_analyze_enrichment(
-                path,
-                store,
-                entry.connection_name,
-                service_name=service_name,
-                includes=include,
-                excludes=exclude,
-                max_file_bytes=max_file_bytes,
-                min_confidence=min_confidence,
-                default_schema=default_schema,
-                dry_run=dry_run,
-            )
-        except EmptyGraphError:
-            _empty_graph_error(console, entry.connection_name)
-            raise typer.Exit(_EXIT_ERROR) from None
-        finally:
-            release_store(store)
-
-        if as_json:
-            typer.echo(json.dumps(dataclasses.asdict(summary), indent=2))
-            return
-
-        _render_summary(console, summary, service_name=service_name, dry_run=dry_run)
-
-
-def _empty_graph_error(console: Console, connection: str) -> None:
-    """Print the hard-error hint; no auto-index is performed (by design)."""
-    console.print(
-        f"[red]The graph for connection '{connection}' is empty.[/red] Run:\n"
-        f"  pretensor index --connection {connection}\n"
-        "first, then re-run pretensor analyze."
-    )
-
-
-def _render_summary(
-    console: Console,
-    summary: AnalyzeSummary,
-    *,
-    service_name: str,
-    dry_run: bool,
-) -> None:
-    rows = sorted(summary.rows, key=lambda r: r.confidence, reverse=True)
-    shown = rows[:_MAX_DISPLAY_ROWS]
-
-    title = (
-        "pretensor analyze (dry run — no writes)" if dry_run else "pretensor analyze"
-    )
-    table = Table(title=title)
-    table.add_column("service")
-    table.add_column("table")
-    table.add_column("op")
-    table.add_column("file:line")
-    table.add_column("confidence", justify="right")
-    for r in shown:
-        line = (
-            f"{r.file_path}:{r.line_start}"
-            if r.line_start == r.line_end
-            else f"{r.file_path}:{r.line_start}-{r.line_end}"
+        code = run_analyze_one(
+            console=console,
+            repo_path=path,
+            connection=connection,
+            service=service,
+            state_dir=state_dir,
+            graph_dir=graph_dir,
+            include=include,
+            exclude=exclude,
+            max_file_bytes=max_file_bytes,
+            min_confidence=min_confidence,
+            default_schema=default_schema,
+            dry_run=dry_run,
+            as_json=as_json,
         )
-        table.add_row(r.service_name, r.table, r.op, line, f"{r.confidence:.2f}")
-    console.print(table)
+        raise typer.Exit(code)
 
-    if len(rows) > len(shown):
-        console.print(f"[dim]… showing top {len(shown)} of {len(rows)} edges[/dim]")
 
-    verb = "would write" if dry_run else "wrote"
-    console.print(
-        f"Scanned {summary.files_scanned} files, "
-        f"found {summary.sql_candidates_found} SQL candidates, "
-        f"{verb} {summary.consumers_written} consumers / {summary.edges_written} edges "
-        f"({summary.cross_connection_dropped} dropped: cross-connection)."
+def _warn_ignored_with_all(
+    console: Console, ctx: typer.Context | None, *, as_json: bool
+) -> None:
+    """Warn once if the user explicitly passed args that --all ignores.
+
+    Routed to stderr when ``as_json`` is set: stdout is the machine-readable
+    JSON channel for ``--all --json``, and interleaving a warning line there
+    would break ``json.loads`` on the caller's side. Scripted callers still
+    see the warning on stderr instead of it being silently dropped.
+    """
+    if ctx is None:
+        return
+    ignored: list[str] = []
+    for label, param_name in (("path", "path"), ("--service", "service")):
+        try:
+            source = ctx.get_parameter_source(param_name)
+        except Exception:
+            source = None
+        if source is not None and source is not ParameterSource.DEFAULT:
+            ignored.append(label)
+    if not ignored:
+        return
+    message = (
+        f"[yellow]Ignoring {', '.join(ignored)}: each repository under "
+        "--all uses its own path/service from config.[/yellow]"
     )
+    if as_json:
+        Console(file=sys.stderr).print(message)
+    else:
+        console.print(message)

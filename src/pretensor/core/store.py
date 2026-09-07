@@ -94,6 +94,38 @@ class KuzuStore:
         """Insert or update a single ``SchemaTable`` node."""
         return self._graph.upsert_table(node)
 
+    def update_table_volatile_stats(
+        self,
+        table_node_id: str,
+        *,
+        row_count: int | None,
+        seq_scan_count: int | None,
+        idx_scan_count: int | None,
+        insert_count: int | None,
+        update_count: int | None,
+        delete_count: int | None,
+        access_read_count: int | None,
+        access_write_count: int | None,
+        days_since_last_access: int | None,
+        potentially_unused: bool | None,
+        table_bytes: int | None,
+    ) -> bool:
+        """Refresh volatile stats on an existing ``SchemaTable``; False if missing."""
+        return self._graph.update_table_volatile_stats(
+            table_node_id,
+            row_count=row_count,
+            seq_scan_count=seq_scan_count,
+            idx_scan_count=idx_scan_count,
+            insert_count=insert_count,
+            update_count=update_count,
+            delete_count=delete_count,
+            access_read_count=access_read_count,
+            access_write_count=access_write_count,
+            days_since_last_access=days_since_last_access,
+            potentially_unused=potentially_unused,
+            table_bytes=table_bytes,
+        )
+
     def upsert_entity(self, node: EntityNode) -> None:
         """Insert or update a single ``Entity`` node."""
         return self._graph.upsert_entity(node)

@@ -60,6 +60,7 @@ from pretensor.mcp.tools import (
 from pretensor.mcp.tools import (
     validate_sql as validate_sql_tool,
 )
+from pretensor.version import package_version
 
 __all__ = ["create_server", "run_server", "print_mcp_config"]
 
@@ -175,6 +176,9 @@ def create_server(
 
     server = Server[object, object](
         "pretensor",
+        # Explicit version: the mcp SDK otherwise reports its own package
+        # version in serverInfo, breaking naive version checks in clients.
+        version=package_version(),
         instructions=(
             "Pretensor graph MCP: discover indexed databases, search metadata, "
             "and fetch full context for physical tables (Kuzu schema graph)."

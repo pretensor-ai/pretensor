@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import tempfile
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import typer
 from click.core import ParameterSource
 from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from pretensor.config import GraphConfig
 from pretensor.errors import PretensorError
@@ -19,10 +24,13 @@ __all__ = [
     "ConnectionDefaults",
     "LlmDefaults",
     "PretensorCliConfig",
+    "RepositoryConfig",
     "SourceConfig",
     "VisibilityDefaults",
     "get_cli_config",
     "load_cli_config",
+    "record_repository",
+    "record_source",
     "resolve_aliased_path_option",
     "resolve_optional_path_option",
     "resolve_optional_str_option",
@@ -63,6 +71,7 @@ class ConnectionDefaults:
 _SOURCE_ALLOWED_KEYS = frozenset(
     {
         "dialect",
+        "url",
         "host",
         "port",
         "user",
@@ -82,12 +91,42 @@ _SOURCE_ALLOWED_KEYS = frozenset(
     }
 )
 
+# Field-based keys that are mutually exclusive with `url`. `dialect` is
+# deliberately excluded: it remains a valid override alongside `url` (when
+# absent, the URL scheme infers the dialect).
+_SOURCE_FIELD_KEYS = frozenset(
+    {
+        "host",
+        "port",
+        "user",
+        "password",
+        "database",
+        "account",
+        "schema",
+        "warehouse",
+        "role",
+        "private_key_path",
+        "private_key_passphrase",
+        "project",
+        "dataset",
+        "location",
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class SourceConfig:
-    """Declarative database source definition from ``sources:`` config block."""
+    """Declarative database source definition from ``sources:`` config block.
 
-    dialect: str
+    Either the field-based form (``host``/``user``/``password``/... or the
+    dialect-specific equivalents) or the whole-DSN ``url`` form is used, never
+    both. ``dialect`` is required for the field-based form; it is optional
+    (an override) alongside ``url``, where the URL scheme infers it when
+    omitted.
+    """
+
+    dialect: str | None = None
+    url: str | None = None
     host: str | None = None
     port: int | None = None
     user: str | None = None
@@ -106,6 +145,18 @@ class SourceConfig:
     location: str | None = None
 
 
+_REPOSITORY_ALLOWED_KEYS = frozenset({"path", "service", "connection"})
+
+
+@dataclass(frozen=True, slots=True)
+class RepositoryConfig:
+    """A code repository linked to one indexed connection."""
+
+    path: Path
+    service: str
+    connection: str
+
+
 @dataclass(frozen=True, slots=True)
 class PretensorCliConfig:
     """Normalized runtime config loaded from YAML (or empty defaults)."""
@@ -117,6 +168,7 @@ class PretensorCliConfig:
     visibility: VisibilityDefaults = VisibilityDefaults()
     connection_defaults: ConnectionDefaults = ConnectionDefaults()
     sources: dict[str, SourceConfig] = field(default_factory=dict)
+    repositories: tuple[RepositoryConfig, ...] = ()
 
     @property
     def loaded(self) -> bool:
@@ -191,8 +243,16 @@ def _graph_config_from_mapping(raw: Any) -> GraphConfig:
 def _source_config_from_mapping(
     name: str,
     raw: Any,
+    *,
+    overlay_used: bool = False,
 ) -> SourceConfig:
-    """Validate and build a :class:`SourceConfig` from a raw YAML mapping."""
+    """Validate and build a :class:`SourceConfig` from a raw YAML mapping.
+
+    *overlay_used* indicates whether ``raw`` was merged with a
+    ``sources.secrets.yaml`` overlay entry for this source, so a
+    mutual-exclusion error can point the user at both files rather than just
+    ``config.yaml``.
+    """
     if not isinstance(raw, dict):
         raise CliConfigError(f"Source `{name}` must be a mapping")
     data: dict[str, Any] = dict(raw)
@@ -200,30 +260,47 @@ def _source_config_from_mapping(
     if unknown:
         joined = ", ".join(unknown)
         raise CliConfigError(f"Unknown key(s) in source `{name}`: {joined}")
+
+    url = data.get("url")
+    if url is not None:
+        if not isinstance(url, str) or not url.strip():
+            raise CliConfigError(f"Source `{name}`: `url` must be a non-empty string")
+        url = url.strip()
+        conflicting = sorted(
+            key for key in _SOURCE_FIELD_KEYS if data.get(key) is not None
+        )
+        if conflicting:
+            joined = ", ".join(conflicting)
+            hint = (
+                " The conflicting key(s) may come from `sources.secrets.yaml`; "
+                "check both `config.yaml` and `sources.secrets.yaml` for this "
+                "source."
+                if overlay_used
+                else ""
+            )
+            raise CliConfigError(
+                f"Source `{name}`: `url` cannot be combined with {joined}.{hint}"
+            )
+
     dialect = data.get("dialect")
-    if not isinstance(dialect, str) or not dialect.strip():
-        raise CliConfigError(f"Source `{name}` requires a `dialect` string")
+    if dialect is None:
+        if url is None:
+            raise CliConfigError(f"Source `{name}` requires a `dialect` string")
+        dialect_value: str | None = None
+    else:
+        if not isinstance(dialect, str) or not dialect.strip():
+            raise CliConfigError(f"Source `{name}`: `dialect` must be a string")
+        dialect_value = dialect.strip().lower()
+
+    if url is not None:
+        return SourceConfig(dialect=dialect_value, url=url)
+
     port = data.get("port")
     if port is not None:
         if isinstance(port, bool) or not isinstance(port, int):
             raise CliConfigError(f"Source `{name}`: `port` must be an integer")
-    str_fields = {
-        "host",
-        "user",
-        "password",
-        "database",
-        "account",
-        "schema",
-        "warehouse",
-        "role",
-        "private_key_path",
-        "private_key_passphrase",
-        "project",
-        "dataset",
-        "location",
-    }
-    kwargs: dict[str, Any] = {"dialect": dialect.strip().lower(), "port": port}
-    for key in str_fields:
+    kwargs: dict[str, Any] = {"dialect": dialect_value, "port": port}
+    for key in _SOURCE_FIELD_KEYS - {"port"}:
         val = data.get(key)
         if val is None:
             kwargs[key] = None
@@ -247,6 +324,7 @@ def _parse_sources(
         if not isinstance(name, str) or not name.strip():
             raise CliConfigError("Source names must be non-empty strings")
         merged = dict(block) if isinstance(block, dict) else block
+        overlay_used = False
         if secrets_raw and name in secrets_raw:
             secret_block = secrets_raw[name]
             if not isinstance(secret_block, dict):
@@ -255,8 +333,201 @@ def _parse_sources(
                 )
             if isinstance(merged, dict):
                 merged = {**merged, **secret_block}
-        sources[name.strip()] = _source_config_from_mapping(name.strip(), merged)
+                overlay_used = True
+        sources[name.strip()] = _source_config_from_mapping(
+            name.strip(), merged, overlay_used=overlay_used
+        )
     return sources
+
+
+def _parse_repositories(raw: Any, base_dir: Path) -> tuple[RepositoryConfig, ...]:
+    """Parse the ``repositories:`` block used by ``analyze --all``."""
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise CliConfigError("`repositories` must be a list in config YAML")
+    parsed: list[RepositoryConfig] = []
+    for index, entry in enumerate(raw):
+        label = f"repositories[{index}]"
+        if not isinstance(entry, dict):
+            raise CliConfigError(f"{label} must be a mapping")
+        unknown = sorted(set(entry) - _REPOSITORY_ALLOWED_KEYS)
+        if unknown:
+            joined = ", ".join(unknown)
+            raise CliConfigError(f"Unknown key(s) in {label}: {joined}")
+        path = _resolved_path(
+            entry.get("path"), field=f"{label}.path", base_dir=base_dir
+        )
+        connection = _normalized_optional_str(
+            entry.get("connection"), field=f"{label}.connection"
+        )
+        if not connection:
+            raise CliConfigError(f"{label} requires a `connection` string")
+        service = (
+            _normalized_optional_str(entry.get("service"), field=f"{label}.service")
+            or path.name
+        )
+        parsed.append(
+            RepositoryConfig(path=path, service=service, connection=connection)
+        )
+    return tuple(parsed)
+
+
+def _round_trip_yaml() -> YAML:
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.width = 4096  # avoid rewrapping long lines (e.g. paths)
+    return yaml
+
+
+def _backup_config_file(path: Path) -> Path:
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup = path.with_name(f"{path.name}.bak.{stamp}")
+    shutil.copy2(path, backup)
+    return backup
+
+
+def _atomic_write_yaml(path: Path, yaml: YAML, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            yaml.dump(data, stream)
+        os.replace(temp_name, path)
+    except BaseException:
+        Path(temp_name).unlink(missing_ok=True)
+        raise
+
+
+def record_repository(
+    config_path: Path,
+    *,
+    path: Path,
+    service: str,
+    connection: str,
+) -> None:
+    """Append or update one entry under ``repositories:`` in *config_path*.
+
+    Loads (and re-writes) the YAML with the round-trip loader so existing
+    comments and key order survive. Entries are deduped by resolved path: a
+    call for a path already present updates its ``service``/``connection``
+    instead of appending a duplicate. The file is parsed *before* it is
+    backed up (mirroring ``mcp_clients.register_client``): a malformed
+    pre-existing file must raise without ever being touched, so the backup
+    is only taken once loading has proven the file readable.
+    """
+    config_path = Path(config_path)
+    resolved_repo_path = str(Path(path).resolve())
+
+    yaml = _round_trip_yaml()
+
+    file_existed = config_path.exists()
+    if file_existed:
+        with config_path.open("r", encoding="utf-8") as stream:
+            data = yaml.load(stream)
+        if data is None:
+            data = CommentedMap()
+    else:
+        data = CommentedMap()
+
+    repos = data.get("repositories")
+    if not isinstance(repos, list):
+        repos = CommentedSeq()
+        data["repositories"] = repos
+
+    entry: Any = None
+    for item in repos:
+        if not isinstance(item, dict):
+            continue
+        existing_path = item.get("path")
+        if not isinstance(existing_path, str):
+            continue
+        try:
+            if str(Path(existing_path).resolve()) == resolved_repo_path:
+                entry = item
+                break
+        except OSError:
+            continue
+
+    if entry is not None:
+        entry["service"] = service
+        entry["connection"] = connection
+    else:
+        new_entry = CommentedMap()
+        new_entry["path"] = resolved_repo_path
+        new_entry["service"] = service
+        new_entry["connection"] = connection
+        repos.append(new_entry)
+
+    # Only back up once the file has been proven readable and valid: a
+    # failed record must not strand a `.bak` copy behind.
+    if file_existed:
+        _backup_config_file(config_path)
+    _atomic_write_yaml(config_path, yaml, data)
+
+
+def record_source(
+    config_path: Path,
+    *,
+    name: str,
+    url_reference: str,
+    dialect: str | None = None,
+) -> None:
+    """Write or update one entry under ``sources:`` in *config_path*.
+
+    Mirrors ``record_repository``'s safety pattern: parse first with the
+    round-trip loader (so existing comments and key order survive), back up
+    only after a successful parse, atomic write. ``sources:`` is a mapping
+    keyed by name, so this call is naturally idempotent: a second call with
+    the same *name* updates that entry's ``url``/``dialect`` in place instead
+    of appending a duplicate.
+
+    An existing entry for *name* may be field-based (``host``/``user``/
+    ``password``/...); rewriting it as ``url``-based clears every
+    ``_SOURCE_FIELD_KEYS`` member from that entry first, since ``url`` and
+    the field-based form are mutually exclusive and leaving both would make
+    the entry unloadable. ``dialect`` is the one exception: when *dialect*
+    is given it is set, otherwise any existing ``dialect`` on the entry is
+    left untouched (it is a valid override alongside ``url``).
+
+    *url_reference* must be the literal ``${VAR}`` reference (e.g.
+    ``"${DATABASE_URL}"``), never a resolved DSN. Callers are responsible for
+    only calling this when the DSN came from a single environment variable.
+    """
+    config_path = Path(config_path)
+    yaml = _round_trip_yaml()
+
+    file_existed = config_path.exists()
+    if file_existed:
+        with config_path.open("r", encoding="utf-8") as stream:
+            data = yaml.load(stream)
+        if data is None:
+            data = CommentedMap()
+    else:
+        data = CommentedMap()
+
+    sources = data.get("sources")
+    if not isinstance(sources, dict):
+        sources = CommentedMap()
+        data["sources"] = sources
+
+    entry = sources.get(name)
+    if not isinstance(entry, dict):
+        entry = CommentedMap()
+        sources[name] = entry
+
+    for key in _SOURCE_FIELD_KEYS:
+        if key in entry:
+            del entry[key]
+    entry["url"] = url_reference
+    if dialect is not None:
+        entry["dialect"] = dialect
+
+    # Only back up once the file has been proven readable and valid: a
+    # failed record must not strand a `.bak` copy behind.
+    if file_existed:
+        _backup_config_file(config_path)
+    _atomic_write_yaml(config_path, yaml, data)
 
 
 def _load_secrets_file(base_dir: Path) -> dict[str, Any] | None:
@@ -338,6 +609,7 @@ def load_cli_config(config_path: Path | None) -> PretensorCliConfig:
 
     secrets_raw = _load_secrets_file(base_dir)
     sources = _parse_sources(raw.get("sources"), secrets_raw)
+    repositories = _parse_repositories(raw.get("repositories"), base_dir)
 
     return PretensorCliConfig(
         source_path=source,
@@ -347,6 +619,7 @@ def load_cli_config(config_path: Path | None) -> PretensorCliConfig:
         visibility=visibility,
         connection_defaults=connection_defaults,
         sources=sources,
+        repositories=repositories,
     )
 
 

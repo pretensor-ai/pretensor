@@ -70,18 +70,35 @@ def sql_hint_from_steps(steps: list[TraverseStepPayload]) -> str:
     return "\n".join(lines)
 
 
+def resolve_step_source(edge_type: str, raw_source: str) -> str:
+    """Resolve the MCP-facing ``source`` value for one traverse step.
+
+    ``raw_source`` is empty for ``JoinStep``/``AdjEdge`` values that predate
+    the provenance fields (either legacy persisted ``JoinPath`` rows or
+    algorithm-internal test fixtures). Fall back to a value derived from
+    ``edge_type`` rather than surfacing an empty string.
+    """
+    if raw_source:
+        return raw_source
+    return "declared_fk" if edge_type == "fk" else "unknown"
+
+
 def stored_path_to_payload(path: StoredJoinPath) -> TraversePathPayload:
     steps_out: list[TraverseStepPayload] = []
     for s in path.steps:
-        steps_out.append(
-            {
-                "from_table": f"{s.from_schema}.{s.from_table}",
-                "to_table": f"{s.to_schema}.{s.to_table}",
-                "from_column": s.from_column,
-                "to_column": s.to_column,
-                "edge_type": "fk" if s.edge_type == "fk" else "inferred",
-            }
-        )
+        edge_type = "fk" if s.edge_type == "fk" else "inferred"
+        step: TraverseStepPayload = {
+            "from_table": f"{s.from_schema}.{s.from_table}",
+            "to_table": f"{s.to_schema}.{s.to_table}",
+            "from_column": s.from_column,
+            "to_column": s.to_column,
+            "edge_type": edge_type,
+            "confidence": s.confidence,
+            "source": resolve_step_source(edge_type, s.source),
+        }
+        if s.reasoning:
+            step["reasoning"] = s.reasoning
+        steps_out.append(step)
     out: TraversePathPayload = {
         "confidence": path.confidence,
         "ambiguous": path.ambiguous,
@@ -141,6 +158,13 @@ def traverse_steps_respect_visibility(
     return True
 
 
+# (from_id, to_id, from_column, to_column, kind, constraint_name, confidence,
+#  source, reasoning) — the raw edge shape threaded through dijkstra_join_path's
+#  heap and consumed by step_dict_from_edge. confidence/source/reasoning are
+#  additive provenance fields; see JoinStep for their semantics.
+DijkstraEdge = tuple[str, str, str, str, str, str | None, float, str, str | None]
+
+
 def dijkstra_join_path(
     store: KuzuStore,
     *,
@@ -152,7 +176,7 @@ def dijkstra_join_path(
     shadow_alias_ids: frozenset[str] | None = None,
     edge_kinds: tuple[str, ...] | None = None,
     max_inferred_hops: int = 2,
-) -> tuple[list[tuple[str, str, str, str, str, str | None]], float] | None:
+) -> tuple[list[DijkstraEdge], float] | None:
     """Return the lowest-cost edge list under :func:`edge_cost`.
 
     See :func:`pretensor.intelligence.join_paths.on_demand.edge_cost` for the
@@ -182,7 +206,8 @@ def dijkstra_join_path(
         """
         MATCH (a:SchemaTable)-[r:INFERRED_JOIN]->(b:SchemaTable)
         WHERE a.connection_name = $cn AND b.connection_name = $cn
-        RETURN a.node_id, b.node_id, r.source_column, r.target_column, r.confidence
+        RETURN a.node_id, b.node_id, r.source_column, r.target_column, r.confidence,
+               r.source, r.reasoning
         """,
         {"cn": connection_name},
     )
@@ -201,17 +226,27 @@ def dijkstra_join_path(
         cname = str(cn) if cn is not None else None
         s_col = str(sc)
         t_col = str(tc)
-        adj.setdefault(sa, []).append((AdjEdge(sb, s_col, t_col, "fk", 1.0), cname))
-        adj.setdefault(sb, []).append((AdjEdge(sa, t_col, s_col, "fk", 1.0), cname))
-    for a, b, sc, tc, conf in inf_rows:
+        fk_edge = AdjEdge(sb, s_col, t_col, "fk", 1.0, source="declared_fk")
+        fk_edge_rev = AdjEdge(sa, t_col, s_col, "fk", 1.0, source="declared_fk")
+        adj.setdefault(sa, []).append((fk_edge, cname))
+        adj.setdefault(sb, []).append((fk_edge_rev, cname))
+    for a, b, sc, tc, conf, src, reason in inf_rows:
         sa, sb = str(a), str(b)
         if sa in _shadows or sb in _shadows:
             continue
         w = float(conf) if conf is not None else 0.5
         s_col = str(sc)
         t_col = str(tc)
-        adj.setdefault(sa, []).append((AdjEdge(sb, s_col, t_col, "inferred", w), None))
-        adj.setdefault(sb, []).append((AdjEdge(sa, t_col, s_col, "inferred", w), None))
+        src_s = str(src) if src else "unknown"
+        reason_s = str(reason) if reason else None
+        inf_edge = AdjEdge(
+            sb, s_col, t_col, "inferred", w, source=src_s, reasoning=reason_s
+        )
+        inf_edge_rev = AdjEdge(
+            sa, t_col, s_col, "inferred", w, source=src_s, reasoning=reason_s
+        )
+        adj.setdefault(sa, []).append((inf_edge, None))
+        adj.setdefault(sb, []).append((inf_edge_rev, None))
 
     counter = 0
     heap: list[
@@ -219,7 +254,7 @@ def dijkstra_join_path(
             float,
             int,
             str,
-            list[tuple[str, str, str, str, str, str | None]],
+            list[DijkstraEdge],
             float,
             int,
         ]
@@ -249,7 +284,17 @@ def dijkstra_join_path(
             new_inf = inf_hops + (1 if ae.kind == "inferred" else 0)
             if new_inf > max_inferred_hops:
                 continue
-            edge = (cur, ae.to_id, ae.source_column, ae.target_column, ae.kind, cname)
+            edge: DijkstraEdge = (
+                cur,
+                ae.to_id,
+                ae.source_column,
+                ae.target_column,
+                ae.kind,
+                cname,
+                ae.confidence,
+                ae.source,
+                ae.reasoning,
+            )
             counter += 1
             heapq.heappush(
                 heap,
@@ -267,14 +312,15 @@ def dijkstra_join_path(
 
 def step_dict_from_edge(
     store: KuzuStore,
-    edge: tuple[str, str, str, str, str, str | None],
+    edge: DijkstraEdge,
     connection_label: str,
 ) -> TraverseStepPayload:
-    fn, tn, scol, tcol, kind, cname = edge
+    fn, tn, scol, tcol, kind, cname, conf, source, reasoning = edge
     qf = qualified_from_node_id(store, fn)
     qt = qualified_from_node_id(store, tn)
     sc = str(scol)
     tc = str(tcol)
+    edge_type = "fk" if kind == "fk" else "inferred"
     step: TraverseStepPayload = {
         "from_table": qf,
         "to_table": qt,
@@ -283,10 +329,14 @@ def step_dict_from_edge(
         "from_db": connection_label,
         "to_db": connection_label,
         "via": f"{sc} = {tc}",
-        "edge_type": "fk" if kind == "fk" else "inferred",
+        "edge_type": edge_type,
+        "confidence": conf,
+        "source": resolve_step_source(edge_type, source),
     }
     if cname is not None:
         step["constraint_name"] = cname
+    if reasoning:
+        step["reasoning"] = reasoning
     return step
 
 
@@ -405,6 +455,8 @@ def traverse_cross_database(
             "via": "SAME_ENTITY (confirmed)",
             "edge_type": "entity_link",
             "join_columns": str(jcols) if jcols is not None else None,
+            "confidence": bridge_conf,
+            "source": "entity_link",
         }
         steps_out.append(bridge_step)
         steps_out.extend(

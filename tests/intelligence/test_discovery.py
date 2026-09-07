@@ -405,3 +405,76 @@ def test_discovery_behavior_unchanged_with_default_combiner(tmp_path) -> None:
         assert len(join_keys) == len(out), "each join key must be unique after merge"
     finally:
         store.close()
+
+
+def _wide_shared_snap() -> SchemaSnapshot:
+    tables = [
+        Table(
+            name=f"t{i}",
+            schema_name="public",
+            columns=[
+                Column(name="id", data_type="int", is_primary_key=True),
+                Column(name="region_code", data_type="text"),
+            ],
+        )
+        for i in range(10)
+    ]
+    return SchemaSnapshot(
+        connection_name="demo",
+        database="db",
+        schemas=["public"],
+        tables=tables,
+        introspected_at=datetime.now(timezone.utc),
+    )
+
+
+def test_discovery_threads_graph_config_to_heuristic_scorer(tmp_path) -> None:
+    """graph_config passed to RelationshipDiscovery must reach the scorer.
+
+    This is the construction shape the reindex CLI uses (a fresh registry from
+    PretensorConfig plus an explicit graph_config kwarg); a regression here
+    means user-set same-name gating knobs are silently ignored on reindex.
+    """
+    from pretensor.config import GraphConfig, PretensorConfig
+
+    snap = _wide_shared_snap()
+    store = KuzuStore(tmp_path / "g.kuzu")
+    try:
+        GraphBuilder().build(snap, store, run_relationship_discovery=False)
+
+        gated = RelationshipDiscovery(
+            store,
+            scorers=PretensorConfig().scorer_registry,
+            graph_config=GraphConfig(),
+        ).discover(snap)
+        assert [c for c in gated if "heuristic_same_name" in c.candidate_id] == []
+
+        ungated = RelationshipDiscovery(
+            store,
+            scorers=PretensorConfig().scorer_registry,
+            graph_config=GraphConfig(same_name_max_tables=None),
+        ).discover(snap)
+        same = [c for c in ungated if "heuristic_same_name" in c.candidate_id]
+        assert len(same) == 90
+    finally:
+        store.close()
+
+
+def test_discovery_does_not_override_explicit_scorer_config(tmp_path) -> None:
+    """A scorer constructed with its own GraphConfig keeps it."""
+    from pretensor.config import GraphConfig
+    from pretensor.intelligence.heuristic import HeuristicScorer
+
+    explicit = GraphConfig(same_name_max_tables=None)
+    scorer = HeuristicScorer(graph_config=explicit)
+    store = KuzuStore(tmp_path / "g.kuzu")
+    try:
+        store.ensure_schema()
+        RelationshipDiscovery(
+            store,
+            scorers=ScorerRegistry([scorer]),
+            graph_config=GraphConfig(same_name_max_tables=2),
+        )
+        assert scorer.graph_config is explicit
+    finally:
+        store.close()

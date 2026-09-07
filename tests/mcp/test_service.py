@@ -451,6 +451,9 @@ def test_context_composite_fk_grouped(tmp_path: Path) -> None:
     # i-th source pairs with i-th target per the FK definition.
     pairs = list(zip(rel["source_columns"], rel["target_columns"]))
     assert pairs == [("l_partkey", "ps_partkey"), ("l_suppkey", "ps_suppkey")]
+    # Declared FKs report confidence 1.0 / source "declared_fk".
+    assert rel["source"] == "declared_fk"
+    assert rel["confidence"] == 1.0
 
 
 def test_query_tool_finds_table_comment(tmp_path: Path) -> None:

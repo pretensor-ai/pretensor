@@ -10,11 +10,11 @@
     },
     "inferred_join_precision": {
       "direction": "higher_is_better",
-      "value": 0.11094674556213018
+      "value": 0.2073732718894009
     },
     "inferred_join_recall": {
       "direction": "higher_is_better",
-      "value": 0.8241758241758241
+      "value": 0.4945054945054945
     },
     "role_f1": {
       "direction": "higher_is_better",
@@ -48,79 +48,25 @@
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194humanresources.employeedepartmenthistory.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194humanresources.employeepayhistory.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194humanresources.jobcandidate.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194humanresources.vemployee.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194humanresources.vemployeedepartment.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194humanresources.vemployeedepartmenthistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194person.person.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
@@ -129,88 +75,16 @@
       "predicted": false
     },
     {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194purchasing.purchaseorderheader.employeeid",
       "kind": "inferred_join",
       "predicted": false
     },
     {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "humanresources.employee.businessentityid\u2194sales.salesperson.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employee.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": false,
@@ -237,440 +111,8 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194humanresources.employeepayhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194humanresources.jobcandidate.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194humanresources.vemployee.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194humanresources.vemployeedepartment.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194humanresources.vemployeedepartmenthistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.person.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeedepartmenthistory.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "humanresources.employeedepartmenthistory.shiftid\u2194humanresources.shift.shiftid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194humanresources.jobcandidate.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194humanresources.vemployee.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194humanresources.vemployeedepartment.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194humanresources.vemployeedepartmenthistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.person.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.employeepayhistory.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194humanresources.vemployee.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194humanresources.vemployeedepartment.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194humanresources.vemployeedepartmenthistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.person.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.jobcandidate.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -701,84 +143,6 @@
     {
       "expected": false,
       "id": "humanresources.vemployee.addressline2\u2194person.address.addressline2",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.businessentityid\u2194sales.store.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -844,18 +208,6 @@
     },
     {
       "expected": false,
-      "id": "humanresources.vemployee.firstname\u2194humanresources.vemployeedepartment.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.firstname\u2194humanresources.vemployeedepartmenthistory.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "humanresources.vemployee.jobtitle\u2194humanresources.vemployeedepartment.jobtitle",
       "kind": "inferred_join",
       "predicted": true
@@ -869,12 +221,6 @@
     {
       "expected": false,
       "id": "humanresources.vemployee.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployee.lastname\u2194humanresources.vemployeedepartmenthistory.lastname",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -958,127 +304,7 @@
     },
     {
       "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "humanresources.vemployeedepartment.department\u2194humanresources.vemployeedepartmenthistory.department",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.firstname\u2194person.person.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.firstname\u2194purchasing.vvendorwithcontacts.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.firstname\u2194sales.vindividualcustomer.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.firstname\u2194sales.vsalesperson.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.firstname\u2194sales.vstorewithcontacts.firstname",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -1097,30 +323,6 @@
     {
       "expected": false,
       "id": "humanresources.vemployeedepartment.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.lastname\u2194person.person.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.lastname\u2194purchasing.vvendorwithcontacts.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.lastname\u2194sales.vindividualcustomer.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartment.lastname\u2194sales.vstorewithcontacts.lastname",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -1157,156 +359,6 @@
     {
       "expected": false,
       "id": "humanresources.vemployeedepartment.suffix\u2194sales.vstorewithcontacts.suffix",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.businessentity.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.businessentityaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.firstname\u2194person.person.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.firstname\u2194purchasing.vvendorwithcontacts.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.firstname\u2194sales.vindividualcustomer.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.firstname\u2194sales.vsalesperson.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.firstname\u2194sales.vstorewithcontacts.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.lastname\u2194person.person.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.lastname\u2194purchasing.vvendorwithcontacts.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.lastname\u2194sales.vindividualcustomer.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.lastname\u2194sales.vsalesperson.lastname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "humanresources.vemployeedepartmenthistory.lastname\u2194sales.vstorewithcontacts.lastname",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -1452,325 +504,31 @@
       "expected": true,
       "id": "person.businessentity.businessentityid\u2194person.businessentityaddress.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "person.businessentity.businessentityid\u2194person.businessentitycontact.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "person.businessentity.businessentityid\u2194person.person.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "person.businessentity.businessentityid\u2194purchasing.vendor.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "person.businessentity.businessentityid\u2194sales.store.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentity.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194person.businessentitycontact.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194person.person.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentityaddress.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194person.emailaddress.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194person.person.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.businessentitycontact.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
@@ -1809,100 +567,10 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194person.password.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "person.emailaddress.businessentityid\u2194person.person.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.emailaddress.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": false,
@@ -1938,115 +606,13 @@
       "expected": true,
       "id": "person.password.businessentityid\u2194person.person.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194person.personphone.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.password.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "person.person.businessentityid\u2194person.personphone.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
@@ -2058,37 +624,7 @@
       "expected": true,
       "id": "person.person.businessentityid\u2194sales.personcreditcard.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": false,
@@ -2128,24 +664,6 @@
     },
     {
       "expected": false,
-      "id": "person.person.firstname\u2194purchasing.vvendorwithcontacts.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.firstname\u2194sales.vsalesperson.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.person.firstname\u2194sales.vstorewithcontacts.firstname",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "person.person.suffix\u2194purchasing.vvendorwithcontacts.suffix",
       "kind": "inferred_join",
       "predicted": true
@@ -2165,84 +683,6 @@
     {
       "expected": false,
       "id": "person.person.suffix\u2194sales.vstorewithcontacts.suffix",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194purchasing.productvendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194purchasing.vendor.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "person.personphone.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -2388,91 +828,73 @@
       "expected": true,
       "id": "production.product.productid\u2194production.productcosthistory.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.productdocument.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.productinventory.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.productlistpricehistory.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.productproductphoto.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.productreview.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.transactionhistory.productid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.product.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194production.workorder.productid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.product.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194purchasing.productvendor.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194purchasing.purchaseorderdetail.productid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.product.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194sales.shoppingcartitem.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "production.product.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
@@ -2523,90 +945,6 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.productdocument.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.productinventory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.productlistpricehistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.productproductphoto.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.productreview.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productcosthistory.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "production.productdescription.productdescriptionid\u2194production.productmodelproductdescriptionculture.productdescriptionid",
       "kind": "inferred_join",
@@ -2614,223 +952,7 @@
     },
     {
       "expected": false,
-      "id": "production.productdocument.productid\u2194production.productinventory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.productlistpricehistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.productproductphoto.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.productreview.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productdocument.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "production.productinventory.locationid\u2194production.workorderrouting.locationid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.productlistpricehistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.productproductphoto.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.productreview.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productinventory.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.productproductphoto.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.productreview.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productlistpricehistory.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -2860,66 +982,6 @@
     },
     {
       "expected": false,
-      "id": "production.productproductphoto.productid\u2194production.productreview.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productproductphoto.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "production.productreview.emailaddress\u2194purchasing.vvendorwithcontacts.emailaddress",
       "kind": "inferred_join",
       "predicted": true
@@ -2943,60 +1005,6 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "production.productreview.productid\u2194production.transactionhistory.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194production.transactionhistoryarchive.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.productreview.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "production.scrapreason.scrapreasonid\u2194production.workorder.scrapreasonid",
       "kind": "inferred_join",
@@ -3005,48 +1013,6 @@
     {
       "expected": false,
       "id": "production.transactionhistory.actualcost\u2194production.workorderrouting.actualcost",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistory.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3075,48 +1041,6 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194production.workorder.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.transactionhistoryarchive.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "production.unitmeasure.unitmeasurecode\u2194purchasing.productvendor.unitmeasurecode",
       "kind": "inferred_join",
@@ -3135,74 +1059,8 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "production.workorder.productid\u2194production.workorderrouting.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorder.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorder.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorder.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorder.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorder.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "production.workorder.workorderid\u2194production.workorderrouting.workorderid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorderrouting.productid\u2194purchasing.productvendor.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorderrouting.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorderrouting.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorderrouting.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "production.workorderrouting.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3210,119 +1068,11 @@
       "expected": true,
       "id": "purchasing.productvendor.businessentityid\u2194purchasing.vendor.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.productid\u2194purchasing.purchaseorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.productvendor.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": false,
       "id": "purchasing.purchaseorderdetail.orderqty\u2194sales.salesorderdetail.orderqty",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.purchaseorderdetail.productid\u2194sales.salesorderdetail.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.purchaseorderdetail.productid\u2194sales.shoppingcartitem.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.purchaseorderdetail.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3382,72 +1132,6 @@
     },
     {
       "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194purchasing.vvendorwithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vendor.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "purchasing.vvendorwithaddresses.addressline1\u2194sales.vsalesperson.addressline1",
       "kind": "inferred_join",
       "predicted": true
@@ -3461,48 +1145,6 @@
     {
       "expected": false,
       "id": "purchasing.vvendorwithaddresses.addresstype\u2194sales.vstorewithaddresses.addresstype",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194purchasing.vvendorwithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithaddresses.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3539,42 +1181,6 @@
     {
       "expected": false,
       "id": "purchasing.vvendorwithaddresses.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.personcreditcard.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "purchasing.vvendorwithcontacts.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3712,61 +1318,7 @@
     },
     {
       "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.salesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.personcreditcard.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "sales.personcreditcard.creditcardid\u2194sales.salesorderheader.creditcardid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesorderdetail.productid\u2194sales.shoppingcartitem.productid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -3774,7 +1326,7 @@
       "expected": true,
       "id": "sales.salesorderdetail.productid\u2194sales.specialofferproduct.productid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
@@ -3852,43 +1404,19 @@
       "expected": true,
       "id": "sales.salesperson.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "sales.salesperson.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
       "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesperson.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "sales.salesperson.businessentityid\u2194sales.store.salespersonid",
       "kind": "inferred_join",
       "predicted": false
-    },
-    {
-      "expected": false,
-      "id": "sales.salesperson.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesperson.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesperson.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
     },
     {
       "expected": false,
@@ -3940,42 +1468,6 @@
     },
     {
       "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salespersonquotahistory.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "sales.salespersonquotahistory.salesquota\u2194sales.vsalesperson.salesquota",
       "kind": "inferred_join",
       "predicted": true
@@ -3999,68 +1491,8 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "sales.salesterritoryhistory.businessentityid\u2194sales.store.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesterritoryhistory.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesterritoryhistory.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesterritoryhistory.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.salesterritoryhistory.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.shoppingcartitem.productid\u2194sales.specialofferproduct.productid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "sales.specialoffer.specialofferid\u2194sales.specialofferproduct.specialofferid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.store.businessentityid\u2194sales.vindividualcustomer.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.store.businessentityid\u2194sales.vsalesperson.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.store.businessentityid\u2194sales.vstorewithaddresses.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.store.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -4171,14 +1603,8 @@
       "id": "sales.vsalesperson.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
       "kind": "inferred_join",
       "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "sales.vstorewithaddresses.businessentityid\u2194sales.vstorewithcontacts.businessentityid",
-      "kind": "inferred_join",
-      "predicted": true
     }
   ],
-  "pretensor_version": "0.1.0a3",
+  "pretensor_version": "0.1.0",
   "ran_at": "1970-01-01T00:00:00Z"
 }

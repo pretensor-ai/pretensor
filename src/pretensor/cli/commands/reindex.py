@@ -629,6 +629,18 @@ def _run_single_reindex(
         console.print(
             f"[green]Snapshot saved:[/green] {snap_store.path_for(connection_name)}"
         )
+        if changes and not recompute_intelligence:
+            classified = (
+                f"{patch.tables_classified} new table(s) classified heuristically; "
+                if patch.tables_classified
+                else ""
+            )
+            console.print(
+                f"[yellow]Schema patched without intelligence recompute: "
+                f"{classified}precomputed join paths and clusters were not "
+                "rebuilt and may be stale. Re-run with "
+                "--recompute-intelligence to refresh them.[/yellow]"
+            )
         logger.info(
             "reindex completed in %.2fms",
             (time.perf_counter() - total_started) * 1000,

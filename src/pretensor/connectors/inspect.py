@@ -35,24 +35,26 @@ LARGE_TABLE_ROW_THRESHOLD = 10_000_000
 # Column types whose values cannot be aggregated with MIN/MAX or cast to text
 # in a meaningful way for stats collection. Pre-filtering avoids noisy
 # "Failed to collect stats" warnings on benign type mismatches.
-_STATS_UNSUPPORTED_TYPES: frozenset[str] = frozenset({
-    "boolean",
-    "bool",
-    "bytea",
-    "tsvector",
-    "tsquery",
-    "xml",
-    "json",
-    "point",
-    "line",
-    "lseg",
-    "box",
-    "path",
-    "polygon",
-    "circle",
-    "pg_lsn",
-    "txid_snapshot",
-})
+_STATS_UNSUPPORTED_TYPES: frozenset[str] = frozenset(
+    {
+        "boolean",
+        "bool",
+        "bytea",
+        "tsvector",
+        "tsquery",
+        "xml",
+        "json",
+        "point",
+        "line",
+        "lseg",
+        "box",
+        "path",
+        "polygon",
+        "circle",
+        "pg_lsn",
+        "txid_snapshot",
+    }
+)
 
 
 def _index_foreign_keys(
@@ -73,13 +75,20 @@ def _fk_columns_for_table(
     return {fk.source_column for fk in fk_index.get((schema_name, table_name), [])}
 
 
-def inspect(config: ConnectionConfig) -> SchemaSnapshot:
+def inspect(config: ConnectionConfig, *, collect_stats: bool = True) -> SchemaSnapshot:
     """Run full schema introspection and return a :class:`SchemaSnapshot`.
 
     Dispatches to the connector registered for ``config.type``.
 
     Args:
         config: Database connection configuration.
+        collect_stats: When False, skip per-column data statistics
+            (``get_column_stats``: distinct counts, min/max, null percentage,
+            samples). Those aggregates issue one or more full-table-scan
+            queries per column, which dominates introspection wall clock;
+            callers that only need schema structure (e.g. drift detection)
+            should pass False. Catalog enrichment from ``load_deep_catalog``
+            is still applied.
 
     Returns:
         Tables, columns, FKs, and optional column statistics.
@@ -162,7 +171,8 @@ def inspect(config: ConnectionConfig) -> SchemaSnapshot:
 
                 col_type = (col_info.data_type or "").lower()
                 should_collect_stats = (
-                    row_count is not None
+                    collect_stats
+                    and row_count is not None
                     and row_count > SKIP_STATS_ROW_THRESHOLD
                     and row_count < LARGE_TABLE_ROW_THRESHOLD
                     and col_type not in _STATS_UNSUPPORTED_TYPES
@@ -170,9 +180,7 @@ def inspect(config: ConnectionConfig) -> SchemaSnapshot:
 
                 if should_collect_stats:
                     try:
-                        _t_stat = (
-                            time.perf_counter() if _PROFILE_INDEX else 0.0
-                        )
+                        _t_stat = time.perf_counter() if _PROFILE_INDEX else 0.0
                         stats = connector.get_column_stats(tname, col_info.name, sname)
                         if _PROFILE_INDEX:
                             _elapsed = time.perf_counter() - _t_stat

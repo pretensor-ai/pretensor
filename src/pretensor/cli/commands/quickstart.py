@@ -12,7 +12,7 @@ import typer
 from rich.console import Console
 
 from pretensor.cli import constants as cli_constants
-from pretensor.cli.commands.index import _run_index
+from pretensor.cli.commands._command_runners import run_index
 from pretensor.cli.config_file import get_cli_config
 from pretensor.introspection.models.dsn import connection_config_from_url
 from pretensor.mcp import print_mcp_config
@@ -135,7 +135,7 @@ def register_quickstart_command(app: typer.Typer, *, console: Console) -> None:
 
         from pretensor.intelligence.embeddings import resolve_embeddings_auto
 
-        _run_index(
+        run_index(
             console=console,
             cli_config=cli_config,
             dsn=QUICKSTART_DSN,

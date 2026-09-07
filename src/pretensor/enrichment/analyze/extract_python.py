@@ -56,7 +56,7 @@ class SqlCandidate:
     line_end: int
     file_path: Path
     symbol: str
-    kind: str  # extraction context: "assignment" | "call" | "fstring"
+    kind: str  # extraction context: "assignment" | "call" | "fstring" | "sql_file"
 
 
 def extract_sql_candidates(file_path: Path) -> list[SqlCandidate]:

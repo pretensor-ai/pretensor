@@ -18,11 +18,13 @@ from pretensor.connectors.models import (
 )
 from pretensor.core.builder import GraphBuilder
 from pretensor.core.ids import table_node_id
+from pretensor.core.registry import GraphRegistry
 from pretensor.core.store import KuzuStore
 from pretensor.graph_models.relationship import RelationshipCandidate
 from pretensor.intelligence.shadow_alias import get_shadow_alias_node_ids
 from pretensor.mcp.tools.traverse import (
     dijkstra_join_path,
+    traverse_payload,
     traverse_steps_respect_visibility,
 )
 from pretensor.visibility.config import VisibilityConfig
@@ -152,6 +154,9 @@ def test_fk_chain_preferred_when_inferred_costs_more(tmp_path: Path) -> None:
         assert len(edges) == 3
         assert min_conf == 1.0
         assert all(e[4] == "fk" for e in edges)
+        # Per-edge confidence/source provenance on FK hops.
+        assert all(e[6] == 1.0 for e in edges)
+        assert all(e[7] == "declared_fk" for e in edges)
     finally:
         store.close()
 
@@ -207,6 +212,9 @@ def test_inferred_path_used_when_no_fk_path(tmp_path: Path) -> None:
         assert len(edges) == 1
         assert edges[0][4] == "inferred"
         assert min_conf == 0.6
+        # Per-edge confidence/source provenance on inferred hops.
+        assert edges[0][6] == 0.6
+        assert edges[0][7] == "heuristic"
     finally:
         store.close()
 
@@ -340,7 +348,9 @@ def test_no_path_returns_none(tmp_path: Path) -> None:
 
 def test_respect_visibility_exempts_fk_steps() -> None:
     """FK steps stay visible even when their tables are hidden by the filter."""
-    vf = VisibilityFilter.from_config(VisibilityConfig(hidden_tables=["demo::public.rental"]))
+    vf = VisibilityFilter.from_config(
+        VisibilityConfig(hidden_tables=["demo::public.rental"])
+    )
     fk_through_hidden = [
         {
             "from_table": "public.film",
@@ -362,7 +372,9 @@ def test_respect_visibility_exempts_fk_steps() -> None:
 
 def test_respect_visibility_blocks_inferred_through_hidden() -> None:
     """Inferred steps through hidden tables remain filtered out."""
-    vf = VisibilityFilter.from_config(VisibilityConfig(hidden_tables=["demo::public.rental"]))
+    vf = VisibilityFilter.from_config(
+        VisibilityConfig(hidden_tables=["demo::public.rental"])
+    )
     inferred_through_hidden = [
         {
             "from_table": "public.film",
@@ -518,3 +530,96 @@ class TestDijkstraShadowAliasFiltering:
             assert len(edges) == 1
         finally:
             store.close()
+
+
+class TestTraversePayloadProvenance:
+    """``traverse_payload`` surfaces per-step confidence/source."""
+
+    def test_fk_steps_report_declared_fk(self, tmp_path: Path) -> None:
+        store = _build_chain_graph(tmp_path)
+        store.close()
+        reg = GraphRegistry(tmp_path / "registry.json").load()
+        reg.upsert(
+            connection_name="demo",
+            database="demo",
+            dsn="postgresql://localhost/demo",
+            graph_path=tmp_path / "graphs" / "demo.kuzu",
+            indexed_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        reg.save()
+
+        out = traverse_payload(
+            tmp_path,
+            from_table="salesorder",
+            to_table="product",
+            database="demo",
+            edge_types=("fk",),
+        )
+        assert "paths" in out, out
+        path = out["paths"][0]
+        steps = path["steps"]
+        assert len(steps) == 3
+        for step in steps:
+            assert step["edge_type"] == "fk"
+            assert step["confidence"] == 1.0
+            assert step["source"] == "declared_fk"
+            assert "reasoning" not in step
+
+    def test_inferred_step_reports_stored_provenance(self, tmp_path: Path) -> None:
+        tables = [
+            Table(
+                name="alpha",
+                schema_name="public",
+                columns=[Column(name="id", data_type="int", is_primary_key=True)],
+                foreign_keys=[],
+            ),
+            Table(
+                name="beta",
+                schema_name="public",
+                columns=[Column(name="id", data_type="int", is_primary_key=True)],
+                foreign_keys=[],
+            ),
+        ]
+        snap = SchemaSnapshot(
+            connection_name="demo",
+            database="demo",
+            schemas=["public"],
+            tables=tables,
+            introspected_at=datetime.now(timezone.utc),
+        )
+        graph = tmp_path / "graphs" / "demo.kuzu"
+        graph.parent.mkdir(parents=True, exist_ok=True)
+        store = KuzuStore(graph)
+        GraphBuilder().build(snap, store, run_relationship_discovery=False)
+        store.upsert_inferred_join(
+            RelationshipCandidate(
+                candidate_id="inf-1",
+                source_node_id=_node_id("public", "alpha"),
+                target_node_id=_node_id("public", "beta"),
+                source_column="id",
+                target_column="id",
+                source="heuristic",
+                confidence=0.6,
+                reasoning="column name and type overlap",
+            )
+        )
+        store.close()
+        reg = GraphRegistry(tmp_path / "registry.json").load()
+        reg.upsert(
+            connection_name="demo",
+            database="demo",
+            dsn="postgresql://localhost/demo",
+            graph_path=graph,
+            indexed_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        reg.save()
+
+        out = traverse_payload(
+            tmp_path, from_table="alpha", to_table="beta", database="demo"
+        )
+        assert "paths" in out, out
+        step = out["paths"][0]["steps"][0]
+        assert step["edge_type"] == "inferred"
+        assert step["confidence"] == 0.6
+        assert step["source"] == "heuristic"
+        assert step["reasoning"] == "column name and type overlap"

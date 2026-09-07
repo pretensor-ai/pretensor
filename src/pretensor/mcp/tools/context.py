@@ -336,8 +336,8 @@ def relationships_for_table(
             "source_columns": src_cols,
             "target_columns": tgt_cols,
             "constraint_name": cname_str,
-            "source": None,
-            "confidence": None,
+            "source": "declared_fk",
+            "confidence": 1.0,
             "reasoning": None,
         }
         out.append(rel)

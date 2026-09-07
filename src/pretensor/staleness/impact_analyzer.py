@@ -120,8 +120,9 @@ class ImpactAnalyzer:
         else:
             report.summary = " ".join(parts)
         report.summary += (
-            " Run `pretensor reindex <dsn>` to refresh the graph; use "
-            "`pretensor index` for a full rebuild if needed."
+            " Run `pretensor reindex <dsn>` to patch the schema graph; add "
+            "`--recompute-intelligence` to also rebuild join paths, clusters, "
+            "and table roles, or use `pretensor index` for a full rebuild."
         )
         return report
 

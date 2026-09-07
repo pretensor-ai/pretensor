@@ -87,9 +87,7 @@ class EmbeddingsConfig:
                 f"got {self.role_weight!r}"
             )
             raise ValueError(msg)
-        if self.join_threshold is not None and not (
-            0.0 <= self.join_threshold <= 1.0
-        ):
+        if self.join_threshold is not None and not (0.0 <= self.join_threshold <= 1.0):
             msg = (
                 f"EmbeddingsConfig.join_threshold must be in [0.0, 1.0] "
                 f"or None; got {self.join_threshold!r}"
@@ -122,6 +120,21 @@ class GraphConfig:
     lineage_in_max_for_alias: int = 1
     """Maximum incoming LINEAGE edge count for a view to be considered a
     shadow alias.  The default of 1 matches pure 1:1 projections."""
+
+    same_name_max_tables: int | None = 8
+    """Maximum number of distinct tables sharing a column name for the
+    same-name join heuristic to fire on that column.  A name shared across
+    more tables (``customer_id`` on every fact table, ``date_id`` on 40
+    tables) is a generic key whose name alone is too weak a join signal —
+    pairing all of them generates O(tables²) inferred edges and floods the
+    join-path precompute.  ``None`` disables the gate."""
+
+    def __post_init__(self) -> None:
+        if self.same_name_max_tables is not None and self.same_name_max_tables < 2:
+            raise ValueError(
+                "same_name_max_tables must be >= 2 or None, got "
+                f"{self.same_name_max_tables}"
+            )
 
 
 def _default_scorer_registry() -> ScorerRegistry:

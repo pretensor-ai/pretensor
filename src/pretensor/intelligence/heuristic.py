@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from pretensor.config import GraphConfig
 from pretensor.connectors.models import Column, SchemaSnapshot, Table
 from pretensor.core.ids import table_node_id
 from pretensor.graph_models.relationship import RelationshipCandidate
@@ -103,18 +104,17 @@ def types_compatible(src: Column | None, dst: Column | None) -> bool:
     if sf is None or df is None:
         return True
     return sf == df
+
+
 _NULL_PCT_HIGH = 80.0
 _LOW_CARD_MAX = 50
 _LARGE_TABLE_ROWS = 10_000
 
-# Column names that are audit/metadata fields rather than join keys. Filtering
-# by *name* (not by how many tables a column appears on) keeps legitimate
-# wide-shared columns — e.g. a ``region_code`` denormalized across many tables
-# — emitting candidates while suppressing the AdventureWorks pathology where
-# ``ModifiedDate`` / ``rowguid`` live on ~60 tables. Comparison is
-# case-insensitive (see lookup site below). The downstream join-path DFS has
-# its own perf safety net via ``_DFS_VISIT_BUDGET`` in
-# ``intelligence/join_paths/on_demand.py``.
+# Column names that are audit/metadata fields rather than join keys, denied
+# regardless of how many tables share them. Comparison is case-insensitive
+# (see lookup site below). Non-denied names are additionally gated by
+# ``GraphConfig.same_name_max_tables`` — a name shared across more tables
+# than that is treated as a generic key, not a join signal.
 _BORING_SHARED_NAMES = frozenset(
     {
         # Audit / metadata (alphabetical)
@@ -358,6 +358,8 @@ def _apply_catalog_signals(
 
 def discover_heuristic_candidates(
     snapshot: SchemaSnapshot,
+    *,
+    graph_config: GraphConfig | None = None,
 ) -> list[RelationshipCandidate]:
     """Return heuristic join hypotheses for tables in ``snapshot``.
 
@@ -367,7 +369,13 @@ def discover_heuristic_candidates(
     Catalog signals adjust confidence when ``Column`` / ``Table`` fields
     from introspection are present (cardinality, index type, uniqueness, null rate,
     row counts).
+
+    Args:
+        snapshot: Introspected schema to scan.
+        graph_config: Source of the ``same_name_max_tables`` gate; ``None``
+            uses :class:`GraphConfig` defaults.
     """
+    cfg = graph_config if graph_config is not None else GraphConfig()
     conn = snapshot.connection_name
     columns_by_table = _column_lookup(snapshot)
     seen_keys: set[tuple[str, str, str, str, str]] = set()
@@ -468,37 +476,47 @@ def discover_heuristic_candidates(
     # Collect candidates first, then cap per table pair.
     _SAME_NAME_CAP_PER_PAIR = 3
 
-    by_name: dict[str, list[Table]] = defaultdict(list)
+    # Bucket case-insensitively (CustomerID / customer_id conventions coexist
+    # across schemas) but emit each side's actual column name.
+    by_name: dict[str, list[tuple[Table, str]]] = defaultdict(list)
     for t in snapshot.tables:
         for c in t.columns:
             if c.name.lower() in _BORING_SHARED_NAMES:
                 continue
-            by_name[c.name].append(t)
+            by_name[c.name.lower()].append((t, c.name))
 
-    # Each entry: (src, col, dst, col, selectivity, reason)
+    # Each entry: (src, src_col, dst, dst_col, selectivity, reason)
     raw_same: list[tuple[Table, str, Table, str, float, str]] = []
 
-    for col_name, tables in by_name.items():
-        if len(tables) < 2:
+    for occurrences in by_name.values():
+        if len(occurrences) < 2:
             continue
-        uniq_tables: list[Table] = []
+        uniq: list[tuple[Table, str]] = []
         seen_tbl: set[tuple[str, str]] = set()
-        for t in tables:
+        for t, name in occurrences:
             k = _table_key(t)
             if k not in seen_tbl:
                 seen_tbl.add(k)
-                uniq_tables.append(t)
-        if len(uniq_tables) < 2:
+                uniq.append((t, name))
+        if len(uniq) < 2:
             continue
-        selectivity = 1.0 / len(uniq_tables)
-        for i, t1 in enumerate(uniq_tables):
-            for t2 in uniq_tables[i + 1 :]:
+        if (
+            cfg.same_name_max_tables is not None
+            and len(uniq) > cfg.same_name_max_tables
+        ):
+            # Generic key (date_id, customer_id on every fact table): the name
+            # alone is too weak a signal, and pairing all of them generates
+            # O(tables²) inferred edges.
+            continue
+        selectivity = 1.0 / len(uniq)
+        for i, (t1, name1) in enumerate(uniq):
+            for t2, name2 in uniq[i + 1 :]:
                 reason = (
-                    f"shared column name '{col_name}' on {t1.name} and {t2.name} "
+                    f"shared column name '{name1}' on {t1.name} and {t2.name} "
                     "(weak join signal)"
                 )
-                raw_same.append((t1, col_name, t2, col_name, selectivity, reason))
-                raw_same.append((t2, col_name, t1, col_name, selectivity, reason))
+                raw_same.append((t1, name1, t2, name2, selectivity, reason))
+                raw_same.append((t2, name2, t1, name1, selectivity, reason))
 
     # Group by directed (src, dst) pair and keep top-N by selectivity.
     pair_groups: dict[
@@ -511,16 +529,30 @@ def discover_heuristic_candidates(
 
     for entries in pair_groups.values():
         entries.sort(key=lambda e: (-e[4], e[1]))
-        for src_t, src_col, dst_t, dst_col, _sel, reason in entries[
+        for src_t, src_col, dst_t, dst_col, sel, reason in entries[
             :_SAME_NAME_CAP_PER_PAIR
         ]:
-            add(src_t, src_col, dst_t, dst_col, _CONFIDENCE_LOW, reason, "heuristic_same_name")
+            # Scale confidence with selectivity: a name shared by exactly two
+            # tables keeps the full low-confidence base; wider sharing decays
+            # it. Varying confidence also breaks the exact join-path cost ties
+            # that a flat constant produced for every same-name edge.
+            conf = _CONFIDENCE_LOW * min(1.0, 2.0 * sel)
+            add(src_t, src_col, dst_t, dst_col, conf, reason, "heuristic_same_name")
 
     return out
 
 
 class HeuristicScorer(RelationshipScorer):
-    """Default OSS scorer that runs deterministic naming heuristics."""
+    """Default OSS scorer that runs deterministic naming heuristics.
+
+    ``graph_config`` is deliberately a mutable attribute: the default scorer
+    registry is built before the effective :class:`GraphConfig` is known, so
+    ``RelationshipDiscovery.__init__`` — the seam every discovery entry point
+    passes through — injects it when none was given at construction.
+    """
+
+    def __init__(self, graph_config: GraphConfig | None = None) -> None:
+        self.graph_config = graph_config
 
     def name(self) -> str:
         return "heuristic"
@@ -531,7 +563,7 @@ class HeuristicScorer(RelationshipScorer):
         explicit_fk_keys: set[JoinKey],
     ) -> list[RelationshipCandidate]:
         """Return heuristic candidates excluding explicit FK edges."""
-        raw = discover_heuristic_candidates(snapshot)
+        raw = discover_heuristic_candidates(snapshot, graph_config=self.graph_config)
         return [c for c in raw if _candidate_join_key(c) not in explicit_fk_keys]
 
 

@@ -18,7 +18,6 @@ matches the baseline runner one-to-one.
 from __future__ import annotations
 
 import hashlib
-import importlib.metadata
 import json
 import os
 import secrets
@@ -55,6 +54,7 @@ from pretensor.benchmark.l3.prompt import (
 from pretensor.benchmark.l3.sql_equivalence import gold_is_ordered, rows_equivalent
 from pretensor.benchmark.results import BenchmarkResult, Metric, write_json
 from pretensor.benchmark.runner import Dataset
+from pretensor.version import package_version
 
 __all__ = ["DEFAULT_TEMPERATURE", "run_l3_pretensor"]
 
@@ -191,7 +191,7 @@ def run_l3_pretensor(
     result = BenchmarkResult(
         level="l3",
         dataset=dataset.value,
-        pretensor_version=_resolve_version(),
+        pretensor_version=package_version(fallback="0.0.0+unknown"),
         embeddings_enabled=embeddings_enabled,
         ran_at=_DETERMINISTIC_RAN_AT,
         fixture_sha=fixture_sha,
@@ -447,10 +447,3 @@ def _provider_name(client: AgentLlmClient) -> str:
     if isinstance(client, AnthropicHttpClient):
         return "anthropic"
     return "custom"
-
-
-def _resolve_version() -> str:
-    try:
-        return importlib.metadata.version("pretensor")
-    except importlib.metadata.PackageNotFoundError:
-        return "0.0.0+unknown"

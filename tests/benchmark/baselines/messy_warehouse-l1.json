@@ -10,11 +10,11 @@
     },
     "inferred_join_precision": {
       "direction": "higher_is_better",
-      "value": 0.12037037037037036
+      "value": 0.13157894736842105
     },
     "inferred_join_recall": {
       "direction": "higher_is_better",
-      "value": 0.8125
+      "value": 0.625
     },
     "role_f1": {
       "direction": "higher_is_better",
@@ -139,37 +139,7 @@
     },
     {
       "expected": false,
-      "id": "intermediate.int_user_orders.user_id\u2194mart.login_log.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "intermediate.int_user_orders.user_id\u2194mart.user_audit_log.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "intermediate.int_user_orders.user_id\u2194mart.users.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "intermediate.int_user_orders.user_id\u2194mart.users_snapshot.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "intermediate.int_user_orders.user_id\u2194raw.raw_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "intermediate.int_user_orders.user_id\u2194staging.stg_events.user_id",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -177,7 +147,7 @@
       "expected": true,
       "id": "intermediate.int_user_orders.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": false,
@@ -240,50 +210,8 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194mart.orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194mart.user_audit_log.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "mart.login_log.user_id\u2194mart.users.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194mart.users_snapshot.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194raw.raw_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194staging.stg_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.login_log.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -372,44 +300,8 @@
       "predicted": true
     },
     {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194mart.user_audit_log.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "mart.orders.user_id\u2194mart.users.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194mart.users_snapshot.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194raw.raw_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194staging.stg_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.orders.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -458,36 +350,6 @@
     {
       "expected": true,
       "id": "mart.user_audit_log.user_id\u2194mart.users.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.user_audit_log.user_id\u2194mart.users_snapshot.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.user_audit_log.user_id\u2194raw.raw_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.user_audit_log.user_id\u2194staging.stg_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.user_audit_log.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.user_audit_log.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -589,24 +451,6 @@
     },
     {
       "expected": false,
-      "id": "mart.users_snapshot.user_id\u2194raw.raw_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.users_snapshot.user_id\u2194staging.stg_events.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "mart.users_snapshot.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
       "id": "raw.raw_events.event_id\u2194staging.stg_events.event_id",
       "kind": "inferred_join",
       "predicted": true
@@ -620,18 +464,6 @@
     {
       "expected": false,
       "id": "raw.raw_events.occurred_at\u2194staging.stg_events.occurred_at",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "raw.raw_events.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
-      "expected": false,
-      "id": "raw.raw_events.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
       "predicted": true
     },
@@ -672,22 +504,16 @@
       "predicted": false
     },
     {
-      "expected": false,
-      "id": "staging.stg_events.user_id\u2194staging.stg_orders.user_id",
-      "kind": "inferred_join",
-      "predicted": true
-    },
-    {
       "expected": true,
       "id": "staging.stg_events.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": true,
       "id": "staging.stg_orders.user_id\u2194staging.stg_users.user_id",
       "kind": "inferred_join",
-      "predicted": true
+      "predicted": false
     },
     {
       "expected": "unknown",
@@ -834,6 +660,6 @@
       "predicted": "snapshot_scd"
     }
   ],
-  "pretensor_version": "0.1.0a3",
+  "pretensor_version": "0.1.0",
   "ran_at": "1970-01-01T00:00:00Z"
 }

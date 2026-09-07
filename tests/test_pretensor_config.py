@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from pretensor.config import GraphConfig, PretensorConfig
 from pretensor.connectors.models import Column, SchemaSnapshot, Table
 from pretensor.core.builder import GraphBuilder
@@ -377,3 +379,11 @@ def test_discovery_explicit_params_override_config(tmp_path) -> None:
         assert explicit_combiner_called
     finally:
         store.close()
+
+
+def test_same_name_max_tables_validation() -> None:
+    """The gate needs at least two sharers to be meaningful; None disables."""
+    with pytest.raises(ValueError, match="same_name_max_tables"):
+        GraphConfig(same_name_max_tables=1)
+    assert GraphConfig(same_name_max_tables=2).same_name_max_tables == 2
+    assert GraphConfig(same_name_max_tables=None).same_name_max_tables is None

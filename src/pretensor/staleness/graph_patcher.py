@@ -6,9 +6,19 @@ import json
 from dataclasses import dataclass, field
 
 from pretensor.connectors.models import Column, SchemaSnapshot, Table
-from pretensor.connectors.snapshot import ChangeTarget, ChangeType, SchemaChange
+from pretensor.connectors.snapshot import (
+    VOLATILE_TABLE_FIELDS,
+    ChangeTarget,
+    ChangeType,
+    SchemaChange,
+)
 from pretensor.core.ids import column_node_id, fk_edge_id, table_node_id
 from pretensor.core.store import KuzuStore
+
+# Import the classifier module directly (pydantic + stdlib only) rather than
+# pretensor.intelligence.schema_classification, which pulls igraph via the
+# clustering module — the fast reindex path must stay a leaf import.
+from pretensor.entities.classifier import TableClassifier, TableClassifierInput
 from pretensor.graph_models.edge import GraphEdge
 from pretensor.graph_models.node import GraphNode
 
@@ -30,6 +40,8 @@ class PatchResult:
     cluster_memberships_removed: int = 0
     clusters_marked_stale: int = 0
     foreign_keys_synced: int = 0
+    table_stats_refreshed: int = 0
+    tables_classified: int = 0
     notes: list[str] = field(default_factory=list)
 
 
@@ -61,6 +73,7 @@ class GraphPatcher:
         tables_by_key = {(t.schema_name, t.name): t for t in new_snapshot.tables}
         connection_name = new_snapshot.connection_name
         database_key = new_snapshot.database
+        added_tables: list[Table] = []
 
         def invalidate_table(schema_name: str, table_name: str) -> None:
             tid = table_node_id(connection_name, schema_name, table_name)
@@ -114,6 +127,7 @@ class GraphPatcher:
                     self._upsert_column(
                         connection_name, new_snapshot.database, tbl, col
                     )
+                added_tables.append(tbl)
                 result.tables_added += 1
                 result.columns_added += len(tbl.columns)
 
@@ -241,8 +255,91 @@ class GraphPatcher:
 
         if not dry_run:
             result.foreign_keys_synced = self._sync_foreign_keys(new_snapshot)
+            result.table_stats_refreshed = self._refresh_volatile_stats(new_snapshot)
+            result.tables_classified = self._classify_added_tables(
+                new_snapshot, added_tables
+            )
 
         return result
+
+    def _classify_added_tables(
+        self, snapshot: SchemaSnapshot, tables: list[Table]
+    ) -> int:
+        """Assign a heuristic role to tables added by this patch.
+
+        Table roles are otherwise written only by the full intelligence
+        pipeline, so a fast reindex would leave new tables unclassified
+        (``role=NULL``) until the next ``--recompute-intelligence`` run.
+        Heuristic-only classification (no embedding vote) matches the
+        pipeline's null path; a later full recompute overwrites it.
+
+        FK degrees mirror the recompute pipeline's ``_fk_degree_rows`` query
+        (``count(DISTINCT neighbor)`` over ``FK_REFERENCES`` edges): distinct
+        neighbor *tables*, both endpoints present. Counting raw FK constraints
+        instead would inflate degrees for multi-column FKs to one target or
+        dangling references, classifying a table differently than a full
+        recompute would.
+        """
+        if not tables:
+            return 0
+        known = {(t.schema_name, t.name) for t in snapshot.tables}
+        out_nbrs: dict[tuple[str, str], set[tuple[str, str]]] = {}
+        in_nbrs: dict[tuple[str, str], set[tuple[str, str]]] = {}
+        for t in snapshot.tables:
+            src = (t.schema_name, t.name)
+            for fk in t.foreign_keys:
+                dst = (fk.target_schema, fk.target_table)
+                if dst not in known:
+                    continue
+                out_nbrs.setdefault(src, set()).add(dst)
+                in_nbrs.setdefault(dst, set()).add(src)
+        classifier = TableClassifier()
+        for tbl in tables:
+            key = (tbl.schema_name, tbl.name)
+            cls = classifier.classify(
+                TableClassifierInput(
+                    name=tbl.name,
+                    schema_name=tbl.schema_name,
+                    columns=[c.name for c in tbl.columns],
+                    row_count=tbl.row_count,
+                    fk_out_degree=len(out_nbrs.get(key, ())),
+                    fk_in_degree=len(in_nbrs.get(key, ())),
+                    seq_scan_count=tbl.seq_scan_count,
+                    idx_scan_count=tbl.idx_scan_count,
+                    insert_count=tbl.insert_count,
+                    update_count=tbl.update_count,
+                )
+            )
+            self._store.set_table_classification(
+                table_node_id(snapshot.connection_name, tbl.schema_name, tbl.name),
+                role=cls.role,
+                role_confidence=cls.confidence,
+                classification_signals_json=json.dumps(
+                    list(cls.signals), ensure_ascii=False
+                ),
+            )
+        return len(tables)
+
+    def _refresh_volatile_stats(self, snapshot: SchemaSnapshot) -> int:
+        """Push volatile usage/storage stats from ``snapshot`` onto the graph.
+
+        Volatile fields (pg_stat counters, row counts, storage size) are
+        excluded from :func:`pretensor.connectors.snapshot.diff_snapshots`, so
+        unchanged tables would otherwise keep stale stats forever. Attempted
+        for every snapshot table; missing nodes are a no-op and not counted.
+
+        Returns:
+            Number of tables whose node existed and was refreshed.
+        """
+        refreshed = 0
+        for tbl in snapshot.tables:
+            stats = {f: getattr(tbl, f) for f in VOLATILE_TABLE_FIELDS}
+            if self._store.update_table_volatile_stats(
+                table_node_id(snapshot.connection_name, tbl.schema_name, tbl.name),
+                **stats,
+            ):
+                refreshed += 1
+        return refreshed
 
     def _upsert_column(
         self,

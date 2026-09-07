@@ -43,16 +43,18 @@ def patched_index(tmp_path: Path) -> Any:
 
     with (
         patch(
-            "pretensor.cli.commands.index.inspect", return_value=snapshot
+            "pretensor.cli.commands._command_runners.inspect", return_value=snapshot
         ) as mock_inspect,
-        patch("pretensor.cli.commands.index.KuzuStore", return_value=mock_store),
-        patch("pretensor.cli.commands.index.GraphBuilder") as MockBuilder,
         patch(
-            "pretensor.cli.commands.index.SkillGenerator.write_for_index",
+            "pretensor.cli.commands._command_runners.KuzuStore", return_value=mock_store
+        ),
+        patch("pretensor.cli.commands._command_runners.GraphBuilder") as MockBuilder,
+        patch(
+            "pretensor.cli.commands._command_runners.SkillGenerator.write_for_index",
             return_value=[],
         ),
         patch(
-            "pretensor.cli.commands.index.SnapshotStore.save",
+            "pretensor.cli.commands._command_runners.SnapshotStore.save",
             return_value=tmp_path / "snap.yaml",
         ),
     ):
@@ -136,7 +138,7 @@ def test_index_invalid_visibility_profile_exits_1(
     )
 
     with patch(
-        "pretensor.cli.commands.index.merge_profile_into_base",
+        "pretensor.cli.commands._command_runners.merge_profile_into_base",
         side_effect=ValueError("unknown profile 'nope'"),
     ):
         result = CliRunner().invoke(
@@ -332,6 +334,21 @@ def test_index_all_skips_missing_env_vars(
     assert "Skipping bad" in plain
     assert "MISSING_PW" in plain
     # The good source should still have been indexed
+    patched_index["mock_inspect"].assert_called_once()
+
+
+def test_index_source_url_based_source_runs(
+    tmp_path: Path, patched_index: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``--source`` resolves a ``url:`` source's ``${VAR}`` reference and indexes it."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/testdb")
+    cfg = _cli_config_with_sources(
+        {"mydb": SourceConfig(url="${DATABASE_URL}")},
+        state_dir=tmp_path,
+    )
+    with patch("pretensor.cli.commands.index.get_cli_config", return_value=cfg):
+        result = CliRunner().invoke(app, ["index", "--source", "mydb"])
+    assert result.exit_code == 0, _normalize(result.stdout)
     patched_index["mock_inspect"].assert_called_once()
 
 
