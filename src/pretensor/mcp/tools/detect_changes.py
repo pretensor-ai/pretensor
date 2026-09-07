@@ -152,7 +152,9 @@ def detect_changes_payload(
         conn_cfg = connection_config_from_registry_dsn(
             dsn_plain, entry.connection_name, entry.dialect
         )
-        new_snapshot = inspect(conn_cfg)
+        # Structure-only introspection: drift detection diffs DDL-level
+        # fields, and per-column data stats cost a full table scan each.
+        new_snapshot = inspect(conn_cfg, collect_stats=False)
     except OSError as exc:
         return _connection_unavailable_envelope(
             entry.connection_name,

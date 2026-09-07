@@ -74,7 +74,7 @@ def _prep_indexed_state(
 
 
 def _force_inspect_failure(monkeypatch: pytest.MonkeyPatch, exc: Exception) -> None:
-    def _boom(_cfg: Any) -> Any:
+    def _boom(_cfg: Any, **_kwargs: Any) -> Any:
         raise exc
 
     monkeypatch.setattr(dc_mod, "inspect", _boom)
@@ -83,7 +83,9 @@ def _force_inspect_failure(monkeypatch: pytest.MonkeyPatch, exc: Exception) -> N
 def test_oserror_returns_structured_envelope(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    state_dir = _prep_indexed_state(tmp_path, connection_name="pg_demo", dialect="postgres")
+    state_dir = _prep_indexed_state(
+        tmp_path, connection_name="pg_demo", dialect="postgres"
+    )
     _force_inspect_failure(monkeypatch, OSError("connection refused"))
 
     result = detect_changes_payload(state_dir, database="pg_demo")
@@ -102,7 +104,9 @@ def test_oserror_returns_structured_envelope(
 def test_generic_exception_wraps_with_introspection_prefix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    state_dir = _prep_indexed_state(tmp_path, connection_name="pg_demo2", dialect="postgres")
+    state_dir = _prep_indexed_state(
+        tmp_path, connection_name="pg_demo2", dialect="postgres"
+    )
     _force_inspect_failure(monkeypatch, RuntimeError("schema fetch blew up"))
 
     result = detect_changes_payload(state_dir, database="pg_demo2")
@@ -136,3 +140,26 @@ def test_remediation_hint_unknown_dialect_is_generic() -> None:
     assert "pretensor connect --dry-run" in hint
     # No dialect-specific env vars leak into the generic hint.
     assert "SNOWFLAKE" not in hint
+
+
+def test_detect_changes_uses_structure_only_introspection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Drift detection must skip per-column data stats (full scans per column)."""
+    state_dir = _prep_indexed_state(
+        tmp_path, connection_name="pg_demo", dialect="postgres"
+    )
+    saved = SnapshotStore(state_dir).load("pg_demo")
+    assert saved is not None
+    captured: dict[str, Any] = {}
+
+    def _fake_inspect(_cfg: Any, *, collect_stats: bool = True) -> Any:
+        captured["collect_stats"] = collect_stats
+        return saved
+
+    monkeypatch.setattr(dc_mod, "inspect", _fake_inspect)
+
+    result = detect_changes_payload(state_dir, database="pg_demo")
+
+    assert captured["collect_stats"] is False
+    assert result["changes"] == []

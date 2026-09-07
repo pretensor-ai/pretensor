@@ -10,11 +10,14 @@ from unittest.mock import patch
 
 import pytest
 import typer
+from ruamel.yaml import YAMLError
 from typer.testing import CliRunner
 
 from pretensor.cli.config_file import (
     CliConfigError,
     load_cli_config,
+    record_repository,
+    record_source,
     resolve_aliased_path_option,
 )
 from pretensor.cli.main import app
@@ -111,7 +114,9 @@ def test_index_uses_connection_defaults_from_config(tmp_path: Path) -> None:
 
     captured: dict[str, Any] = {}
 
-    def _fake_cfg_from_url(dsn: str, name: str, *, dialect_override: str | None = None) -> Any:
+    def _fake_cfg_from_url(
+        dsn: str, name: str, *, dialect_override: str | None = None
+    ) -> Any:
         captured["name"] = name
         captured["dialect"] = dialect_override
         raise ValueError("stop after asserting defaults")
@@ -138,7 +143,9 @@ def test_index_cli_name_overrides_connection_default(tmp_path: Path) -> None:
 
     captured: dict[str, Any] = {}
 
-    def _fake_cfg_from_url(dsn: str, name: str, *, dialect_override: str | None = None) -> Any:
+    def _fake_cfg_from_url(
+        dsn: str, name: str, *, dialect_override: str | None = None
+    ) -> Any:
         captured["name"] = name
         raise ValueError("stop after asserting override")
 
@@ -436,6 +443,85 @@ def test_source_invalid_port_raises(tmp_path: Path) -> None:
         load_cli_config(config_path)
 
 
+def test_source_url_reference_parsed(tmp_path: Path) -> None:
+    """A ``url:`` source with an env-var reference parses without a `dialect`."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "sources:\n  mydb:\n    url: ${DATABASE_URL}\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(config_path)
+    src = cfg.sources["mydb"]
+    assert src.url == "${DATABASE_URL}"
+    assert src.dialect is None
+    assert src.host is None
+
+
+def test_source_url_with_dialect_override_parsed(tmp_path: Path) -> None:
+    """``dialect:`` is a valid override alongside ``url:``."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "sources:\n  mydb:\n    url: ${DATABASE_URL}\n    dialect: postgres\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(config_path)
+    src = cfg.sources["mydb"]
+    assert src.url == "${DATABASE_URL}"
+    assert src.dialect == "postgres"
+
+
+def test_source_url_and_host_conflict_raises(tmp_path: Path) -> None:
+    """``url:`` is mutually exclusive with the field-based form."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "sources:\n  mydb:\n    url: ${DATABASE_URL}\n    host: localhost\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="mydb.*url.*cannot be combined"):
+        load_cli_config(config_path)
+
+
+def test_source_url_and_password_conflict_raises(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "sources:\n  mydb:\n    url: ${DATABASE_URL}\n    password: secret\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="password"):
+        load_cli_config(config_path)
+
+
+def test_source_empty_url_raises(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "sources:\n  mydb:\n    url: ''\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="non-empty string"):
+        load_cli_config(config_path)
+
+
+def test_source_url_and_secrets_overlay_conflict_raises_with_hint(
+    tmp_path: Path,
+) -> None:
+    """A url source whose secrets overlay adds a field key must raise, and the
+    message must point at both files so the user can self-serve the fix."""
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "sources:\n  app:\n    url: ${DATABASE_URL}\n",
+        encoding="utf-8",
+    )
+    (cfg_dir / "sources.secrets.yaml").write_text(
+        "app:\n  password: x\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="sources.secrets.yaml") as excinfo:
+        load_cli_config(cfg_dir / "config.yaml")
+    assert "password" in str(excinfo.value)
+    assert "—" not in str(excinfo.value)
+
+
 def test_empty_sources_section(tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text("sources:\n", encoding="utf-8")
@@ -478,7 +564,7 @@ def test_index_source_flag_resolves_source_config(tmp_path: Path) -> None:
         raise ValueError("stop after capturing")
 
     with patch(
-        "pretensor.cli.commands.index.inspect",
+        "pretensor.cli.commands._command_runners.inspect",
         side_effect=_fake_inspect,
     ):
         result = CliRunner().invoke(
@@ -755,3 +841,323 @@ def test_resolve_aliased_path_option_config_wins_over_default() -> None:
     assert result.exit_code == 0
     assert result.stdout.strip() == "/from-config"
 
+
+# ── Repository config parsing tests ─────────────────────────────────────────
+
+
+def test_repositories_block_parsed(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "repositories:\n  - path: ./app\n    service: app\n    connection: main\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(cfg_dir / "config.yaml")
+    assert len(cfg.repositories) == 1
+    repo = cfg.repositories[0]
+    assert repo.path == (cfg_dir / "app").resolve()
+    assert repo.service == "app"
+    assert repo.connection == "main"
+
+
+def test_repository_service_defaults_to_directory_name(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "repositories:\n  - path: ./billing\n    connection: main\n",
+        encoding="utf-8",
+    )
+    cfg = load_cli_config(cfg_dir / "config.yaml")
+    assert cfg.repositories[0].service == "billing"
+
+
+def test_repository_unknown_key_rejected(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "repositories:\n  - path: ./app\n    connection: main\n    bogus: 1\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(CliConfigError, match="bogus"):
+        load_cli_config(cfg_dir / "config.yaml")
+
+
+def test_repository_requires_connection(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / ".pretensor"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.yaml").write_text(
+        "repositories:\n  - path: ./app\n", encoding="utf-8"
+    )
+    with pytest.raises(CliConfigError, match="connection"):
+        load_cli_config(cfg_dir / "config.yaml")
+
+
+# ── record_repository tests ─────────────────────────────────────────────────
+
+
+def test_record_repository_creates_fresh_file(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+
+    record_repository(config_path, path=repo_path, service="app", connection="main")
+
+    assert config_path.exists()
+    cfg = load_cli_config(config_path)
+    assert len(cfg.repositories) == 1
+    repo = cfg.repositories[0]
+    assert repo.path == repo_path.resolve()
+    assert repo.service == "app"
+    assert repo.connection == "main"
+
+
+def test_record_repository_preserves_existing_comment(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+    config_path.write_text(
+        "# hand-written comment\nstate_dir: .\n",
+        encoding="utf-8",
+    )
+
+    record_repository(config_path, path=repo_path, service="app", connection="main")
+
+    text = config_path.read_text(encoding="utf-8")
+    assert "# hand-written comment" in text
+    cfg = load_cli_config(config_path)
+    assert len(cfg.repositories) == 1
+    assert cfg.repositories[0].connection == "main"
+
+
+def test_record_repository_updates_instead_of_duplicating(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+
+    record_repository(config_path, path=repo_path, service="app", connection="first")
+    record_repository(config_path, path=repo_path, service="app2", connection="second")
+
+    cfg = load_cli_config(config_path)
+    assert len(cfg.repositories) == 1
+    repo = cfg.repositories[0]
+    assert repo.service == "app2"
+    assert repo.connection == "second"
+
+
+def test_record_repository_creates_backup_when_file_existed(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+    config_path.write_text("state_dir: .\n", encoding="utf-8")
+
+    record_repository(config_path, path=repo_path, service="app", connection="main")
+
+    backups = list(config_path.parent.glob("config.yaml.bak.*"))
+    assert len(backups) == 1
+
+
+def test_record_repository_no_backup_when_file_is_new(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+
+    record_repository(config_path, path=repo_path, service="app", connection="main")
+
+    backups = list(config_path.parent.glob("config.yaml.bak.*"))
+    assert backups == []
+
+
+def test_record_repository_malformed_file_raises_without_touching_it(
+    tmp_path: Path,
+) -> None:
+    """A malformed pre-existing file must raise and never be backed up or written.
+
+    Parsing happens before the backup is taken (mirroring
+    ``mcp_clients.register_client``), so a bad file is left completely
+    untouched rather than stranding a useless `.bak` copy.
+    """
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    repo_path = tmp_path / "app"
+    repo_path.mkdir()
+    original = "repositories:\n  - path: [unclosed\n"
+    config_path.write_text(original, encoding="utf-8")
+
+    with pytest.raises(YAMLError):
+        record_repository(config_path, path=repo_path, service="app", connection="main")
+
+    assert config_path.read_text(encoding="utf-8") == original
+
+
+# ── record_source tests ─────────────────────────────────────────────────────
+
+
+def test_record_source_creates_fresh_file(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    assert config_path.exists()
+    cfg = load_cli_config(config_path)
+    assert list(cfg.sources) == ["mydb"]
+    src = cfg.sources["mydb"]
+    assert src.url == "${DATABASE_URL}"
+    assert src.dialect is None
+
+
+def test_record_source_writes_literal_reference_not_resolved_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The literal ``${VAR}`` string is written, never a resolved DSN."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:secretpw@h:5432/db")
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    text = config_path.read_text(encoding="utf-8")
+    assert "${DATABASE_URL}" in text
+    assert "secretpw" not in text
+    assert "postgresql://u:" not in text
+
+
+def test_record_source_with_dialect(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+
+    record_source(
+        config_path, name="mydb", url_reference="${DATABASE_URL}", dialect="postgres"
+    )
+
+    cfg = load_cli_config(config_path)
+    assert cfg.sources["mydb"].dialect == "postgres"
+
+
+def test_record_source_updates_instead_of_duplicating(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+    record_source(config_path, name="mydb", url_reference="${POSTGRES_URL}")
+
+    cfg = load_cli_config(config_path)
+    assert list(cfg.sources) == ["mydb"]
+    assert cfg.sources["mydb"].url == "${POSTGRES_URL}"
+
+
+def test_record_source_clears_field_keys_from_existing_entry(tmp_path: Path) -> None:
+    """Rewriting a field-based entry as url-based must clear the old field keys.
+
+    Otherwise the written entry has both forms and the next `load_cli_config`
+    raises the mutual-exclusion `CliConfigError`, breaking every subsequent
+    CLI command.
+    """
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text(
+        "\n".join(
+            [
+                "sources:",
+                "  app:",
+                "    dialect: postgres",
+                "    host: localhost",
+                "    user: alice",
+                "    password: secret",
+                "    database: appdb",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    record_source(config_path, name="app", url_reference="${DATABASE_URL}")
+
+    # The rewritten config must still load cleanly.
+    cfg = load_cli_config(config_path)
+    src = cfg.sources["app"]
+    assert src.url == "${DATABASE_URL}"
+    assert src.host is None
+    assert src.user is None
+    assert src.password is None
+    assert src.database is None
+
+    # And none of the old field keys survive in the raw YAML.
+    text = config_path.read_text(encoding="utf-8")
+    assert "host:" not in text
+    assert "password:" not in text
+    assert "secret" not in text
+
+    # The user's prior field-based config is recoverable from the backup.
+    backups = list(config_path.parent.glob("config.yaml.bak.*"))
+    assert len(backups) == 1
+    backup_text = backups[0].read_text(encoding="utf-8")
+    assert "host: localhost" in backup_text
+    assert "password: secret" in backup_text
+
+
+def test_record_source_clears_field_keys_but_keeps_existing_dialect(
+    tmp_path: Path,
+) -> None:
+    """`dialect` is not a field key: it survives a field-to-url rewrite untouched
+    when `record_source` is not given an explicit `dialect`."""
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text(
+        "sources:\n  app:\n    dialect: postgres\n    host: localhost\n",
+        encoding="utf-8",
+    )
+
+    record_source(config_path, name="app", url_reference="${DATABASE_URL}")
+
+    cfg = load_cli_config(config_path)
+    assert cfg.sources["app"].dialect == "postgres"
+    assert cfg.sources["app"].host is None
+
+
+def test_record_source_creates_backup_when_file_existed(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text("state_dir: .\n", encoding="utf-8")
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    backups = list(config_path.parent.glob("config.yaml.bak.*"))
+    assert len(backups) == 1
+
+
+def test_record_source_no_backup_when_file_is_new(tmp_path: Path) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    backups = list(config_path.parent.glob("config.yaml.bak.*"))
+    assert backups == []
+
+
+def test_record_source_malformed_file_raises_without_touching_it(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    original = "sources:\n  bad: [unclosed\n"
+    config_path.write_text(original, encoding="utf-8")
+
+    with pytest.raises(YAMLError):
+        record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    assert config_path.read_text(encoding="utf-8") == original
+
+
+def test_record_source_preserves_existing_repositories_block(tmp_path: Path) -> None:
+    """Writing a source must not clobber an existing ``repositories:`` block."""
+    config_path = tmp_path / ".pretensor" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text(
+        "repositories:\n  - path: /app\n    service: app\n    connection: main\n",
+        encoding="utf-8",
+    )
+
+    record_source(config_path, name="mydb", url_reference="${DATABASE_URL}")
+
+    cfg = load_cli_config(config_path)
+    assert len(cfg.repositories) == 1
+    assert cfg.sources["mydb"].url == "${DATABASE_URL}"

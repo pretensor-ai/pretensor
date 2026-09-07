@@ -111,14 +111,18 @@ def test_bigquery_dialect_override() -> None:
 
 def test_validate_source_env_vars_no_refs() -> None:
     """Plain strings without ${…} return an empty list."""
-    src = SourceConfig(dialect="postgres", host="localhost", user="alice", password="s3cret")
+    src = SourceConfig(
+        dialect="postgres", host="localhost", user="alice", password="s3cret"
+    )
     assert validate_source_env_vars(src) == []
 
 
 def test_validate_source_env_vars_all_set(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PG_USER", "alice")
     monkeypatch.setenv("PG_PASS", "s3cret")
-    src = SourceConfig(dialect="postgres", host="localhost", user="${PG_USER}", password="${PG_PASS}")
+    src = SourceConfig(
+        dialect="postgres", host="localhost", user="${PG_USER}", password="${PG_PASS}"
+    )
     assert validate_source_env_vars(src) == []
 
 
@@ -134,7 +138,10 @@ def test_validate_source_env_vars_mixed(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.delenv("PG_PASS", raising=False)
     monkeypatch.delenv("PG_HOST", raising=False)
     src = SourceConfig(
-        dialect="postgres", host="${PG_HOST}", user="${PG_USER}", password="${PG_PASS}",
+        dialect="postgres",
+        host="${PG_HOST}",
+        user="${PG_USER}",
+        password="${PG_PASS}",
     )
     result = validate_source_env_vars(src)
     assert "PG_HOST" in result
@@ -146,10 +153,13 @@ def test_validate_source_env_vars_deduplicates(monkeypatch: pytest.MonkeyPatch) 
     """Same var referenced in multiple fields appears only once."""
     monkeypatch.delenv("SHARED_SECRET", raising=False)
     src = SourceConfig(
-        dialect="postgres", host="localhost",
-        user="${SHARED_SECRET}", password="${SHARED_SECRET}",
+        dialect="postgres",
+        host="localhost",
+        user="${SHARED_SECRET}",
+        password="${SHARED_SECRET}",
     )
     assert validate_source_env_vars(src) == ["SHARED_SECRET"]
+
 
 def test_default_connection_name_uses_dataset_for_bigquery() -> None:
     assert default_connection_name("bigquery://my-project/analytics") == "analytics"
@@ -160,8 +170,12 @@ def test_default_connection_name_uses_dataset_for_bigquery() -> None:
 
 def test_source_postgres_config() -> None:
     src = SourceConfig(
-        dialect="postgres", host="db.example", port=5432, user="alice",
-        password="sec", database="mydb",
+        dialect="postgres",
+        host="db.example",
+        port=5432,
+        user="alice",
+        password="sec",
+        database="mydb",
     )
     cfg = connection_config_from_source("pg1", src)
     assert cfg.type == DatabaseType.POSTGRES
@@ -175,9 +189,14 @@ def test_source_postgres_config() -> None:
 
 def test_source_snowflake_config() -> None:
     src = SourceConfig(
-        dialect="snowflake", account="xy12345.us-east-1.aws",
-        user="bob", password="pw", database="MYDB",
-        schema="PUBLIC", warehouse="WH", role="ANALYST",
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        password="pw",
+        database="MYDB",
+        schema="PUBLIC",
+        warehouse="WH",
+        role="ANALYST",
     )
     cfg = connection_config_from_source("sf1", src)
     assert cfg.type == DatabaseType.SNOWFLAKE
@@ -193,7 +212,9 @@ def test_source_snowflake_config() -> None:
 
 def test_source_bigquery_config() -> None:
     src = SourceConfig(
-        dialect="bigquery", project="my-project", dataset="analytics",
+        dialect="bigquery",
+        project="my-project",
+        dataset="analytics",
         location="EU",
     )
     cfg = connection_config_from_source("bq1", src)
@@ -234,8 +255,12 @@ def test_source_unknown_dialect() -> None:
 
 def test_dsn_from_source_postgres() -> None:
     src = SourceConfig(
-        dialect="postgres", host="db.example", port=5432,
-        user="alice", password="s3c!", database="mydb",
+        dialect="postgres",
+        host="db.example",
+        port=5432,
+        user="alice",
+        password="s3c!",
+        database="mydb",
     )
     dsn = dsn_from_source("pg1", src)
     assert dsn.startswith("postgresql://")
@@ -252,9 +277,14 @@ def test_dsn_from_source_postgres() -> None:
 
 def test_dsn_from_source_snowflake() -> None:
     src = SourceConfig(
-        dialect="snowflake", account="xy12345.us-east-1.aws",
-        user="bob", password="pw", database="MYDB",
-        schema="PUBLIC", warehouse="WH", role="ANALYST",
+        dialect="snowflake",
+        account="xy12345.us-east-1.aws",
+        user="bob",
+        password="pw",
+        database="MYDB",
+        schema="PUBLIC",
+        warehouse="WH",
+        role="ANALYST",
     )
     dsn = dsn_from_source("sf1", src)
     assert dsn.startswith("snowflake://")
@@ -271,8 +301,10 @@ def test_dsn_from_source_snowflake() -> None:
 
 def test_dsn_from_source_bigquery() -> None:
     src = SourceConfig(
-        dialect="bigquery", project="my-project",
-        dataset="analytics", location="EU",
+        dialect="bigquery",
+        project="my-project",
+        dataset="analytics",
+        location="EU",
     )
     dsn = dsn_from_source("bq1", src)
     assert dsn.startswith("bigquery://")
@@ -293,7 +325,10 @@ def test_infer_mysql() -> None:
 
 
 def test_infer_mysql_plus_pymysql() -> None:
-    assert infer_database_type_from_dsn("mysql+pymysql://u:p@host:3306/db") == DatabaseType.MYSQL
+    assert (
+        infer_database_type_from_dsn("mysql+pymysql://u:p@host:3306/db")
+        == DatabaseType.MYSQL
+    )
 
 
 def test_mysql_config_from_url() -> None:
@@ -458,3 +493,75 @@ def test_port_coercion_after_env_var_resolution(
     )
     assert cfg.port == 5432
     assert isinstance(cfg.port, int)
+
+
+# ── url-based source tests ───────────────────────────────────────────────
+
+
+def test_dsn_from_source_url_resolves_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:secretpw@h:5432/mydb")
+    src = SourceConfig(url="${DATABASE_URL}")
+    dsn = dsn_from_source("mydb", src)
+    assert dsn == "postgresql://u:secretpw@h:5432/mydb"
+
+
+def test_dsn_from_source_url_missing_env_var_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    src = SourceConfig(url="${DATABASE_URL}")
+    with pytest.raises(ValueError, match="DATABASE_URL"):
+        dsn_from_source("mydb", src)
+
+
+def test_connection_config_from_source_url_resolves_env_var(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://alice:sec@db.example:5432/mydb")
+    src = SourceConfig(url="${DATABASE_URL}")
+    cfg = connection_config_from_source("mydb", src)
+    assert cfg.type == DatabaseType.POSTGRES
+    assert cfg.name == "mydb"
+    assert cfg.host == "db.example"
+    assert cfg.port == 5432
+    assert cfg.user == "alice"
+    assert cfg.password == "sec"
+
+
+def test_connection_config_from_source_url_infers_dialect_from_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "SNOWFLAKE_URL", "snowflake://bob:pw@xy12345.us-east-1.aws/MYDB/PUBLIC"
+    )
+    src = SourceConfig(url="${SNOWFLAKE_URL}")
+    cfg = connection_config_from_source("sf1", src)
+    assert cfg.type == DatabaseType.SNOWFLAKE
+    assert cfg.host == "xy12345.us-east-1.aws"
+
+
+def test_connection_config_from_source_url_dialect_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A ``dialect`` set alongside ``url`` overrides scheme-based inference."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/mydb")
+    src = SourceConfig(url="${DATABASE_URL}", dialect="postgres")
+    cfg = connection_config_from_source("mydb", src)
+    assert cfg.type == DatabaseType.POSTGRES
+
+
+def test_validate_source_env_vars_covers_url_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``validate_source_env_vars`` dynamically iterates fields, so `url` is covered."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    src = SourceConfig(url="${DATABASE_URL}")
+    assert validate_source_env_vars(src) == ["DATABASE_URL"]
+
+
+def test_validate_source_env_vars_url_set_passes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/mydb")
+    src = SourceConfig(url="${DATABASE_URL}")
+    assert validate_source_env_vars(src) == []

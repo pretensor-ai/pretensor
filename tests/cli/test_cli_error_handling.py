@@ -74,7 +74,7 @@ def test_index_bad_dialect_override(tmp_path: Path) -> None:
 
 def test_index_unreachable_database(tmp_path: Path) -> None:
     with patch(
-        "pretensor.cli.commands.index.inspect",
+        "pretensor.cli.commands._command_runners.inspect",
         side_effect=OSError("Connection refused"),
     ):
         result = CliRunner().invoke(
@@ -124,7 +124,7 @@ def test_index_corrupt_registry(tmp_path: Path) -> None:
 
     with (
         patch(
-            "pretensor.cli.commands.index.inspect",
+            "pretensor.cli.commands._command_runners.inspect",
             return_value=MagicMock(
                 database="db",
                 schemas=["public"],
@@ -132,10 +132,10 @@ def test_index_corrupt_registry(tmp_path: Path) -> None:
             ),
         ),
         patch(
-            "pretensor.cli.commands.index.GraphBuilder",
+            "pretensor.cli.commands._command_runners.GraphBuilder",
             return_value=MagicMock(build=MagicMock()),
         ),
-        patch("pretensor.cli.commands.index.KuzuStore"),
+        patch("pretensor.cli.commands._command_runners.KuzuStore"),
     ):
         result = CliRunner().invoke(
             app,
@@ -149,7 +149,11 @@ def test_index_corrupt_registry(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     out = _normalize(result.output)
-    assert "registry" in out.lower() or "corrupt" in out.lower() or "cannot read" in out.lower()
+    assert (
+        "registry" in out.lower()
+        or "corrupt" in out.lower()
+        or "cannot read" in out.lower()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +318,11 @@ def test_list_corrupt_registry(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["list", "--state-dir", str(tmp_path)])
     assert result.exit_code == 1
     out = _normalize(result.output)
-    assert "registry" in out.lower() or "corrupt" in out.lower() or "cannot read" in out.lower()
+    assert (
+        "registry" in out.lower()
+        or "corrupt" in out.lower()
+        or "cannot read" in out.lower()
+    )
 
 
 # ---------------------------------------------------------------------------

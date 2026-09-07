@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
+from pretensor.config import GraphConfig
 from pretensor.connectors.models import Column, SchemaSnapshot, Table
 from pretensor.core.ids import table_node_id
 from pretensor.intelligence.heuristic import discover_heuristic_candidates
@@ -464,8 +467,7 @@ def test_type_mismatch_vetoes_same_name() -> None:
     same_name = [
         c
         for c in cands
-        if c.candidate_id.startswith("heuristic_same_name:")
-        and "code" in c.reasoning
+        if c.candidate_id.startswith("heuristic_same_name:") and "code" in c.reasoning
     ]
     assert same_name == [], "type-mismatched same-name candidates should be vetoed"
 
@@ -493,8 +495,7 @@ def test_type_match_preserves_same_name() -> None:
     same_name = [
         c
         for c in cands
-        if c.candidate_id.startswith("heuristic_same_name:")
-        and "sku" in c.reasoning
+        if c.candidate_id.startswith("heuristic_same_name:") and "sku" in c.reasoning
     ]
     assert len(same_name) == 2, "type-compatible same-name candidates should be kept"
 
@@ -602,8 +603,7 @@ def test_parameterized_type_normalized() -> None:
     same_name = [
         c
         for c in cands
-        if c.candidate_id.startswith("heuristic_same_name:")
-        and "sku" in c.reasoning
+        if c.candidate_id.startswith("heuristic_same_name:") and "sku" in c.reasoning
     ]
     assert len(same_name) == 2, "parameterized types should normalize correctly"
 
@@ -742,16 +742,8 @@ def test_per_pair_cap_single_column_preserves_all() -> None:
     assert len(same_name) == 12, f"expected 12, got {len(same_name)}"
 
 
-def test_same_name_rule_emits_for_widely_shared_non_audit_columns() -> None:
-    """Wide non-audit shared columns must still emit candidates.
-
-    Removing the prior table-count cap means a denormalized column
-    like ``region_code`` appearing on many tables must produce same-name
-    candidates — only audit-named columns are now suppressed. This guards
-    against re-introducing a blunt count cap as a "perf fix": the perf safety
-    net belongs in the join-path DFS budget, not in candidate generation.
-    """
-    tables = [
+def _wide_shared_tables(count: int) -> list[Table]:
+    return [
         Table(
             name=f"t{i}",
             schema_name="public",
@@ -760,10 +752,82 @@ def test_same_name_rule_emits_for_widely_shared_non_audit_columns() -> None:
                 Column(name="region_code", data_type="text"),
             ],
         )
-        for i in range(10)
+        for i in range(count)
     ]
-    snap = _snap(*tables)
+
+
+def test_same_name_rule_gates_widely_shared_columns_by_default() -> None:
+    """A column shared across more than ``same_name_max_tables`` tables emits
+    no same-name candidates: pairing all of them generates O(tables²) inferred
+    edges (157 FKs ballooned to 6k+ edges on a real warehouse) with no
+    downstream perf safety net, and every candidate carries an identical
+    confidence, so paths through them tie exactly and traverse flags
+    everything ambiguous.
+    """
+    snap = _snap(*_wide_shared_tables(10))
     cands = discover_heuristic_candidates(snap)
+    same_name = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
+    assert same_name == []
+
+
+def test_same_name_gate_disabled_restores_full_emission() -> None:
+    """``same_name_max_tables=None`` restores ungated pairing for operators
+    who want it (e.g. a denormalized ``region_code`` on many tables)."""
+    snap = _snap(*_wide_shared_tables(10))
+    cands = discover_heuristic_candidates(
+        snap, graph_config=GraphConfig(same_name_max_tables=None)
+    )
     same_name = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
     # 10 tables → 10*9 = 90 directed candidates for one shared column.
     assert len(same_name) == 90
+
+
+def test_same_name_confidence_scales_with_selectivity() -> None:
+    """Wider sharing decays confidence, so candidates from a 4-way shared
+    column score below the 2-way base of 0.25 and no longer tie exactly."""
+    snap = _snap(*_wide_shared_tables(4))
+    cands = discover_heuristic_candidates(snap)
+    same_name = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
+    assert same_name, "4 tables is within the default gate"
+    for c in same_name:
+        assert c.confidence == pytest.approx(0.25 * (2.0 / 4.0))
+
+
+def test_same_name_bucketing_is_case_insensitive() -> None:
+    """CustomerID / customerid conventions group, each side keeping its name."""
+    t1 = Table(
+        name="orders",
+        schema_name="public",
+        columns=[
+            Column(name="id", data_type="int", is_primary_key=True),
+            Column(name="CustomerID", data_type="int"),
+        ],
+    )
+    t2 = Table(
+        name="shipments",
+        schema_name="public",
+        columns=[
+            Column(name="id", data_type="int", is_primary_key=True),
+            Column(name="customerid", data_type="int"),
+        ],
+    )
+    cands = discover_heuristic_candidates(_snap(t1, t2))
+    same_name = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
+    assert len(same_name) == 2
+    pairs = {(c.source_column, c.target_column) for c in same_name}
+    assert pairs == {("CustomerID", "customerid"), ("customerid", "CustomerID")}
+
+
+def test_same_name_gate_boundary_exact_count_not_gated() -> None:
+    """Exactly same_name_max_tables sharers emit; one more gates everything."""
+    at_limit = _snap(*_wide_shared_tables(3))
+    cfg = GraphConfig(same_name_max_tables=3)
+    cands = discover_heuristic_candidates(at_limit, graph_config=cfg)
+    same = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
+    # 3 tables → 3*2 = 6 directed candidates, all under the per-pair cap.
+    assert len(same) == 6
+
+    over_limit = _snap(*_wide_shared_tables(4))
+    cands = discover_heuristic_candidates(over_limit, graph_config=cfg)
+    same = [c for c in cands if c.candidate_id.startswith("heuristic_same_name:")]
+    assert same == []

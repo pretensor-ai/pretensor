@@ -11,7 +11,46 @@ require `--pre`. Until `1.0.0` ships, the schema and CLI surface can
 still change between minor versions; this changelog tracks what moves
 between releases.
 
-## [Unreleased]
+## [0.2.0] - 2026-09-04
+
+### Added
+- `pretensor init`, an interactive first-run setup wizard.
+- `pretensor init`'s build-from-parts flow now supports mysql, snowflake,
+  and bigquery in addition to postgres, and a `--dialect` flag to force the
+  dialect instead of inferring it from the DSN.
+- `analyze --all` over repositories configured in config.yaml.
+- Sources can now hold a whole-DSN `url:` reference (e.g. `${DATABASE_URL}`)
+  instead of individual connection fields. `pretensor init` writes one of
+  these automatically when the indexed DSN came from a single environment
+  variable, so `config.yaml` stays safe to commit; `pretensor index --source`
+  and `--all` resolve the reference at run time.
+- Bare `pretensor` (no subcommand) prints a one-line hint to run
+  `pretensor init` when no connections are indexed yet, before showing help.
+- `pretensor init --client <key>` (repeatable, one of `claude-code`,
+  `claude-desktop`, `cursor`) to explicitly register with a detected MCP
+  client under `--yes` or a non-interactive run, since merely detecting a
+  client installed is not consent to write its config.
+- `pretensor init` now detects Claude Desktop on Windows as well
+  (`%APPDATA%\Claude\claude_desktop_config.json`).
+- `pretensor analyze` scans bare `.sql` files, not just SQL embedded in
+  Python source. Each `.sql` file is treated as one high-confidence
+  consumer, with table references unioned across all of its statements.
+
+### Changed
+- `analyze --connection` is now optional: it is required unless `--all` is
+  passed. Omitting it without `--all` exits 1 with a runtime message
+  instead of failing argument parsing with a usage error.
+- `pretensor init`'s interactive flow now opens with a summary of everything
+  inferred and a single Yes/No/Customize choice instead of asking a
+  question per item up front. Yes proceeds with no further questions;
+  Customize walks through the same per-item questions as before. After
+  indexing (and after linking a repository), interactive runs offer to add
+  another database connection or repository. When the optional
+  `[embeddings]` extra is installed, the guided flow also asks once,
+  before indexing, whether to compute table embeddings.
+- `analyze --all --json` now emits a single JSON array of per-repository
+  summaries instead of interleaving unparseable "Analyzing <path>" lines
+  between them.
 
 ## [0.1.0] - 2026-08-13
 
@@ -58,7 +97,7 @@ between releases.
   indexed tables in the graph. Produces `ExternalConsumer` nodes and
   `CONSUMES` edges carrying provenance (service, file, line range,
   read/write op, confidence), written idempotently per scan run with
-  stale rows swept on re-scan. Raw SQL text is never stored — only a
+  stale rows swept on re-scan. Raw SQL text is never stored: only a
   `sha256[:16]` fingerprint and the resolved table references. Flags:
   required `--connection`, `--service`, repeatable `--include` /
   `--exclude`, `--max-file-bytes`, `--min-confidence`,
@@ -72,7 +111,7 @@ between releases.
   data produced by `pretensor analyze`. Optional `op` filter and
   `min_confidence` cutoff.
 - The `impact` MCP tool now attaches a `consumers` list to every
-  reached table. The field is additive — existing callers that ignore
+  reached table. The field is additive. Existing callers that ignore
   it are unaffected.
 - `pathspec` added to base dependencies (gitignore-aware repository
   walking for `analyze`).
@@ -147,11 +186,11 @@ between releases.
 
 ### Removed
 - MCP `context` tool: removed the deprecated `name` field from column
-  entries — use `column_name`.
-- `scripts/benchmark_graph_rag_nl2sql.py` — unrunnable after the LLM
+  entries: use `column_name`.
+- `scripts/benchmark_graph_rag_nl2sql.py`: unrunnable after the LLM
   stack was stripped from OSS (imported the since-deleted `suggest_query` MCP
   tool). The new `pretensor benchmark` CLI covers its namespace.
-- `scripts/e2e_pagila.py` — unrunnable for the same reason (imported deleted
+- `scripts/e2e_pagila.py`: unrunnable for the same reason (imported deleted
   `llm_runtime` helpers, `suggest_query_payload`, and the `llm_options` CLI
   module). The Docker-backed `tests/e2e/` suite is the canonical full-stack
   E2E path now.
@@ -188,7 +227,7 @@ between releases.
 ## [0.1.0a0] - 2026-04-17
 
 ### Added
-- Initial public alpha on PyPI — reserves the `pretensor` name and ships
+- Initial public alpha on PyPI: reserves the `pretensor` name and ships
   the first published build of the schema-introspection MCP server, CLI,
   and bundled connectors.
 

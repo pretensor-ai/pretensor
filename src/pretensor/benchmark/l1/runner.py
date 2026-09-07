@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import importlib
-import importlib.metadata
 import json
 import sys
 import tempfile
@@ -28,6 +27,7 @@ from pretensor.benchmark.l1.pipeline import (
 )
 from pretensor.benchmark.results import BenchmarkResult, Metric, write_json
 from pretensor.connectors.models import SchemaSnapshot
+from pretensor.version import package_version
 
 if TYPE_CHECKING:
     from pretensor.benchmark.runner import Dataset
@@ -128,7 +128,7 @@ def run_l1(
     result = BenchmarkResult(
         level="l1",
         dataset=dataset.value,
-        pretensor_version=_resolve_version(),
+        pretensor_version=package_version(fallback="0.0.0+unknown"),
         embeddings_enabled=embeddings_enabled,
         ran_at=_DETERMINISTIC_RAN_AT,
         fixture_sha=fixture_sha,
@@ -167,13 +167,6 @@ def _resolve_embeddings_flag(requested: bool, notes: list[str]) -> bool:
         )
         return False
     return True
-
-
-def _resolve_version() -> str:
-    try:
-        return importlib.metadata.version("pretensor")
-    except importlib.metadata.PackageNotFoundError:
-        return "0.0.0+unknown"
 
 
 def _load_gold_roles(dataset: Dataset) -> dict[str, str] | None:

@@ -29,10 +29,10 @@ def test_quickstart_help_lists_flags() -> None:
 
 
 def test_quickstart_no_docker_skips_compose_and_indexes(tmp_path: Path) -> None:
-    """``--no-docker`` runs no docker commands and calls _run_index once."""
+    """``--no-docker`` runs no docker commands and calls run_index once."""
     with (
         patch("pretensor.cli.commands.quickstart.subprocess.run") as mock_sub,
-        patch("pretensor.cli.commands.quickstart._run_index") as mock_idx,
+        patch("pretensor.cli.commands.quickstart.run_index") as mock_idx,
         patch("pretensor.cli.commands.quickstart.print_mcp_config"),
     ):
         result = CliRunner().invoke(
@@ -64,7 +64,7 @@ def test_quickstart_down_invokes_compose_down(tmp_path: Path) -> None:
             "pretensor.cli.commands.quickstart.subprocess.run",
             side_effect=_fake_run,
         ) as mock_sub,
-        patch("pretensor.cli.commands.quickstart._run_index") as mock_idx,
+        patch("pretensor.cli.commands.quickstart.run_index") as mock_idx,
     ):
         result = CliRunner().invoke(
             app, ["quickstart", "--down", "--state-dir", str(tmp_path)]
@@ -105,12 +105,10 @@ def test_quickstart_up_stages_compose_assets_under_state_dir(tmp_path: Path) -> 
             return_value="/usr/bin/docker",
         ),
         patch("pretensor.cli.commands.quickstart._wait_healthy"),
-        patch("pretensor.cli.commands.quickstart._run_index"),
+        patch("pretensor.cli.commands.quickstart.run_index"),
         patch("pretensor.cli.commands.quickstart.print_mcp_config"),
     ):
-        result = CliRunner().invoke(
-            app, ["quickstart", "--state-dir", str(tmp_path)]
-        )
+        result = CliRunner().invoke(app, ["quickstart", "--state-dir", str(tmp_path)])
 
     assert result.exit_code == 0, result.stdout
     up_cmd = mock_sub.call_args_list[0].args[0]
@@ -160,11 +158,9 @@ def test_quickstart_compose_up_permission_denied_prints_hint(tmp_path: Path) -> 
             "pretensor.cli.commands.quickstart.shutil.which",
             return_value="/usr/bin/docker",
         ),
-        patch("pretensor.cli.commands.quickstart._run_index"),
+        patch("pretensor.cli.commands.quickstart.run_index"),
     ):
-        result = CliRunner().invoke(
-            app, ["quickstart", "--state-dir", str(tmp_path)]
-        )
+        result = CliRunner().invoke(app, ["quickstart", "--state-dir", str(tmp_path)])
 
     assert result.exit_code == 1
     plain = _normalize(result.stdout).lower()
@@ -177,11 +173,9 @@ def test_quickstart_errors_when_docker_missing(tmp_path: Path) -> None:
     """Without docker on PATH the command exits 1 with a helpful message."""
     with (
         patch("pretensor.cli.commands.quickstart.shutil.which", return_value=None),
-        patch("pretensor.cli.commands.quickstart._run_index"),
+        patch("pretensor.cli.commands.quickstart.run_index"),
     ):
-        result = CliRunner().invoke(
-            app, ["quickstart", "--state-dir", str(tmp_path)]
-        )
+        result = CliRunner().invoke(app, ["quickstart", "--state-dir", str(tmp_path)])
     assert result.exit_code == 1
     assert "docker" in _normalize(result.stdout).lower()
 
@@ -190,10 +184,8 @@ def test_quickstart_prints_mcp_config_after_index(tmp_path: Path) -> None:
     """``print_mcp_config`` is called once with the state-dir root."""
     with (
         patch("pretensor.cli.commands.quickstart.subprocess.run"),
-        patch("pretensor.cli.commands.quickstart._run_index"),
-        patch(
-            "pretensor.cli.commands.quickstart.print_mcp_config"
-        ) as mock_print,
+        patch("pretensor.cli.commands.quickstart.run_index"),
+        patch("pretensor.cli.commands.quickstart.print_mcp_config") as mock_print,
     ):
         result = CliRunner().invoke(
             app, ["quickstart", "--no-docker", "--state-dir", str(tmp_path)]

@@ -394,6 +394,113 @@ def test_reindex_schema_changes_printed(reindex_env: dict[str, Any]) -> None:
     assert "new_table" in plain
 
 
+def test_reindex_fast_path_warns_about_stale_intelligence(
+    reindex_env: dict[str, Any],
+) -> None:
+    """Without --recompute-intelligence, applied changes must surface the gap."""
+    env = reindex_env
+    snapshot = env["snapshot"]
+    mock_store = env["mock_store"]
+    mock_store.query_all_rows.return_value = [[6]]
+
+    change = MagicMock()
+    change.change_type.value = "added"
+    change.target.value = "table"
+    change.schema_name = "public"
+    change.table_name = "new_table"
+    change.column_name = None
+    change.details = None
+
+    mock_patch = MagicMock()
+    mock_patch.tables_added = 1
+    mock_patch.tables_classified = 1
+
+    with (
+        patch("pretensor.cli.commands.reindex.inspect", return_value=snapshot),
+        patch("pretensor.cli.commands.reindex.KuzuStore", return_value=mock_store),
+        patch("pretensor.cli.commands.reindex.diff_snapshots", return_value=[change]),
+        patch("pretensor.cli.commands.reindex.ImpactAnalyzer") as MockAnalyzer,
+        patch("pretensor.cli.commands.reindex.GraphPatcher") as MockPatcher,
+        patch("pretensor.cli.commands.reindex.SnapshotStore.save"),
+        patch(
+            "pretensor.cli.commands.reindex.MetricTemplateBuilder.mark_stale_for_database"
+        ),
+        patch(
+            "pretensor.cli.commands.reindex.SkillGenerator.write_for_index",
+            return_value=[],
+        ),
+    ):
+        MockAnalyzer.return_value.analyze.return_value = MagicMock(summary="1 change")
+        MockPatcher.return_value.apply.return_value = mock_patch
+        result = CliRunner().invoke(
+            app,
+            [
+                "reindex",
+                f"postgresql://u:p@localhost/{env['connection_name']}",
+                "--state-dir",
+                str(env["state_dir"]),
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    plain = _normalize(result.stdout)
+    assert "without intelligence recompute" in plain
+    assert "--recompute-intelligence" in plain
+    assert "1 new table(s) classified heuristically" in plain
+
+
+def test_reindex_fast_path_warning_omits_classified_clause_when_zero(
+    reindex_env: dict[str, Any],
+) -> None:
+    """Column-only changes classify nothing; the warning must not claim otherwise."""
+    env = reindex_env
+    snapshot = env["snapshot"]
+    mock_store = env["mock_store"]
+    mock_store.query_all_rows.return_value = [[6]]
+
+    change = MagicMock()
+    change.change_type.value = "added"
+    change.target.value = "column"
+    change.schema_name = "public"
+    change.table_name = "t"
+    change.column_name = "extra"
+    change.details = None
+
+    mock_patch = MagicMock()
+    mock_patch.tables_added = 0
+    mock_patch.tables_classified = 0
+
+    with (
+        patch("pretensor.cli.commands.reindex.inspect", return_value=snapshot),
+        patch("pretensor.cli.commands.reindex.KuzuStore", return_value=mock_store),
+        patch("pretensor.cli.commands.reindex.diff_snapshots", return_value=[change]),
+        patch("pretensor.cli.commands.reindex.ImpactAnalyzer") as MockAnalyzer,
+        patch("pretensor.cli.commands.reindex.GraphPatcher") as MockPatcher,
+        patch("pretensor.cli.commands.reindex.SnapshotStore.save"),
+        patch(
+            "pretensor.cli.commands.reindex.MetricTemplateBuilder.mark_stale_for_database"
+        ),
+        patch(
+            "pretensor.cli.commands.reindex.SkillGenerator.write_for_index",
+            return_value=[],
+        ),
+    ):
+        MockAnalyzer.return_value.analyze.return_value = MagicMock(summary="1 change")
+        MockPatcher.return_value.apply.return_value = mock_patch
+        result = CliRunner().invoke(
+            app,
+            [
+                "reindex",
+                f"postgresql://u:p@localhost/{env['connection_name']}",
+                "--state-dir",
+                str(env["state_dir"]),
+            ],
+        )
+    assert result.exit_code == 0, _normalize(result.stdout)
+    plain = _normalize(result.stdout)
+    assert "without intelligence recompute" in plain
+    assert "classified heuristically" not in plain
+
+
 # ---------------------------------------------------------------------------
 # --source / --all CLI integration tests
 # ---------------------------------------------------------------------------
@@ -567,6 +674,9 @@ def test_reindex_embeddings_plumbs_config(reindex_env: dict[str, Any]) -> None:
     passed_config = mock_run_intel.call_args.kwargs["config"]
     assert passed_config.embeddings.index_tables is True
     assert mock_run_intel.call_args.kwargs["embeddings_precomputed"] is True
+    # With --recompute-intelligence the fast-path staleness warning must
+    # not appear — intelligence was rebuilt, nothing is left stale.
+    assert "without intelligence recompute" not in _normalize(result.stdout)
 
 
 def test_reindex_embeddings_missing_extra_exits_1(

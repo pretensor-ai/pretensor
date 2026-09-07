@@ -132,6 +132,49 @@ def test_version_flag_prints_version() -> None:
     assert pkg_version("pretensor") in result.stdout
 
 
+def test_no_args_hint_shown_when_nothing_indexed(monkeypatch, tmp_path) -> None:
+    """Bare ``pretensor`` prints the fresh-install hint when nothing is set up."""
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(app, [])
+    assert "No connections indexed yet" in result.stdout
+    assert "pretensor init" in result.stdout
+    assert result.exit_code == 2
+
+
+def test_no_args_hint_hidden_when_state_dir_exists(monkeypatch, tmp_path) -> None:
+    """The hint never prints once a state dir already exists."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".pretensor").mkdir()
+    result = CliRunner().invoke(app, [])
+    assert "No connections indexed yet" not in result.stdout
+    assert result.exit_code == 2
+
+
+def test_no_args_with_malformed_config_still_shows_help(monkeypatch, tmp_path) -> None:
+    """A broken ``.pretensor/config.yaml`` must not block a bare invocation.
+
+    Bare ``pretensor`` never reaches ``load_cli_config`` (no subcommand is
+    going to run), so a malformed config file must not surface a config
+    error; it should show help and exit with the same code as a normal bare
+    invocation. Since the config file's existence means a state dir already
+    exists, the fresh-install hint must not print either.
+    """
+    monkeypatch.chdir(tmp_path)
+    state_dir = tmp_path / ".pretensor"
+    state_dir.mkdir()
+    (state_dir / "config.yaml").write_text("just a plain string, not a mapping\n")
+
+    result = CliRunner().invoke(app, [])
+
+    # Same exit code as a normal bare invocation (see the two tests above).
+    assert result.exit_code == 2
+    assert "No connections indexed yet" not in result.stdout
+    assert "Config file root must be a mapping" not in result.stdout
+    assert "Invalid YAML" not in result.stdout
+    assert "Traceback" not in result.stdout
+    assert "commands" in result.stdout.lower()
+
+
 def test_root_help_includes_version_flag() -> None:
     """``pretensor --help`` documents --version."""
     result = CliRunner().invoke(app, ["--help"])

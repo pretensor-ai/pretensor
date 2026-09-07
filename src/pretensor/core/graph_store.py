@@ -221,6 +221,67 @@ class GraphStore:
             params,
         )
 
+    def update_table_volatile_stats(
+        self,
+        table_node_id: str,
+        *,
+        row_count: int | None,
+        seq_scan_count: int | None,
+        idx_scan_count: int | None,
+        insert_count: int | None,
+        update_count: int | None,
+        delete_count: int | None,
+        access_read_count: int | None,
+        access_write_count: int | None,
+        days_since_last_access: int | None,
+        potentially_unused: bool | None,
+        table_bytes: int | None,
+    ) -> bool:
+        """Refresh volatile usage/storage stats on an existing ``SchemaTable``.
+
+        Volatile stats are excluded from the snapshot diff (they change with
+        ordinary query activity, not DDL), so the patcher refreshes them
+        unconditionally on reindex. Keyword names deliberately mirror
+        ``pretensor.connectors.snapshot.VOLATILE_TABLE_FIELDS`` — callers build
+        kwargs from that constant, and a test pins the two in sync.
+
+        Returns:
+            True when the node existed and was updated; False for a missing
+            node (no-op).
+        """
+        rows = self._runner.query_all_rows(
+            """
+            MATCH (t:SchemaTable {node_id: $tid})
+            SET t.row_count = $row_count,
+                t.seq_scan_count = $seq_scan_count,
+                t.idx_scan_count = $idx_scan_count,
+                t.insert_count = $insert_count,
+                t.update_count = $update_count,
+                t.delete_count = $delete_count,
+                t.access_read_count = $access_read_count,
+                t.access_write_count = $access_write_count,
+                t.days_since_last_access = $days_since_last_access,
+                t.potentially_unused = $potentially_unused,
+                t.table_bytes = $table_bytes
+            RETURN count(t)
+            """,
+            {
+                "tid": table_node_id,
+                "row_count": row_count,
+                "seq_scan_count": seq_scan_count,
+                "idx_scan_count": idx_scan_count,
+                "insert_count": insert_count,
+                "update_count": update_count,
+                "delete_count": delete_count,
+                "access_read_count": access_read_count,
+                "access_write_count": access_write_count,
+                "days_since_last_access": days_since_last_access,
+                "potentially_unused": potentially_unused,
+                "table_bytes": table_bytes,
+            },
+        )
+        return bool(rows and rows[0][0])
+
     def upsert_entity(self, node: EntityNode) -> None:
         """Insert or update a single ``Entity`` node."""
         self._runner.execute(

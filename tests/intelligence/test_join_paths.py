@@ -9,6 +9,7 @@ from pretensor.connectors.models import Column, ForeignKey, SchemaSnapshot, Tabl
 from pretensor.core.builder import GraphBuilder
 from pretensor.core.ids import table_node_id
 from pretensor.core.store import KuzuStore
+from pretensor.graph_models.relationship import RelationshipCandidate
 from pretensor.intelligence.join_paths.on_demand import (
     _FK_CONFIDENCE,
     AdjEdge,
@@ -95,6 +96,50 @@ def test_build_adjacency_fk_confidence_is_one(tmp_path: Path) -> None:
     assert all(e.confidence == _FK_CONFIDENCE for e in fk_edges)
 
 
+def test_build_adjacency_fk_source_is_declared_fk(tmp_path: Path) -> None:
+    """FK edges report source='declared_fk' in the adjacency."""
+    store, cid, oid = _snap_with_fk(tmp_path)
+    try:
+        adj = build_adjacency(store, "db")
+    finally:
+        store.close()
+
+    all_edges = adj.get(oid, []) + adj.get(cid, [])
+    fk_edges = [e for e in all_edges if e.kind == "fk"]
+    assert fk_edges
+    assert all(e.source == "declared_fk" for e in fk_edges)
+
+
+def test_build_adjacency_inferred_carries_source_and_reasoning(
+    tmp_path: Path,
+) -> None:
+    """Inferred edges surface the stored source/reasoning, not just confidence."""
+    store, cid, oid = _snap_with_fk(tmp_path)
+    try:
+        store.upsert_inferred_join(
+            RelationshipCandidate(
+                candidate_id="inf-provenance",
+                source_node_id=oid,
+                target_node_id=cid,
+                source_column="id",
+                target_column="id",
+                source="embedding",
+                confidence=0.42,
+                reasoning="cosine similarity 0.91",
+            )
+        )
+        adj = build_adjacency(store, "db")
+    finally:
+        store.close()
+
+    all_edges = adj.get(oid, []) + adj.get(cid, [])
+    inf_edges = [e for e in all_edges if e.kind == "inferred"]
+    assert inf_edges
+    assert all(e.source == "embedding" for e in inf_edges)
+    assert all(e.reasoning == "cosine similarity 0.91" for e in inf_edges)
+    assert all(e.confidence == 0.42 for e in inf_edges)
+
+
 # ── Pure function tests (no store needed) ─────────────────────────────────────
 
 
@@ -142,10 +187,22 @@ def test_best_path_same_node_returns_none() -> None:
 def test_best_path_ambiguity_two_equal_paths() -> None:
     # Diamond: t0→t1→t3 and t0→t2→t3, same confidence
     adj: dict[str, list[AdjEdge]] = {
-        "t0": [AdjEdge("t1", "id", "fk", "fk", 1.0), AdjEdge("t2", "id", "fk", "fk", 1.0)],
-        "t1": [AdjEdge("t0", "fk", "id", "fk", 1.0), AdjEdge("t3", "id", "fk2", "fk", 1.0)],
-        "t2": [AdjEdge("t0", "fk", "id", "fk", 1.0), AdjEdge("t3", "id", "fk2", "fk", 1.0)],
-        "t3": [AdjEdge("t1", "fk2", "id", "fk", 1.0), AdjEdge("t2", "fk2", "id", "fk", 1.0)],
+        "t0": [
+            AdjEdge("t1", "id", "fk", "fk", 1.0),
+            AdjEdge("t2", "id", "fk", "fk", 1.0),
+        ],
+        "t1": [
+            AdjEdge("t0", "fk", "id", "fk", 1.0),
+            AdjEdge("t3", "id", "fk2", "fk", 1.0),
+        ],
+        "t2": [
+            AdjEdge("t0", "fk", "id", "fk", 1.0),
+            AdjEdge("t3", "id", "fk2", "fk", 1.0),
+        ],
+        "t3": [
+            AdjEdge("t1", "fk2", "id", "fk", 1.0),
+            AdjEdge("t2", "fk2", "id", "fk", 1.0),
+        ],
     }
     meta = {f"t{i}": ("public", f"t{i}") for i in range(4)}
     tied = best_paths(adj, meta, "t0", "t3", max_depth=3, top_k=3)
@@ -162,6 +219,30 @@ def test_best_paths_single_winner() -> None:
     tied = best_paths(adj, meta, "t0", "t2", max_depth=3)
     assert len(tied) == 1
     assert tied[0].ambiguous is False
+
+
+def test_best_paths_clear_winner_not_ambiguous() -> None:
+    """A strictly cheaper winner is unambiguous even when alternatives exist.
+
+    ``ambiguous`` means a cost tie, not the mere existence of a worse route —
+    otherwise any connected graph flags every path (including pure-FK paths at
+    confidence 1.0) as ambiguous.
+    """
+    adj: dict[str, list[AdjEdge]] = {
+        "t0": [
+            AdjEdge("t1", "id", "ref", "fk", 1.0),
+            AdjEdge("tx", "id", "ref", "inferred", 0.4),
+        ],
+        "t1": [AdjEdge("t2", "id", "ref", "fk", 1.0)],
+        "tx": [AdjEdge("t2", "id", "ref", "inferred", 0.4)],
+    }
+    meta = {tid: ("public", tid) for tid in ("t0", "t1", "t2", "tx")}
+    paths = best_paths(adj, meta, "t0", "t2", max_depth=3, top_k=3)
+    assert len(paths) >= 2
+    winner = paths[0]
+    assert winner.confidence == 1.0
+    assert winner.ambiguous is False
+    # The tied-cost diamond still flags ambiguity (see the equal-paths test).
 
 
 def test_yen_picks_3hop_fk_over_2hop_inferred() -> None:
@@ -294,12 +375,58 @@ def test_steps_json_roundtrip() -> None:
             to_column="id",
             edge_type="fk",
             confidence=1.0,
+            source="declared_fk",
+            reasoning=None,
+        ),
+        JoinStep(
+            from_schema="public",
+            from_table="customers",
+            to_schema="public",
+            to_table="regions",
+            from_column="region_code",
+            to_column="code",
+            edge_type="inferred",
+            confidence=0.6,
+            source="heuristic",
+            reasoning="naming overlap on region_code/code",
         ),
     )
     payload = steps_to_json_payload(steps)
     recovered = parse_steps_json(json.dumps(payload))
-    assert len(recovered) == 1
+    assert len(recovered) == 2
     assert recovered[0].from_table == "orders"
     assert recovered[0].to_table == "customers"
     assert recovered[0].edge_type == "fk"
     assert recovered[0].confidence == 1.0
+    assert recovered[0].source == "declared_fk"
+    assert recovered[0].reasoning is None
+    assert recovered[1].source == "heuristic"
+    assert recovered[1].reasoning == "naming overlap on region_code/code"
+
+
+def test_parse_steps_json_defaults_missing_source_for_legacy_blobs() -> None:
+    """JoinPath rows persisted before this change lack source/reasoning.
+
+    ``parse_steps_json`` must default gracefully rather than raise; the MCP
+    payload layer (``traverse.resolve_step_source``) resolves the final
+    fallback string from ``edge_type``.
+    """
+    import json
+
+    legacy_payload = [
+        {
+            "from_schema": "public",
+            "from_table": "orders",
+            "to_schema": "public",
+            "to_table": "customers",
+            "from_column": "customer_id",
+            "to_column": "id",
+            "edge_type": "fk",
+            "confidence": 1.0,
+            # no "source" / "reasoning" keys
+        }
+    ]
+    recovered = parse_steps_json(json.dumps(legacy_payload))
+    assert len(recovered) == 1
+    assert recovered[0].source == ""
+    assert recovered[0].reasoning is None

@@ -33,6 +33,9 @@ class AnalyzeSummary:
     cross_connection_dropped: int
     scan_run_id: str
     duration_ms: float
+    # Resolved schema unqualified table refs were resolved against (explicit
+    # flag value or derived from connection metadata / the graph snapshot).
+    default_schema: str = "public"
     # Planned (dry-run) or written CONSUMES rows, for CLI rendering. Defaulted so
     # existing keyword construction and the frozen field set stay compatible.
     rows: tuple[ConsumerRow, ...] = field(default=())

@@ -96,6 +96,15 @@ class RelationshipInfo(TypedDict, total=False):
     ordered column lists and ``constraint_name`` identifies the constraint.
     Single-column FKs still set ``source_column`` / ``target_column`` for
     backward compatibility.
+
+    ``source`` values, from most to least authoritative:
+      * ``"declared_fk"`` — a real FK constraint; always ``confidence == 1.0``.
+      * ``"heuristic"`` — naming/type-overlap inference.
+      * ``"llm_inferred"`` — an LLM pass over schema metadata.
+      * ``"embedding"`` — vector similarity between column/table descriptions.
+      * ``"statistical"`` — a heuristic/LLM candidate re-scored using sampled
+        value overlap; the pass overwrites ``source`` on the edge, so the
+        original hypothesis kind is not separately recoverable here.
     """
 
     target_table: str
@@ -183,13 +192,23 @@ class ContextPayload(TypedDict, total=False):
 
 
 class TraverseStepPayload(TypedDict, total=False):
-    """One hop in ``traverse`` output."""
+    """One hop in ``traverse`` output.
+
+    ``confidence`` and ``source`` are always present; ``reasoning``
+    is present only for inferred hops that carry a stored rationale. See
+    ``RelationshipInfo`` for the ``source`` value contract — the same values
+    apply here, plus ``"entity_link"`` for cross-database ``SAME_ENTITY``
+    bridge steps.
+    """
 
     from_table: str
     to_table: str
     from_column: str
     to_column: str
     edge_type: str
+    confidence: float
+    source: str
+    reasoning: str
     from_db: str
     to_db: str
     via: str

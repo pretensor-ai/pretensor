@@ -66,6 +66,14 @@ class RelationshipDiscovery:
         else:
             self._scorers = scorers or ScorerRegistry([HeuristicScorer()])
             self._combiner = combiner or MaxScoreCombiner()
+        # The default scorer registry builds HeuristicScorer before the
+        # effective GraphConfig exists; thread it here — the one seam every
+        # discovery caller (index, reindex, plugins) passes through — so
+        # same-name gating knobs apply regardless of entry point.
+        if self._graph_config is not None:
+            for scorer in self._scorers:
+                if isinstance(scorer, HeuristicScorer) and scorer.graph_config is None:
+                    scorer.graph_config = self._graph_config
 
     def discover(
         self,

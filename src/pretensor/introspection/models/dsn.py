@@ -14,7 +14,13 @@ import os
 from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import quote, unquote, urlparse
 
-from .config import ENV_VAR_PATTERN, ConnectionConfig, DatabaseType, SchemaFilter
+from .config import (
+    ENV_VAR_PATTERN,
+    ConnectionConfig,
+    DatabaseType,
+    SchemaFilter,
+    _resolve_env_vars,
+)
 
 if TYPE_CHECKING:
     from pretensor.cli.config_file import SourceConfig
@@ -315,6 +321,15 @@ def connection_config_from_source(
     Raises:
         ValueError: If the dialect or required fields are invalid.
     """
+    if source.url is not None:
+        resolved = _resolve_env_vars(source.url)
+        return connection_config_from_url(
+            resolved, name, dialect_override=source.dialect
+        )
+
+    if source.dialect is None:
+        msg = f"Source `{name}` requires a `dialect` string"
+        raise ValueError(msg)
     key = source.dialect.strip().lower()
     try:
         conn_type = _DIALECT_ALIASES[key]
@@ -398,6 +413,12 @@ def dsn_from_source(name: str, source: SourceConfig) -> str:
     Used for registry storage so that ``reindex`` can reconstruct connections
     from stored DSNs without the config file present.
     """
+    if source.url is not None:
+        return _resolve_env_vars(source.url)
+
+    if source.dialect is None:
+        msg = f"Source `{name}` requires a `dialect` string"
+        raise ValueError(msg)
     key = source.dialect.strip().lower()
     try:
         conn_type = _DIALECT_ALIASES[key]
