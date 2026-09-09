@@ -7,7 +7,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pagila
     ports:
-      - "55432:5432"
+      # Bind to loopback only. The default postgres:postgres credentials
+      # are fine for a local sandbox but must never be reachable from the
+      # network: Docker publishes ports past host firewalls, and an exposed
+      # default-credential Postgres gets brute-forced within hours.
+      - "127.0.0.1:55432:5432"
     volumes:
       - ./pagila_ddl.sql:/docker-entrypoint-initdb.d/01_pagila_ddl.sql:ro
       - ./pagila_data.sql:/docker-entrypoint-initdb.d/02_pagila_data.sql:ro

@@ -133,6 +133,11 @@ jobs:
     # branch and integration there is PR-only by repo policy.
     name: Archive release-gate baselines (open PR)
     needs: [pypi]
+    # Explicit condition: the default success() check looks at the whole
+    # transitive needs chain, so the skipped TestPyPI job on final (non-pre)
+    # releases silently skipped this job even though pypi succeeded. That is
+    # how the v0.1.0 baseline was never archived.
+    if: always() && needs.pypi.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -174,6 +179,9 @@ jobs:
   github-release:
     name: Create GitHub Release
     needs: [pypi, detect]
+    # Same transitive-skip fix as archive-results: run whenever the publish
+    # itself succeeded, even though TestPyPI was skipped for a final release.
+    if: always() && needs.pypi.result == 'success' && needs.detect.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -1,0 +1,323 @@
+{
+  "dataset": "pagila",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:35fb2bebef5ca2e444d2979394b04d424e9965abf22097df34065f915bab9dcf",
+  "level": "l2",
+  "metrics": {
+    "compile_metric_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "query_recall_at_5": {
+      "direction": "higher_is_better",
+      "value": 0.6166666666666666
+    },
+    "traverse_correctness": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    }
+  },
+  "notes": [
+    "semantic_search_recall_at_5 skipped: --embeddings not requested or the [embeddings] extra is not installed."
+  ],
+  "per_item": [
+    {
+      "error": null,
+      "id": "total_films",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_payments",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "error": null,
+      "id": "total_rentals",
+      "kind": "compile_metric",
+      "valid": true
+    },
+    {
+      "gold_tables": [
+        "rental"
+      ],
+      "id": "avg_rental_days",
+      "kind": "query_recall",
+      "matched": [
+        "rental"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "payment",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "customer",
+        "rental"
+      ],
+      "id": "customers_never_rented",
+      "kind": "query_recall",
+      "matched": [
+        "rental"
+      ],
+      "recall": 0.5,
+      "retrieved_tables": [
+        "film",
+        "film_actor",
+        "inventory",
+        "payment",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "address",
+        "city",
+        "customer"
+      ],
+      "id": "customers_per_city",
+      "kind": "query_recall",
+      "matched": [
+        "customer"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "customer",
+        "payment",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "actor",
+        "film",
+        "film_actor"
+      ],
+      "id": "films_for_actor",
+      "kind": "query_recall",
+      "matched": [
+        "actor",
+        "film",
+        "film_actor"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "actor",
+        "film",
+        "film_actor",
+        "inventory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "category",
+        "film",
+        "film_category"
+      ],
+      "id": "films_with_categories",
+      "kind": "query_recall",
+      "matched": [
+        "film"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "actor",
+        "film",
+        "film_actor",
+        "inventory"
+      ]
+    },
+    {
+      "gold_tables": [
+        "film",
+        "inventory"
+      ],
+      "id": "inventory_per_film",
+      "kind": "query_recall",
+      "matched": [
+        "film",
+        "inventory"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "film",
+        "film_actor",
+        "inventory",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "payment"
+      ],
+      "id": "payment_total",
+      "kind": "query_recall",
+      "matched": [
+        "payment"
+      ],
+      "recall": 1.0,
+      "retrieved_tables": [
+        "payment"
+      ]
+    },
+    {
+      "gold_tables": [
+        "rental",
+        "staff",
+        "store"
+      ],
+      "id": "rentals_per_store",
+      "kind": "query_recall",
+      "matched": [
+        "rental"
+      ],
+      "recall": 0.3333333333333333,
+      "retrieved_tables": [
+        "inventory",
+        "payment",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "staff"
+      ],
+      "id": "staff_with_store",
+      "kind": "query_recall",
+      "matched": [],
+      "recall": 0.0,
+      "retrieved_tables": [
+        "customer",
+        "film",
+        "film_actor",
+        "payment",
+        "rental"
+      ]
+    },
+    {
+      "gold_tables": [
+        "film",
+        "inventory",
+        "rental"
+      ],
+      "id": "top_films_by_rentals",
+      "kind": "query_recall",
+      "matched": [
+        "film",
+        "inventory"
+      ],
+      "recall": 0.6666666666666666,
+      "retrieved_tables": [
+        "film",
+        "film_actor",
+        "inventory"
+      ]
+    },
+    {
+      "correct": true,
+      "from_table": "public.customer",
+      "gold_path": [
+        [
+          "public.customer",
+          "public.rental"
+        ]
+      ],
+      "id": "customers_never_rented",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.customer",
+            "public.rental"
+          ]
+        ]
+      ],
+      "to_table": "public.rental"
+    },
+    {
+      "correct": true,
+      "from_table": "public.actor",
+      "gold_path": [
+        [
+          "public.actor",
+          "public.film_actor"
+        ],
+        [
+          "public.film_actor",
+          "public.film"
+        ]
+      ],
+      "id": "films_for_actor",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.actor",
+            "public.film_actor"
+          ],
+          [
+            "public.film_actor",
+            "public.film"
+          ]
+        ]
+      ],
+      "to_table": "public.film"
+    },
+    {
+      "correct": true,
+      "from_table": "public.inventory",
+      "gold_path": [
+        [
+          "public.inventory",
+          "public.film"
+        ]
+      ],
+      "id": "inventory_per_film",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.inventory",
+            "public.film"
+          ]
+        ]
+      ],
+      "to_table": "public.film"
+    },
+    {
+      "correct": true,
+      "from_table": "public.rental",
+      "gold_path": [
+        [
+          "public.rental",
+          "public.inventory"
+        ],
+        [
+          "public.inventory",
+          "public.film"
+        ]
+      ],
+      "id": "top_films_by_rentals",
+      "kind": "traverse",
+      "returned_paths": [
+        [
+          [
+            "public.rental",
+            "public.inventory"
+          ],
+          [
+            "public.inventory",
+            "public.film"
+          ]
+        ]
+      ],
+      "to_table": "public.film"
+    }
+  ],
+  "pretensor_version": "0.1.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}
