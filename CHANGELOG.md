@@ -36,6 +36,14 @@ between releases.
   Python source. Each `.sql` file is treated as one high-confidence
   consumer, with table references unioned across all of its statements.
 
+### Security
+- `pretensor quickstart` now binds its throwaway Postgres to `127.0.0.1:55432`
+  instead of all interfaces. In 0.1.0 the sandbox listened on every interface
+  with the default `postgres:postgres` credentials, and Docker publishes ports
+  past host firewalls, so on a machine with a public IP it was reachable from
+  the internet. If you ran the 0.1.0 quickstart on a server, run
+  `pretensor quickstart --down`, upgrade, and start it again.
+
 ### Changed
 - `analyze --connection` is now optional: it is required unless `--all` is
   passed. Omitting it without `--all` exits 1 with a runtime message

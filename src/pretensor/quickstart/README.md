@@ -1,7 +1,9 @@
 # Pretensor quickstart database
 
 A throwaway Postgres instance pre-loaded with the Pagila sample schema (DVD
-rental store), sized for `pretensor quickstart`. Listens on **localhost:55432**.
+rental store), sized for `pretensor quickstart`. Listens on **localhost:55432** (bound to 127.0.0.1 only; the default
+`postgres:postgres` credentials are for local use and must never be exposed
+to the network).
 
 ## Use it
 
