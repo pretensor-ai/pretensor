@@ -17,12 +17,15 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Sequence
 
 from pretensor.benchmark.results import (
     ComparisonError,
+    ComparisonReport,
+    MetricDiff,
     compare,
     read_json,
 )
@@ -61,6 +64,110 @@ and the gate avoids unused indirection layers.
 
 _DEFAULT_GRAPH_DIR = Path(".pretensor")
 """Where ``run_l1`` / ``run_l2`` look for an indexed graph."""
+
+
+_ACCEPTED_FILENAME = "accepted-regressions.toml"
+"""Per-candidate-tag file that documents deliberate metric regressions.
+
+Lives next to the candidate's results (``tests/benchmark/results/<tag>/``)
+and is committed *before* the tag is cut. Each ``[[accepted]]`` entry names
+one ``(dataset, level, metric)`` and the value the release is willing to
+ship at. The gate treats the entry as a floor (or ceiling, for
+``lower_is_better`` metrics), never as a blanket waiver: a run that is
+worse than ``accepted_value`` still blocks, and an entry that matches no
+observed regression is an error so stale or mistyped entries cannot pass
+silently. Every entry must carry a non-empty ``reason``.
+"""
+
+
+@dataclass(frozen=True, slots=True)
+class _AcceptedRegression:
+    """One documented, deliberately accepted metric regression."""
+
+    dataset: str
+    level: str
+    metric: str
+    accepted_value: float
+    reason: str
+
+    @property
+    def key(self) -> tuple[str, str, str]:
+        return (self.dataset, self.level, self.metric)
+
+
+_ACCEPTED_REQUIRED_KEYS: tuple[str, ...] = (
+    "dataset",
+    "level",
+    "metric",
+    "accepted_value",
+    "reason",
+)
+
+
+def _load_accepted_regressions(path: Path) -> tuple[_AcceptedRegression, ...]:
+    """Parse ``path`` into acceptance entries; ``()`` when the file is absent.
+
+    Raises :class:`ValueError` on any structural problem so the caller can
+    block the release with a message that names the file — a malformed
+    acceptance must never degrade into "no acceptances, fail as usual"
+    *or* into a pass.
+    """
+    if not path.is_file():
+        return ()
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError) as exc:
+        raise ValueError(f"cannot parse {path}: {exc}") from exc
+
+    raw_entries = data.get("accepted", [])
+    if not isinstance(raw_entries, list):
+        raise ValueError(f"{path}: 'accepted' must be an array of tables")
+
+    entries: list[_AcceptedRegression] = []
+    seen: set[tuple[str, str, str]] = set()
+    for index, raw in enumerate(raw_entries):
+        where = f"{path}: [[accepted]] entry #{index + 1}"
+        if not isinstance(raw, dict):
+            raise ValueError(f"{where} must be a table")
+        missing = [k for k in _ACCEPTED_REQUIRED_KEYS if k not in raw]
+        if missing:
+            raise ValueError(
+                f"{where} is missing required key(s): {', '.join(missing)}"
+            )
+        for key in ("dataset", "level", "metric", "reason"):
+            if not isinstance(raw[key], str):
+                raise ValueError(f"{where}: {key!r} must be a string")
+        value = raw["accepted_value"]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{where}: 'accepted_value' must be a number")
+        if not raw["reason"].strip():
+            raise ValueError(f"{where}: 'reason' must not be empty")
+        entry = _AcceptedRegression(
+            dataset=raw["dataset"],
+            level=raw["level"],
+            metric=raw["metric"],
+            accepted_value=float(value),
+            reason=raw["reason"].strip(),
+        )
+        if entry.key in seen:
+            raise ValueError(
+                f"{where}: duplicate entry for {entry.dataset}/{entry.level} "
+                f"{entry.metric!r}"
+            )
+        seen.add(entry.key)
+        entries.append(entry)
+    return tuple(entries)
+
+
+def _meets_accepted_value(
+    diff: MetricDiff, entry: _AcceptedRegression, *, tolerance: float
+) -> bool:
+    """True when ``diff.current`` is no worse than the documented floor/ceiling."""
+    if diff.current is None:
+        return False
+    if diff.direction == "higher_is_better":
+        return diff.current >= entry.accepted_value - tolerance
+    return diff.current <= entry.accepted_value + tolerance
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +266,7 @@ def _run_benchmark(
 # ---------------------------------------------------------------------------
 
 
-_PairStatus = Literal["pass", "regression", "skipped", "error"]
+_PairStatus = Literal["pass", "accepted", "regression", "skipped", "error"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,6 +277,10 @@ class _PairOutcome:
     level: str
     status: _PairStatus
     detail: str = ""
+    accepted_metrics: tuple[str, ...] = ()
+    """Metric names whose regression was covered by an acceptance entry."""
+    unmet_metrics: tuple[str, ...] = ()
+    """Metric names that had an acceptance entry but regressed past it."""
 
     @property
     def label(self) -> str:
@@ -185,6 +296,7 @@ def _evaluate_pair(
     run_benchmarks: bool,
     graph_dir: Path,
     embeddings: bool,
+    accepted: Sequence[_AcceptedRegression] = (),
 ) -> _PairOutcome:
     """Run (optionally) and compare one ``(dataset, level)`` pair."""
     fname = f"{dataset.value}-{level}.json"
@@ -250,14 +362,85 @@ def _evaluate_pair(
             detail=str(exc),
         )
 
-    if report.has_regression:
+    if not report.has_regression:
+        return _PairOutcome(dataset=dataset.value, level=level, status="pass")
+
+    return _apply_acceptances(
+        report,
+        dataset=dataset.value,
+        level=level,
+        accepted=accepted,
+        tolerance=_DEFAULT_TOLERANCE,
+    )
+
+
+def _apply_acceptances(
+    report: ComparisonReport,
+    *,
+    dataset: str,
+    level: str,
+    accepted: Sequence[_AcceptedRegression],
+    tolerance: float,
+) -> _PairOutcome:
+    """Split a regressed report into accepted vs. still-blocking regressions.
+
+    A removed metric is never acceptable: an acceptance names a value the
+    metric may ship at, and a metric that no longer exists has none.
+    """
+    by_key = {e.key: e for e in accepted}
+    accepted_lines: list[str] = []
+    accepted_names: list[str] = []
+    unmet_names: list[str] = []
+    remaining: list[MetricDiff] = []
+    not_met: list[str] = []
+    for diff in report.regressions:
+        entry = by_key.get((dataset, level, diff.name))
+        if entry is None:
+            remaining.append(diff)
+            continue
+        if _meets_accepted_value(diff, entry, tolerance=tolerance):
+            accepted_names.append(diff.name)
+            accepted_lines.append(
+                f"{diff.name} ({diff.direction}): "
+                f"{diff.baseline:.6g} → {diff.current:.6g} "
+                f"(accepted_value {entry.accepted_value:.6g}) — {entry.reason}"
+            )
+        else:
+            remaining.append(diff)
+            unmet_names.append(diff.name)
+            not_met.append(
+                f"{diff.name}: current {diff.current:.6g} is worse than "
+                f"accepted_value {entry.accepted_value:.6g} in {_ACCEPTED_FILENAME}"
+            )
+
+    if remaining or report.removed:
+        filtered = ComparisonReport(
+            has_regression=True,
+            regressions=remaining,
+            improvements=report.improvements,
+            added=report.added,
+            removed=report.removed,
+        )
+        detail = filtered.format_diff()
+        if not_met:
+            detail += "\nAcceptance not met:\n" + "".join(
+                f"  {line}\n" for line in not_met
+            )
         return _PairOutcome(
-            dataset=dataset.value,
+            dataset=dataset,
             level=level,
             status="regression",
-            detail=report.format_diff(),
+            detail=detail,
+            accepted_metrics=tuple(accepted_names),
+            unmet_metrics=tuple(unmet_names),
         )
-    return _PairOutcome(dataset=dataset.value, level=level, status="pass")
+    return _PairOutcome(
+        dataset=dataset,
+        level=level,
+        status="accepted",
+        detail="\n".join(accepted_lines),
+        accepted_metrics=tuple(accepted_names),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -388,6 +571,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         current_dir = _resolve_results_dir(candidate_tag, results_base)
         run_benchmarks = True
 
+    accepted_path = current_dir / _ACCEPTED_FILENAME
+    try:
+        accepted = _load_accepted_regressions(accepted_path)
+    except ValueError as exc:
+        print(f"release-gate: invalid acceptance file — {exc}", file=sys.stderr)
+        return 1
+
     outcomes: list[_PairOutcome] = []
     for dataset in datasets:
         for level in _GATING_LEVELS:
@@ -400,6 +590,31 @@ def main(argv: Sequence[str] | None = None) -> int:
                     run_benchmarks=run_benchmarks,
                     graph_dir=args.graph_dir,
                     embeddings=args.embeddings,
+                    accepted=accepted,
+                )
+            )
+
+    # An acceptance that matched nothing is either stale (the regression
+    # went away — delete the entry) or mistyped (it would have silently
+    # waived nothing while the real regression blocks). Either way, block
+    # so the file stays an exact record of what shipped.
+    used = {
+        (o.dataset, o.level, name)
+        for o in outcomes
+        for name in (*o.accepted_metrics, *o.unmet_metrics)
+    }
+    for entry in accepted:
+        if entry.key not in used:
+            outcomes.append(
+                _PairOutcome(
+                    dataset=entry.dataset,
+                    level=entry.level,
+                    status="error",
+                    detail=(
+                        f"{accepted_path} entry for metric {entry.metric!r} "
+                        "matched no regression — remove it or fix the "
+                        "dataset/level/metric"
+                    ),
                 )
             )
 
@@ -411,11 +626,16 @@ def _emit_summary(outcomes: Sequence[_PairOutcome]) -> int:
     regressions = [o for o in outcomes if o.status == "regression"]
     errors = [o for o in outcomes if o.status == "error"]
     skipped = [o for o in outcomes if o.status == "skipped"]
+    accepted = [o for o in outcomes if o.status == "accepted"]
     passed = [o for o in outcomes if o.status == "pass"]
 
     lines: list[str] = []
     if regressions or errors:
         lines.append("RELEASE GATE: REGRESSION DETECTED")
+    elif accepted:
+        lines.append(
+            "release gate: all comparisons within tolerance or explicitly accepted"
+        )
     else:
         lines.append("release gate: all comparisons within tolerance")
 
@@ -431,6 +651,13 @@ def _emit_summary(outcomes: Sequence[_PairOutcome]) -> int:
         lines.append("Errors:")
         for o in errors:
             lines.append(f"  {o.label}: {o.detail}")
+    if accepted:
+        lines.append("")
+        lines.append(f"Accepted regressions (documented in {_ACCEPTED_FILENAME}):")
+        for o in accepted:
+            lines.append(f"  {o.label}:")
+            for diff_line in o.detail.splitlines():
+                lines.append(f"    {diff_line}")
     if skipped:
         lines.append("")
         lines.append("Skipped (no baseline — new dataset since previous tag):")

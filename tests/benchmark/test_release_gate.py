@@ -536,3 +536,245 @@ def _exploding_runner(reason: str) -> Any:
         raise AssertionError(reason)
 
     return _explode
+
+
+# ---------------------------------------------------------------------------
+# Accepted regressions (tests/benchmark/results/<tag>/accepted-regressions.toml)
+# ---------------------------------------------------------------------------
+
+
+def _stage_regression(
+    tmp_path: Path,
+    *,
+    metric: str = "inferred_join_precision",
+    direction: str = "higher_is_better",
+    baseline_value: float = 0.9,
+    current_value: float = 0.5,
+) -> tuple[Path, Path]:
+    """Stage a full passing baseline + current, then regress one pair.
+
+    The regressed pair is ``adventureworks/l1`` on ``metric``.
+    """
+    base = tmp_path / "v0.1.0"
+    cur = tmp_path / "v0.2.0"
+    _full_baseline(base, value=0.9)
+    _full_baseline(cur, value=0.9)
+    _stage(
+        base,
+        [
+            _result(
+                level="l1",
+                dataset="adventureworks",
+                metrics={metric: Metric(value=baseline_value, direction=direction)},  # type: ignore[arg-type]
+            )
+        ],
+    )
+    _stage(
+        cur,
+        [
+            _result(
+                level="l1",
+                dataset="adventureworks",
+                metrics={metric: Metric(value=current_value, direction=direction)},  # type: ignore[arg-type]
+            )
+        ],
+    )
+    return base, cur
+
+
+def _write_accepted(cur: Path, body: str) -> None:
+    (cur / release_gate._ACCEPTED_FILENAME).write_text(body)
+
+
+_ACCEPTED_ENTRY = """
+[[accepted]]
+dataset = "adventureworks"
+level = "l1"
+metric = "inferred_join_precision"
+accepted_value = 0.5
+reason = "deliberate precision/recall trade-off documented in the changelog"
+"""
+
+
+def test_accepted_regression_passes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A documented regression no worse than accepted_value passes the gate."""
+    base, cur = _stage_regression(tmp_path, current_value=0.5)
+    _write_accepted(cur, _ACCEPTED_ENTRY)
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 0
+    assert "RELEASE GATE: REGRESSION DETECTED" not in err
+    assert "accepted regression" in err.lower()
+    assert "adventureworks/l1" in err
+    assert "inferred_join_precision" in err
+    assert "deliberate precision/recall trade-off" in err
+
+
+def test_accepted_regression_within_tolerance_of_accepted_value_passes(
+    tmp_path: Path,
+) -> None:
+    """Float noise below the comparator tolerance does not defeat an acceptance."""
+    base, cur = _stage_regression(tmp_path, current_value=0.5 - 1e-9)
+    _write_accepted(cur, _ACCEPTED_ENTRY)
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+
+    assert rc == 0
+
+
+def test_regression_worse_than_accepted_value_fails(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """accepted_value is a floor, not a blanket waiver: worse still blocks."""
+    base, cur = _stage_regression(tmp_path, current_value=0.4)
+    _write_accepted(cur, _ACCEPTED_ENTRY)
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "RELEASE GATE: REGRESSION DETECTED" in err
+    assert "inferred_join_precision" in err
+    assert "accepted_value" in err
+    # The entry did match a regression; it must not also be reported as stale.
+    assert "matched no regression" not in err
+
+
+def test_accepted_lower_is_better_direction(tmp_path: Path) -> None:
+    """For lower_is_better metrics accepted_value is a ceiling."""
+    base, cur = _stage_regression(
+        tmp_path,
+        metric="latency_ms",
+        direction="lower_is_better",
+        baseline_value=10.0,
+        current_value=20.0,
+    )
+    _write_accepted(
+        cur,
+        """
+[[accepted]]
+dataset = "adventureworks"
+level = "l1"
+metric = "latency_ms"
+accepted_value = 20.0
+reason = "slower but correct"
+""",
+    )
+    assert main(["--baseline-dir", str(base), "--current-dir", str(cur)]) == 0
+
+    _write_accepted(
+        cur,
+        """
+[[accepted]]
+dataset = "adventureworks"
+level = "l1"
+metric = "latency_ms"
+accepted_value = 15.0
+reason = "slower but correct"
+""",
+    )
+    assert main(["--baseline-dir", str(base), "--current-dir", str(cur)]) == 1
+
+
+def test_accepted_entry_does_not_cover_other_pairs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An acceptance is scoped to exactly one (dataset, level, metric)."""
+    base, cur = _stage_regression(tmp_path, current_value=0.5)
+    _write_accepted(cur, _ACCEPTED_ENTRY.replace('"adventureworks"', '"pagila"'))
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "RELEASE GATE: REGRESSION DETECTED" in err
+    assert "adventureworks/l1" in err
+
+
+def test_accepted_entry_matching_no_regression_is_an_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A stale or mistyped entry must not silently do nothing."""
+    base = tmp_path / "v0.1.0"
+    cur = tmp_path / "v0.2.0"
+    _full_baseline(base, value=0.9)
+    _full_baseline(cur, value=0.9)
+    _write_accepted(
+        cur, _ACCEPTED_ENTRY.replace("inferred_join_precision", "typo_metric")
+    )
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "typo_metric" in err
+    assert "matched no regression" in err
+
+
+def test_accepted_entry_without_reason_is_an_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Every acceptance must carry a non-empty justification."""
+    base, cur = _stage_regression(tmp_path, current_value=0.5)
+    _write_accepted(
+        cur,
+        _ACCEPTED_ENTRY.replace(
+            'reason = "deliberate precision/recall trade-off documented in the changelog"',
+            'reason = "  "',
+        ),
+    )
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "reason" in err
+
+
+def test_accepted_file_malformed_is_an_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Unparseable or incomplete acceptance files block rather than pass."""
+    base, cur = _stage_regression(tmp_path, current_value=0.5)
+
+    _write_accepted(cur, "[[accepted]\nthis is not toml")
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    assert rc == 1
+    assert release_gate._ACCEPTED_FILENAME in capsys.readouterr().err
+
+    _write_accepted(cur, '[[accepted]]\ndataset = "adventureworks"\n')
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "level" in err or "metric" in err
+
+
+def test_removed_metric_cannot_be_accepted(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A metric that disappeared is always a regression, acceptance or not."""
+    base = tmp_path / "v0.1.0"
+    cur = tmp_path / "v0.2.0"
+    _full_baseline(base, value=0.9)
+    _full_baseline(cur, value=0.9)
+    _stage(
+        cur,
+        [
+            _result(
+                level="l1",
+                dataset="adventureworks",
+                metrics={"other": Metric(value=1.0, direction="higher_is_better")},
+            )
+        ],
+    )
+    _write_accepted(cur, _ACCEPTED_ENTRY)
+
+    rc = main(["--baseline-dir", str(base), "--current-dir", str(cur)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "RELEASE GATE: REGRESSION DETECTED" in err
