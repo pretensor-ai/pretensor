@@ -1,0 +1,1609 @@
+{
+  "dataset": "adventureworks",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:8c0024ad1742ab69ac1b6fbb0ab402ff3ca866cb7cecfd33faf7bb431e237a95",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.2073732718894009
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 0.4945054945054945
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": null
+    }
+  },
+  "notes": [
+    "role_f1 unavailable for dataset 'adventureworks': no gold-role annotation file (only adversarial has labels today)."
+  ],
+  "per_item": [
+    {
+      "expected": true,
+      "id": "humanresources.department.departmentid\u2194humanresources.employeedepartmenthistory.departmentid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.department.groupname\u2194humanresources.vemployeedepartment.groupname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.department.groupname\u2194humanresources.vemployeedepartmenthistory.groupname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194humanresources.employeedepartmenthistory.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194humanresources.employeepayhistory.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194humanresources.jobcandidate.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194person.person.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194production.document.owner",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194purchasing.purchaseorderheader.employeeid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employee.businessentityid\u2194sales.salesperson.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "humanresources.employee.jobtitle\u2194humanresources.vemployee.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.employee.jobtitle\u2194humanresources.vemployeedepartment.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.employee.jobtitle\u2194sales.vsalesperson.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.employee.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "humanresources.employeedepartmenthistory.shiftid\u2194humanresources.shift.shiftid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.additionalcontactinfo\u2194person.person.additionalcontactinfo",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.addressline1\u2194person.address.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.addressline1\u2194purchasing.vvendorwithaddresses.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.addressline1\u2194sales.vstorewithaddresses.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.addressline2\u2194person.address.addressline2",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.city\u2194person.address.city",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.countryregionname\u2194purchasing.vvendorwithaddresses.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.countryregionname\u2194sales.vindividualcustomer.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.countryregionname\u2194sales.vsalesperson.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.countryregionname\u2194sales.vstorewithaddresses.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.emailaddress\u2194person.emailaddress.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.emailaddress\u2194production.productreview.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.emailpromotion\u2194person.person.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.emailpromotion\u2194purchasing.vvendorwithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.emailpromotion\u2194sales.vstorewithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.jobtitle\u2194humanresources.vemployeedepartment.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.jobtitle\u2194sales.vsalesperson.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumber\u2194person.personphone.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumber\u2194purchasing.vvendorwithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumber\u2194sales.vstorewithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumbertype\u2194purchasing.vvendorwithcontacts.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumbertype\u2194sales.vindividualcustomer.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumbertype\u2194sales.vsalesperson.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.phonenumbertype\u2194sales.vstorewithcontacts.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.stateprovincename\u2194purchasing.vvendorwithaddresses.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.stateprovincename\u2194sales.vindividualcustomer.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.suffix\u2194humanresources.vemployeedepartment.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.suffix\u2194humanresources.vemployeedepartmenthistory.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployee.suffix\u2194person.person.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.department\u2194humanresources.vemployeedepartmenthistory.department",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.groupname\u2194humanresources.vemployeedepartmenthistory.groupname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.jobtitle\u2194sales.vsalesperson.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194humanresources.vemployeedepartmenthistory.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194person.person.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194purchasing.vvendorwithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194sales.vindividualcustomer.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194sales.vsalesperson.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartment.suffix\u2194sales.vstorewithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartmenthistory.suffix\u2194person.person.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartmenthistory.suffix\u2194purchasing.vvendorwithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartmenthistory.suffix\u2194sales.vindividualcustomer.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartmenthistory.suffix\u2194sales.vsalesperson.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "humanresources.vemployeedepartmenthistory.suffix\u2194sales.vstorewithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.address.addressid\u2194person.businessentityaddress.addressid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.address.addressid\u2194sales.salesorderheader.billtoaddressid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.address.addressid\u2194sales.salesorderheader.shiptoaddressid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline1\u2194purchasing.vvendorwithaddresses.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline1\u2194sales.vindividualcustomer.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline1\u2194sales.vsalesperson.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline1\u2194sales.vstorewithaddresses.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline2\u2194purchasing.vvendorwithaddresses.addressline2",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline2\u2194sales.vindividualcustomer.addressline2",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline2\u2194sales.vsalesperson.addressline2",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.addressline2\u2194sales.vstorewithaddresses.addressline2",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.city\u2194purchasing.vvendorwithaddresses.city",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.city\u2194sales.vindividualcustomer.city",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.city\u2194sales.vsalesperson.city",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.city\u2194sales.vstorewithaddresses.city",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.address.stateprovinceid\u2194person.stateprovince.stateprovinceid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.address.stateprovinceid\u2194sales.salestaxrate.stateprovinceid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.addresstype.addresstypeid\u2194person.businessentityaddress.addresstypeid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.businessentity.businessentityid\u2194person.businessentityaddress.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.businessentity.businessentityid\u2194person.businessentitycontact.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.businessentity.businessentityid\u2194person.person.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.businessentity.businessentityid\u2194purchasing.vendor.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.businessentity.businessentityid\u2194sales.store.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.businessentitycontact.contacttypeid\u2194person.contacttype.contacttypeid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.businessentitycontact.personid\u2194person.person.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "person.businessentitycontact.personid\u2194sales.customer.personid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.countryregion.countryregioncode\u2194person.stateprovince.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.countryregion.countryregioncode\u2194sales.countryregioncurrency.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.countryregion.countryregioncode\u2194sales.salesterritory.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.emailaddress.businessentityid\u2194person.person.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "person.emailaddress.emailaddress\u2194production.productreview.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.emailaddress.emailaddress\u2194purchasing.vvendorwithcontacts.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.emailaddress.emailaddress\u2194sales.vindividualcustomer.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.emailaddress.emailaddress\u2194sales.vsalesperson.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.emailaddress.emailaddress\u2194sales.vstorewithcontacts.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.password.businessentityid\u2194person.person.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.person.businessentityid\u2194person.personphone.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.person.businessentityid\u2194sales.customer.personid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "person.person.businessentityid\u2194sales.personcreditcard.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "person.person.demographics\u2194sales.store.demographics",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.demographics\u2194sales.vindividualcustomer.demographics",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.emailpromotion\u2194purchasing.vvendorwithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.emailpromotion\u2194sales.vindividualcustomer.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.emailpromotion\u2194sales.vsalesperson.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.emailpromotion\u2194sales.vstorewithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.suffix\u2194purchasing.vvendorwithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.suffix\u2194sales.vindividualcustomer.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.suffix\u2194sales.vsalesperson.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.person.suffix\u2194sales.vstorewithcontacts.suffix",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.personphone.phonenumber\u2194purchasing.vvendorwithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.personphone.phonenumber\u2194sales.vindividualcustomer.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.personphone.phonenumber\u2194sales.vsalesperson.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.personphone.phonenumber\u2194sales.vstorewithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.personphone.phonenumbertypeid\u2194person.phonenumbertype.phonenumbertypeid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.countryregioncode\u2194sales.countryregioncurrency.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.countryregioncode\u2194sales.salesterritory.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.stateprovince.stateprovinceid\u2194sales.salestaxrate.stateprovinceid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.territoryid\u2194sales.customer.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.territoryid\u2194sales.salesorderheader.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.territoryid\u2194sales.salesperson.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "person.stateprovince.territoryid\u2194sales.salesterritory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "person.stateprovince.territoryid\u2194sales.salesterritoryhistory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.billofmaterials.componentid\u2194production.product.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.billofmaterials.productassemblyid\u2194production.product.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.billofmaterials.unitmeasurecode\u2194production.unitmeasure.unitmeasurecode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.billofmaterials.unitmeasurecode\u2194purchasing.productvendor.unitmeasurecode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.culture.cultureid\u2194production.productmodelproductdescriptionculture.cultureid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.document.documentnode\u2194production.productdocument.documentnode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.illustration.illustrationid\u2194production.productmodelillustration.illustrationid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.location.locationid\u2194production.productinventory.locationid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.location.locationid\u2194production.workorderrouting.locationid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.product.listprice\u2194production.productlistpricehistory.listprice",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productcosthistory.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productdocument.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productinventory.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productlistpricehistory.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productproductphoto.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.productreview.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.transactionhistory.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194production.workorder.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194purchasing.productvendor.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194purchasing.purchaseorderdetail.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194sales.shoppingcartitem.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productid\u2194sales.specialofferproduct.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.product.productmodelid\u2194production.productmodel.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.product.productmodelid\u2194production.productmodelillustration.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.product.productmodelid\u2194production.productmodelproductdescriptionculture.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.product.productsubcategoryid\u2194production.productsubcategory.productsubcategoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.product.sizeunitmeasurecode\u2194production.unitmeasure.unitmeasurecode",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "production.product.standardcost\u2194production.productcosthistory.standardcost",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.product.weightunitmeasurecode\u2194production.unitmeasure.unitmeasurecode",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "production.productcategory.productcategoryid\u2194production.productsubcategory.productcategoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.productdescription.productdescriptionid\u2194production.productmodelproductdescriptionculture.productdescriptionid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productinventory.locationid\u2194production.workorderrouting.locationid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.productmodel.productmodelid\u2194production.productmodelillustration.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.productmodel.productmodelid\u2194production.productmodelproductdescriptionculture.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productmodelillustration.productmodelid\u2194production.productmodelproductdescriptionculture.productmodelid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.productphoto.productphotoid\u2194production.productproductphoto.productphotoid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productreview.emailaddress\u2194purchasing.vvendorwithcontacts.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productreview.emailaddress\u2194sales.vindividualcustomer.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productreview.emailaddress\u2194sales.vsalesperson.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.productreview.emailaddress\u2194sales.vstorewithcontacts.emailaddress",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.scrapreason.scrapreasonid\u2194production.workorder.scrapreasonid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.transactionhistory.actualcost\u2194production.workorderrouting.actualcost",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.transactionhistory.referenceorderid\u2194production.transactionhistoryarchive.referenceorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.transactionhistory.referenceorderlineid\u2194production.transactionhistoryarchive.referenceorderlineid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.transactionhistory.transactiondate\u2194production.transactionhistoryarchive.transactiondate",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.transactionhistoryarchive.actualcost\u2194production.workorderrouting.actualcost",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.unitmeasure.unitmeasurecode\u2194purchasing.productvendor.unitmeasurecode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.workorder.orderqty\u2194purchasing.purchaseorderdetail.orderqty",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "production.workorder.orderqty\u2194sales.salesorderdetail.orderqty",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "production.workorder.workorderid\u2194production.workorderrouting.workorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "purchasing.productvendor.businessentityid\u2194purchasing.vendor.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "purchasing.purchaseorderdetail.orderqty\u2194sales.salesorderdetail.orderqty",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "purchasing.purchaseorderdetail.purchaseorderid\u2194purchasing.purchaseorderheader.purchaseorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.purchaseorderdetail.unitprice\u2194sales.salesorderdetail.unitprice",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.purchaseorderheader.freight\u2194sales.salesorderheader.freight",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.purchaseorderheader.orderdate\u2194sales.salesorderheader.orderdate",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.purchaseorderheader.revisionnumber\u2194sales.salesorderheader.revisionnumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "purchasing.purchaseorderheader.shipmethodid\u2194purchasing.shipmethod.shipmethodid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "purchasing.purchaseorderheader.vendorid\u2194purchasing.vendor.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "purchasing.shipmethod.shipmethodid\u2194sales.salesorderheader.shipmethodid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vendor.accountnumber\u2194sales.salesorderheader.accountnumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.addressline1\u2194sales.vsalesperson.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.addresstype\u2194sales.vindividualcustomer.addresstype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.addresstype\u2194sales.vstorewithaddresses.addresstype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.countryregionname\u2194sales.vindividualcustomer.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.countryregionname\u2194sales.vsalesperson.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.countryregionname\u2194sales.vstorewithaddresses.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.stateprovincename\u2194sales.vindividualcustomer.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.stateprovincename\u2194sales.vsalesperson.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithaddresses.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.contacttype\u2194sales.vstorewithcontacts.contacttype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.emailpromotion\u2194sales.vindividualcustomer.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.emailpromotion\u2194sales.vsalesperson.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.emailpromotion\u2194sales.vstorewithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.phonenumber\u2194sales.vindividualcustomer.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.phonenumber\u2194sales.vsalesperson.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.phonenumbertype\u2194sales.vindividualcustomer.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.phonenumbertype\u2194sales.vsalesperson.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "purchasing.vvendorwithcontacts.phonenumbertype\u2194sales.vstorewithcontacts.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.countryregioncurrency.countryregioncode\u2194sales.salesterritory.countryregioncode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.countryregioncurrency.currencycode\u2194sales.currency.currencycode",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.creditcard.creditcardid\u2194sales.personcreditcard.creditcardid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.creditcard.creditcardid\u2194sales.salesorderheader.creditcardid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.currency.currencycode\u2194sales.currencyrate.fromcurrencycode",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "sales.currency.currencycode\u2194sales.currencyrate.tocurrencycode",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "sales.currencyrate.currencyrateid\u2194sales.salesorderheader.currencyrateid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.customer.customerid\u2194sales.salesorderheader.customerid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.customer.storeid\u2194sales.store.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "sales.customer.territoryid\u2194sales.salesorderheader.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.customer.territoryid\u2194sales.salesperson.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.customer.territoryid\u2194sales.salesterritory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.customer.territoryid\u2194sales.salesterritoryhistory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.personcreditcard.creditcardid\u2194sales.salesorderheader.creditcardid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderdetail.productid\u2194sales.specialofferproduct.productid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderdetail.salesorderid\u2194sales.salesorderheader.salesorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderdetail.salesorderid\u2194sales.salesorderheadersalesreason.salesorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderdetail.specialofferid\u2194sales.specialoffer.specialofferid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderdetail.specialofferid\u2194sales.specialofferproduct.specialofferid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderheader.salesorderid\u2194sales.salesorderheadersalesreason.salesorderid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderheader.salespersonid\u2194sales.salesperson.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderheader.salespersonid\u2194sales.store.salespersonid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderheader.salespersonid\u2194sales.vsalespersonsalesbyfiscalyearsdata.salespersonid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderheader.territoryid\u2194sales.salesperson.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderheader.territoryid\u2194sales.salesterritory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesorderheader.territoryid\u2194sales.salesterritoryhistory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesorderheadersalesreason.salesreasonid\u2194sales.salesreason.salesreasonid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesperson.businessentityid\u2194sales.salespersonquotahistory.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "sales.salesperson.businessentityid\u2194sales.salesterritoryhistory.businessentityid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "sales.salesperson.businessentityid\u2194sales.store.salespersonid",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.saleslastyear\u2194sales.salesterritory.saleslastyear",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.saleslastyear\u2194sales.vsalesperson.saleslastyear",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.salesquota\u2194sales.salespersonquotahistory.salesquota",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.salesquota\u2194sales.vsalesperson.salesquota",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.salesytd\u2194sales.salesterritory.salesytd",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.salesytd\u2194sales.vsalesperson.salesytd",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesperson.territoryid\u2194sales.salesterritory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesperson.territoryid\u2194sales.salesterritoryhistory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salespersonquotahistory.salesquota\u2194sales.vsalesperson.salesquota",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesterritory.saleslastyear\u2194sales.vsalesperson.saleslastyear",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.salesterritory.salesytd\u2194sales.vsalesperson.salesytd",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.salesterritory.territoryid\u2194sales.salesterritoryhistory.territoryid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": true,
+      "id": "sales.specialoffer.specialofferid\u2194sales.specialofferproduct.specialofferid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.store.demographics\u2194sales.vindividualcustomer.demographics",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.store.salespersonid\u2194sales.vsalespersonsalesbyfiscalyearsdata.salespersonid",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.addresstype\u2194sales.vstorewithaddresses.addresstype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.countryregionname\u2194sales.vsalesperson.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.countryregionname\u2194sales.vstorewithaddresses.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.emailpromotion\u2194sales.vstorewithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.phonenumber\u2194sales.vstorewithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.phonenumbertype\u2194sales.vsalesperson.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.phonenumbertype\u2194sales.vstorewithcontacts.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.stateprovincename\u2194sales.vsalesperson.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vindividualcustomer.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.addressline1\u2194sales.vstorewithaddresses.addressline1",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.countryregionname\u2194sales.vstorewithaddresses.countryregionname",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.emailpromotion\u2194sales.vstorewithcontacts.emailpromotion",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.jobtitle\u2194sales.vsalespersonsalesbyfiscalyearsdata.jobtitle",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.phonenumber\u2194sales.vstorewithcontacts.phonenumber",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.phonenumbertype\u2194sales.vstorewithcontacts.phonenumbertype",
+      "kind": "inferred_join",
+      "predicted": true
+    },
+    {
+      "expected": false,
+      "id": "sales.vsalesperson.stateprovincename\u2194sales.vstorewithaddresses.stateprovincename",
+      "kind": "inferred_join",
+      "predicted": true
+    }
+  ],
+  "pretensor_version": "0.2.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}

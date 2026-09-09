@@ -1,0 +1,79 @@
+{
+  "dataset": "tpch",
+  "embeddings_enabled": false,
+  "fixture_sha": "sha256:2eedcb4b2454b3dd34af1037ba2c627c251aa2fe107516dcde47cf07d3a10ea8",
+  "level": "l1",
+  "metrics": {
+    "cluster_stability_jaccard": {
+      "direction": "higher_is_better",
+      "value": 1.0
+    },
+    "inferred_join_precision": {
+      "direction": "higher_is_better",
+      "value": 0.0
+    },
+    "inferred_join_recall": {
+      "direction": "higher_is_better",
+      "value": 0.0
+    },
+    "role_f1": {
+      "direction": "higher_is_better",
+      "value": null
+    }
+  },
+  "notes": [
+    "role_f1 unavailable for dataset 'tpch': no gold-role annotation file (only adversarial has labels today)."
+  ],
+  "per_item": [
+    {
+      "expected": true,
+      "id": "public.customer.c_custkey\u2194public.orders.o_custkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.customer.c_nationkey\u2194public.nation.n_nationkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.lineitem.l_orderkey\u2194public.orders.o_orderkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.lineitem.l_partkey\u2194public.partsupp.ps_partkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.nation.n_nationkey\u2194public.supplier.s_nationkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.nation.n_regionkey\u2194public.region.r_regionkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.part.p_partkey\u2194public.partsupp.ps_partkey",
+      "kind": "inferred_join",
+      "predicted": false
+    },
+    {
+      "expected": true,
+      "id": "public.partsupp.ps_suppkey\u2194public.supplier.s_suppkey",
+      "kind": "inferred_join",
+      "predicted": false
+    }
+  ],
+  "pretensor_version": "0.2.0",
+  "ran_at": "1970-01-01T00:00:00Z"
+}
