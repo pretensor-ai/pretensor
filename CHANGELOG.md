@@ -14,6 +14,13 @@ between releases.
 ## [0.2.0] - 2026-09-04
 
 ### Added
+- The release gate honours a per-release
+  `tests/benchmark/results/<tag>/accepted-regressions.toml`. Each entry names
+  one dataset, level and metric, the value the release ships at, and a
+  reason. The value is a floor, not a waiver: a run that is worse than the
+  accepted value still blocks, and an entry that matches no regression is an
+  error. Deliberate precision/recall trade-offs no longer require bypassing
+  the gate.
 - `pretensor init`, an interactive first-run setup wizard.
 - `pretensor init`'s build-from-parts flow now supports mysql, snowflake,
   and bigquery in addition to postgres, and a `--dialect` flag to force the
@@ -45,6 +52,15 @@ between releases.
   `pretensor quickstart --down`, upgrade, and start it again.
 
 ### Changed
+- Same-name join inference is gated by how many tables share a column name
+  (`GraphConfig.same_name_max_tables`, default 8). Hub columns shared by more
+  than 8 tables (`customer_id` on every fact table, `date_id` on 40 tables)
+  no longer produce same-name candidates, same-name confidence decays with
+  how widely the name is shared, and a join path is only flagged ambiguous
+  when another path ties its cost. On warehouse-sized schemas this cuts
+  inferred edges and index time by an order of magnitude at the cost of some
+  recall on hub columns. Set `same_name_max_tables` to `null` to restore the
+  ungated behaviour.
 - `analyze --connection` is now optional: it is required unless `--all` is
   passed. Omitting it without `--all` exits 1 with a runtime message
   instead of failing argument parsing with a usage error.

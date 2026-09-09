@@ -1,0 +1,24 @@
+# Metric regressions deliberately accepted for the v0.2.0 release gate.
+#
+# Each entry names one (dataset, level, metric) and the value this release
+# ships at. The gate treats accepted_value as a floor (higher_is_better) or
+# ceiling (lower_is_better): a run that is worse still blocks, and an entry
+# that matches no observed regression is an error. See
+# src/pretensor/benchmark/release_gate.py.
+
+[[accepted]]
+dataset = "adventureworks"
+level = "l1"
+metric = "inferred_join_recall"
+accepted_value = 0.4945054945054945
+reason = """
+Same-name join inference is now gated by how many tables share a column
+name (GraphConfig.same_name_max_tables, default 8). Hub columns shared by
+more than 8 tables no longer emit same-name candidates, so on
+AdventureWorks recall drops from 0.824 to 0.495 while precision rises from
+0.111 to 0.207 and F1 from 0.196 to 0.292. The old recall was bought with
+8:1 noise, which flooded join paths and made every traverse ambiguous on
+warehouse-sized schemas. The default was chosen by sweeping the gate across
+the L1 gold datasets; set same_name_max_tables to null to restore the
+ungated behaviour per deployment.
+"""

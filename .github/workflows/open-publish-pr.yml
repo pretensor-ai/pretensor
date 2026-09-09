@@ -27,7 +27,12 @@ jobs:
         run: |
           set -euo pipefail
           version="${BRANCH#publish/}"
-          if gh pr view "$BRANCH" --repo "$REPO" --json number >/dev/null 2>&1; then
+          # Only an OPEN PR should count as "already handled": `gh pr view`
+          # on a branch name also resolves closed and merged PRs, so a
+          # re-pushed release branch whose earlier PR was merged would be
+          # skipped and the release would stall with no PR to review.
+          open_count=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq 'length')
+          if [ "$open_count" -gt 0 ]; then
             echo "PR already open for ${BRANCH}."
           else
             gh pr create --repo "$REPO" --base main --head "$BRANCH" \
